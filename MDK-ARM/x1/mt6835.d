@@ -1,0 +1,11 @@
+x1\mt6835.o: ..\others\mt6835.c
+x1\mt6835.o: ..\others\mt6835.h
+x1\mt6835.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\stdbool.h
+x1\mt6835.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\stdint.h
+x1\mt6835.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\stdlib.h
+x1\mt6835.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\stdio.h
+x1\mt6835.o: ..\others\SEGGER_RTT.h
+x1\mt6835.o: ..\others\SEGGER_RTT_Conf.h
+x1\mt6835.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\stdarg.h
+x1\mt6835.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\math.h
+x1\mt6835.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\string.h

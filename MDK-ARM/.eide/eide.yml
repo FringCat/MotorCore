@@ -1,0 +1,250 @@
+version: "4.1"
+name: x1
+type: ARM
+deviceName: null
+packDir: null
+srcDirs: []
+virtualFolder:
+  name: <virtual_root>
+  files: []
+  folders:
+    - name: Application
+      files: []
+      folders:
+        - name: MDK-ARM
+          files:
+            - path: startup_stm32g474xx.s
+          folders: []
+        - name: User
+          files: []
+          folders:
+            - name: Core
+              files:
+                - path: ../Core/Src/main.c
+                - path: ../Core/Src/gpio.c
+                - path: ../Core/Src/adc.c
+                - path: ../Core/Src/fdcan.c
+                - path: ../Core/Src/spi.c
+                - path: ../Core/Src/tim.c
+                - path: ../Core/Src/stm32g4xx_it.c
+                - path: ../Core/Src/stm32g4xx_hal_msp.c
+              folders: []
+    - name: Drivers
+      files: []
+      folders:
+        - name: STM32G4xx_HAL_Driver
+          files:
+            - path: ../Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_adc.c
+            - path: ../Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_adc_ex.c
+            - path: ../Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_ll_adc.c
+            - path: ../Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal.c
+            - path: ../Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_rcc.c
+            - path: ../Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_rcc_ex.c
+            - path: ../Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_flash.c
+            - path: ../Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_flash_ex.c
+            - path: ../Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_flash_ramfunc.c
+            - path: ../Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_gpio.c
+            - path: ../Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_exti.c
+            - path: ../Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_dma.c
+            - path: ../Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_dma_ex.c
+            - path: ../Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_pwr.c
+            - path: ../Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_pwr_ex.c
+            - path: ../Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_cortex.c
+            - path: ../Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_fdcan.c
+            - path: ../Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_spi.c
+            - path: ../Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_spi_ex.c
+            - path: ../Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_tim.c
+            - path: ../Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_tim_ex.c
+          folders: []
+        - name: CMSIS
+          files:
+            - path: ../Core/Src/system_stm32g4xx.c
+          folders: []
+    - name: FOC
+      files:
+        - path: ../FOC/foc_alg.c
+        - path: ../FOC/foc_alg.h
+        - path: ../FOC/foc_drv.c
+        - path: ../FOC/foc_drv.h
+      folders: []
+    - name: other
+      files:
+        - path: ../others/mt6835.c
+        - path: ../others/mt6835.h
+        - path: ../others/mt6835_stm32_spi_port.c
+        - path: ../others/mt6835_stm32_spi_port.h
+        - path: ../others/SEGGER_RTT.c
+        - path: ../others/SEGGER_RTT.h
+        - path: ../others/SEGGER_RTT_Conf.h
+        - path: ../others/SEGGER_RTT_printf.c
+        - path: ../others/drv_DRV835X.c
+        - path: ../others/drv_DRV835X.h
+        - path: ../others/drv_DRV835X_reg.h
+        - path: ../others/MT6816.c
+        - path: ../others/MT6816.h
+        - path: ../others/flash.c
+        - path: ../others/flash.h
+        - path: ../others/dual_encoder.c
+        - path: ../others/dual_encoder.h
+        - path: ../others/can_handler.c
+        - path: ../others/can_handler.h
+        - path: ../others/fsm.c
+        - path: ../others/fsm.h
+      folders: []
+    - name: ::CMSIS
+      files: []
+      folders: []
+    - name: Middlewares
+      files: []
+      folders:
+        - name: Library
+          files: []
+          folders:
+            - name: DSP Library
+              files: []
+              folders:
+                - name: DSP Library
+                  files:
+                    - path: ../Middlewares/ST/ARM/DSP/Lib/arm_cortexM4lf_math.lib
+                  folders: []
+dependenceList: []
+outDir: build
+miscInfo:
+  uid: fa6420a2514309a3d24a536cf8cf6975
+targets:
+  x1:
+    cppPreprocessAttrs:
+      defineList:
+        - USE_HAL_DRIVER
+        - STM32G474xx
+        - __FPU_PRESENT=1
+        - __TARGET_FPU_VFP
+        - ARM_MATH_CM4
+        - __CC_ARM
+      incList:
+        - ../Core/Inc
+        - ../Drivers/STM32G4xx_HAL_Driver/Inc
+        - ../Drivers/STM32G4xx_HAL_Driver/Inc/Legacy
+        - ../Drivers/CMSIS/Device/ST/STM32G4xx/Include
+        - ../Drivers/CMSIS/Include
+        - ../FOC
+        - ../others
+        - ../Middlewares/ST/ARM/DSP/Inc
+        - .cmsis/include
+        - RTE/_x1
+      libList: []
+    excludeList: []
+    toolchain: AC5
+    toolchainConfigMap:
+      AC5:
+        archExtensions: ""
+        cpuType: Cortex-M4
+        floatingPointHardware: single
+        options:
+          version: 4
+          afterBuildTasks: []
+          asm-compiler: {}
+          beforeBuildTasks: []
+          c/cpp-compiler:
+            CXX_FLAGS: --diag_suppress=2803,1,1035
+            C_FLAGS: --diag_suppress=2803,1,1035
+            c99-mode: true
+            one-elf-section-per-function: true
+            optimization: level-3
+            warnings: all-warnings
+          global:
+            output-debug-info: enable
+            use-microLIB: true
+          linker:
+            $outputTaskExcludes:
+              - .bin
+            output-format: elf
+            ro-base: ""
+            rw-base: ""
+            xo-base: ""
+        scatterFilePath: stm32g474xx_flash.sct
+        storageLayout:
+          RAM:
+            - id: 1
+              isChecked: false
+              mem:
+                size: "0x0"
+                startAddr: "0x0"
+              noInit: false
+              tag: RAM
+            - id: 2
+              isChecked: false
+              mem:
+                size: "0x0"
+                startAddr: "0x0"
+              noInit: false
+              tag: RAM
+            - id: 3
+              isChecked: false
+              mem:
+                size: "0x0"
+                startAddr: "0x0"
+              noInit: false
+              tag: RAM
+            - id: 1
+              isChecked: true
+              mem:
+                size: "0x20000"
+                startAddr: "0x20000000"
+              noInit: false
+              tag: IRAM
+            - id: 2
+              isChecked: false
+              mem:
+                size: "0x0"
+                startAddr: "0x0"
+              noInit: false
+              tag: IRAM
+          ROM:
+            - id: 1
+              isChecked: false
+              isStartup: false
+              mem:
+                size: "0x0"
+                startAddr: "0x0"
+              tag: ROM
+            - id: 2
+              isChecked: false
+              isStartup: false
+              mem:
+                size: "0x0"
+                startAddr: "0x0"
+              tag: ROM
+            - id: 3
+              isChecked: false
+              isStartup: false
+              mem:
+                size: "0x0"
+                startAddr: "0x0"
+              tag: ROM
+            - id: 1
+              isChecked: true
+              isStartup: true
+              mem:
+                size: "0x80000"
+                startAddr: "0x8000000"
+              tag: IROM
+            - id: 2
+              isChecked: false
+              isStartup: false
+              mem:
+                size: "0x0"
+                startAddr: "0x0"
+              tag: IROM
+        useCustomScatterFile: true
+    uploadConfigMap:
+      JLink:
+        baseAddr: ""
+        bin: ""
+        cpuInfo:
+          cpuName: STM32G474CE
+          vendor: ST
+        otherCmds: ""
+        proType: 1
+        speed: 8000
+    uploader: JLink

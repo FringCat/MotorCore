@@ -1,0 +1,151 @@
+T628C 000:259.810   SEGGER J-Link V7.98 Log File
+T628C 000:260.089   DLL Compiled: Jul 17 2024 15:27:15
+T628C 000:260.111   Logging started @ 2025-11-10 06:22
+T628C 000:260.119   Process: C:\Keil_v5\UV4\UV4.exe
+T628C 000:260.134 - 260.127ms
+T628C 000:260.153 JLINK_SetWarnOutHandler(...)
+T628C 000:260.161 - 0.011ms
+T628C 000:260.171 JLINK_OpenEx(...)
+T628C 000:266.991   Firmware: J-Link V11 compiled Apr  1 2025 10:02:30
+T628C 000:268.476   Firmware: J-Link V11 compiled Apr  1 2025 10:02:30
+T628C 000:288.909   Hardware: V11.00
+T628C 000:288.950   S/N: 821009344
+T628C 000:288.962   OEM: SEGGER
+T628C 000:288.973   Feature(s): GDB
+T628C 000:291.518   Bootloader: 2019 Jul 04
+T628C 000:293.242   USB speed mode: High speed (480 MBit/s)
+T628C 000:293.984   TELNET listener socket opened on port 19021
+T628C 000:294.205   WEBSRV WEBSRV_Init(): Starting webserver thread(s)
+T628C 000:294.303   WEBSRV Failed to put socket into listener state (port 19080)
+T628C 000:294.468   WEBSRV Webserver running on local port 19081
+T628C 000:294.627   Looking for J-Link GUI Server exe at: C:\Keil_v5\ARM\Segger\JLinkGUIServer.exe
+T628C 000:294.746   Looking for J-Link GUI Server exe at: C:\Program Files\SEGGER\JLink_V798\JLinkGUIServer.exe
+T628C 000:294.788   Forking J-Link GUI Server: C:\Program Files\SEGGER\JLink_V798\JLinkGUIServer.exe
+T628C 000:297.918   J-Link GUI Server info: "J-Link GUI server V8.60 "
+T628C 000:298.868 - 38.687ms returns "O.K."
+T628C 000:298.976 JLINK_GetEmuCaps()
+T628C 000:298.992 - 0.011ms returns 0xB9FF7BBF
+T628C 000:299.002 JLINK_TIF_GetAvailable(...)
+T628C 000:299.549 - 0.546ms
+T628C 000:299.598 JLINK_SetErrorOutHandler(...)
+T628C 000:299.606 - 0.008ms
+T628C 000:299.683 JLINK_ExecCommand("ProjectFile = "C:\Users\User\work\AAA_projects\X1\X1\x1\MDK-ARM\JLinkSettings.ini"", ...). 
+T628C 000:318.621   Ref file found at: C:\Keil_v5\ARM\Segger\JLinkDevices.ref
+T628C 000:318.786   REF file references invalid XML file: C:\Program Files\SEGGER\JLink_V798\JLinkDevices.xml
+T628C 000:320.592 - 20.909ms returns 0x00
+T628C 000:320.644 JLINK_ExecCommand("Device = STM32G474CETx", ...). 
+T628C 000:321.053   Flash bank @ 0x08000000: SFL: Parsing sectorization info from ELF file
+T628C 000:321.069     FlashDevice.SectorInfo[0]: .SectorSize = 0x00000800, .SectorStartAddr = 0x00000000
+T628C 000:321.082   FlashBank @0x08000000: Sectorization info from SFL ELF file ignored because sectorization override from DLL / XML file is active.
+T628C 000:321.342   Device "STM32G474CE" selected.
+T628C 000:321.680 - 1.021ms returns 0x00
+T628C 000:321.699 JLINK_ExecCommand("DisableConnectionTimeout", ...). 
+T628C 000:321.712   ERROR: Unknown command
+T628C 000:321.723 - 0.013ms returns 0x01
+T628C 000:321.739 JLINK_GetHardwareVersion()
+T628C 000:321.749 - 0.013ms returns 110000
+T628C 000:321.759 JLINK_GetDLLVersion()
+T628C 000:321.766 - 0.007ms returns 79800
+T628C 000:321.775 JLINK_GetOEMString(...)
+T628C 000:321.784 JLINK_GetFirmwareString(...)
+T628C 000:321.792 - 0.007ms
+T628C 000:321.817 JLINK_GetDLLVersion()
+T628C 000:321.825 - 0.007ms returns 79800
+T628C 000:321.834 JLINK_GetCompileDateTime()
+T628C 000:321.842 - 0.007ms
+T628C 000:321.852 JLINK_GetFirmwareString(...)
+T628C 000:321.860 - 0.007ms
+T628C 000:321.869 JLINK_GetHardwareVersion()
+T628C 000:321.877 - 0.007ms returns 110000
+T628C 000:321.886 JLINK_GetSN()
+T628C 000:321.894 - 0.007ms returns 821009344
+T628C 000:321.903 JLINK_GetOEMString(...)
+T628C 000:321.916 JLINK_TIF_Select(JLINKARM_TIF_JTAG)
+T628C 000:325.494 - 3.576ms returns 0x00
+T628C 000:325.614 JLINK_HasError()
+T628C 000:325.634 JLINK_SetSpeed(5000)
+T628C 000:326.079 - 0.447ms
+T628C 000:326.720 JLINK_HasError()
+T628C 000:326.747 JLINK_SetResetType(JLINKARM_RESET_TYPE_NORMAL)
+T628C 000:326.758 - 0.010ms returns JLINKARM_RESET_TYPE_NORMAL
+T628C 000:326.774 JLINK_Reset()
+T628C 000:327.390   InitTarget() start
+T628C 000:327.409    J-Link Script File: Executing InitTarget()
+T628C 000:327.828   JTAG selected. Identifying JTAG Chain...
+T628C 000:329.035   TotalIRLen = ?, IRPrint = 0x..000000000000000000000000
+T628C 000:329.715   Error: Scanning JTAG chain failed.
+T628C 000:329.733   Can not attach to CPU. Trying connect under reset.
+T628C 000:381.109   JTAG selected. Identifying JTAG Chain...
+T628C 000:383.017   TotalIRLen = ?, IRPrint = 0x..000000000000000000000000
+T628C 000:383.627   Error: Scanning JTAG chain failed.
+T628C 000:383.642   Connecting to CPU via connect under reset failed.
+T628C 000:434.855   InitTarget() end - Took 107ms
+T628C 000:434.904   Connect failed. Resetting via Reset pin and trying again.
+T628C 000:497.378   InitTarget() start
+T628C 000:497.418    J-Link Script File: Executing InitTarget()
+T628C 000:498.029   JTAG selected. Identifying JTAG Chain...
+T628C 000:499.197   TotalIRLen = ?, IRPrint = 0x..000000000000000000000000
+T628C 000:499.751   Error: Scanning JTAG chain failed.
+T628C 000:499.766   Can not attach to CPU. Trying connect under reset.
+T628C 000:550.982   JTAG selected. Identifying JTAG Chain...
+T628C 000:552.376   TotalIRLen = ?, IRPrint = 0x..000000000000000000000000
+T628C 000:552.967   Error: Scanning JTAG chain failed.
+T628C 000:553.007   Connecting to CPU via connect under reset failed.
+T628C 000:603.931   InitTarget() end - Took 106ms
+T628C 000:603.972 - 277.197ms
+T628C 000:604.075 JLINK_GetIdData(pIdData)
+T628C 000:604.755   InitTarget() start
+T628C 000:604.769    J-Link Script File: Executing InitTarget()
+T628C 000:605.595   JTAG selected. Identifying JTAG Chain...
+T628C 000:607.301   TotalIRLen = ?, IRPrint = 0x..000000000000000000000000
+T628C 000:607.865   Error: Scanning JTAG chain failed.
+T628C 000:607.893   Can not attach to CPU. Trying connect under reset.
+T628C 000:659.710   JTAG selected. Identifying JTAG Chain...
+T628C 000:661.027   TotalIRLen = ?, IRPrint = 0x..000000000000000000000000
+T628C 000:661.544   Error: Scanning JTAG chain failed.
+T628C 000:661.574   Connecting to CPU via connect under reset failed.
+T628C 000:712.430   InitTarget() end - Took 107ms
+T628C 000:712.477   Connect failed. Resetting via Reset pin and trying again.
+T628C 000:775.451   InitTarget() start
+T628C 000:775.502    J-Link Script File: Executing InitTarget()
+T628C 000:776.257   JTAG selected. Identifying JTAG Chain...
+T628C 000:778.038   TotalIRLen = ?, IRPrint = 0x..000000000000000000000000
+T628C 000:778.826   Error: Scanning JTAG chain failed.
+T628C 000:778.859   Can not attach to CPU. Trying connect under reset.
+T628C 000:831.295   JTAG selected. Identifying JTAG Chain...
+T628C 000:833.222   TotalIRLen = ?, IRPrint = 0x..000000000000000000000000
+T628C 000:834.062   Error: Scanning JTAG chain failed.
+T628C 000:834.096   Connecting to CPU via connect under reset failed.
+T628C 000:885.778   InitTarget() end - Took 110ms
+T628C 000:885.824 - 281.749ms
+T628C 000:885.913 JLINK_GetIdData(pIdData)
+T628C 000:886.788   InitTarget() start
+T628C 000:886.820    J-Link Script File: Executing InitTarget()
+T628C 000:887.769   JTAG selected. Identifying JTAG Chain...
+T628C 000:889.802   TotalIRLen = ?, IRPrint = 0x..000000000000000000000000
+T628C 000:890.900   Error: Scanning JTAG chain failed.
+T628C 000:890.934   Can not attach to CPU. Trying connect under reset.
+T628C 000:942.135   JTAG selected. Identifying JTAG Chain...
+T628C 000:943.747   TotalIRLen = ?, IRPrint = 0x..000000000000000000000000
+T628C 000:944.486   Error: Scanning JTAG chain failed.
+T628C 000:944.521   Connecting to CPU via connect under reset failed.
+T628C 000:995.724   InitTarget() end - Took 108ms
+T628C 000:995.774   Connect failed. Resetting via Reset pin and trying again.
+T628C 001:058.314   InitTarget() start
+T628C 001:058.367    J-Link Script File: Executing InitTarget()
+T628C 001:058.995   JTAG selected. Identifying JTAG Chain...
+T628C 001:060.575   TotalIRLen = ?, IRPrint = 0x..000000000000000000000000
+T628C 001:061.069   Error: Scanning JTAG chain failed.
+T628C 001:061.085   Can not attach to CPU. Trying connect under reset.
+T628C 001:112.092   JTAG selected. Identifying JTAG Chain...
+T628C 001:113.407   TotalIRLen = ?, IRPrint = 0x..000000000000000000000000
+T628C 001:113.961   Error: Scanning JTAG chain failed.
+T628C 001:113.994   Connecting to CPU via connect under reset failed.
+T628C 001:164.939   InitTarget() end - Took 106ms
+T628C 001:164.983 - 279.069ms
+T628C 001:178.237 JLINK_GetFirmwareString(...)
+T628C 001:178.277 - 0.040ms
+T628C 005:160.585 JLINK_Close()
+T628C 005:162.711 - 2.126ms
+T628C 005:162.749   
+T628C 005:162.757   Closed

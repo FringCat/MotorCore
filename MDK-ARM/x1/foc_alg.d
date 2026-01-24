@@ -1,0 +1,10 @@
+x1\foc_alg.o: ..\FOC\foc_alg.c
+x1\foc_alg.o: ..\FOC\foc_alg.h
+x1\foc_alg.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\stdint.h
+x1\foc_alg.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\stdio.h
+x1\foc_alg.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\math.h
+x1\foc_alg.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\stdlib.h
+x1\foc_alg.o: ../others/SEGGER_RTT.h
+x1\foc_alg.o: ../others/SEGGER_RTT_Conf.h
+x1\foc_alg.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\stdarg.h
+x1\foc_alg.o: ..\FOC\foc_drv.h
