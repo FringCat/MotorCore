@@ -158,7 +158,7 @@ void foc_init(Motor_HandleTypeDef *motor)
     // motor->MotorConfig.angle_zero = motor->MotorConfig.angle_zero_gear_A; // 测功机电机
     // motor->MotorConfig.angle_el_zero = -4.37605f; // 设置角度零点
     motor->MotorConfig.angle_zero = motor->MotorConfig.angle_zero_gear_A; // 涛宇电机
-    motor->MotorConfig.angle_el_zero = -0.834397f; // 设置角度零点
+    motor->MotorConfig.angle_el_zero = -3.23593f; // 设置角度零点
     // motor->MotorConfig.angle_zero = -1.28362f*motor->MotorConfig.GR; // 备用电机
     // motor->MotorConfig.angle_el_zero = -1.28362f; // 设置电角度零点
     // motor->MotorConfig.angle_zero = -1.28979f*motor->MotorConfig.GR; // 8115电机

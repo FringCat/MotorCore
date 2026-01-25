@@ -125,14 +125,14 @@ int main(void)
   mt6835 = mt6835_stm32_spi_port_init();            //主磁编初始化
   DRV835X_Init();                                   //电驱芯片初始化
   HAL_Delay(1000);
-  for(int i = 0; i<30 && motor.MotorConfig.loopcount_rotor == 0XFFFF ; i++)//双编码判定圈数（flange范围±Π）
-  {
-    mt6816_update_angle(&mt6816);
-    update_loopcount_rotor_block(&motor,mt6816.angle);
-    motor.MotorData.angle_all = (motor.MotorConfig.loopcount_rotor * 2 * PI + Limit_angle_el(motor.MotorAlg.angle-motor.MotorConfig.angle_zero_gear_A) );
-    motor.MotorAlg.angle_flange = Limit_angle_flange(motor.MotorData.angle_all,motor.MotorConfig.GR);
-    motor.MotorDrv.Delayms(1);
-  }
+  // for(int i = 0; i<30 && motor.MotorConfig.loopcount_rotor == 0XFFFF ; i++)//双编码判定圈数（flange范围±Π）
+  // {
+  //   mt6816_update_angle(&mt6816);
+  //   update_loopcount_rotor_block(&motor,mt6816.angle);
+  //   motor.MotorData.angle_all = (motor.MotorConfig.loopcount_rotor * 2 * PI + Limit_angle_el(motor.MotorAlg.angle-motor.MotorConfig.angle_zero_gear_A) );
+  //   motor.MotorAlg.angle_flange = Limit_angle_flange(motor.MotorData.angle_all,motor.MotorConfig.GR);
+  //   motor.MotorDrv.Delayms(1);
+  // }
   update_flash(ADDR_FLASH_SECTOR_0,(uint64_t*)&motor.MotorConfig,sizeof(motor.MotorConfig)/4);
   flash_read(ADDR_FLASH_SECTOR_0,(uint32_t*)&motorconfig,sizeof(motor.MotorConfig)/4);
   SEGGER_RTT_printf(0,"LWJ666 has inited!\n");
@@ -158,8 +158,9 @@ int main(void)
 
     // update_2DIR_sensor_block(&motor);
     // update_angle_el_zero_sensor_block(&motor);
+    // HAL_Delay(2000);
+    // update_angle_el_zero_no_sensor_block(&motor);
     // HAL_Delay(1000);
-
   }
   /* USER CODE END 3 */
 }

@@ -293,6 +293,7 @@ void update_2DIR_sensor_nonblock(Motor_HandleTypeDef *motor);           //  相�
 
 void update_angle_el_zero_sensor_block(Motor_HandleTypeDef *motor);     //  电角度零点校准 （有传感器，阻塞式更新）
 void update_angle_el_zero_sensor_nonblock(Motor_HandleTypeDef *motor);  //  电角度零点校准 （有传感器，非阻塞式更新）
+void update_angle_el_zero_no_sensor_block(Motor_HandleTypeDef *motor);  //  电角度零点校准 （无传感器，阻塞式更新）
 
 void map_samples_to_lut(float *error_arr, int N_SAMPLES, float *lut_arr, int N_LUT); // 将采样的磁编误差数组映射成非线性插值表数组(NLLUT)
 void update_NLLUT_encoder_sensor_block(Motor_HandleTypeDef *motor);                  // 更新磁编的非线性插值表 （阻塞式更新）
