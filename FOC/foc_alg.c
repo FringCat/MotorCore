@@ -1340,6 +1340,7 @@ void update_angle_el_zero_sensor_block(Motor_HandleTypeDef *motor)
     motor->MotorData.angle_all = 0.0f;
     static float angle_debug_0 = 0;//调试用变量
     static float angle_debug_1 = 0;//调试用变量
+    static float angle_debug_2 = 0;//调试用变量
     if(angle_el_zero == NULL)
     {   
         //打印报错信息
@@ -1397,9 +1398,9 @@ void update_angle_el_zero_sensor_block(Motor_HandleTypeDef *motor)
     {
         angle_el_zero_all += angle_el_zero[i];
     }
-
+    angle_debug_2 = angle_el_zero_all/(float)sample_total;
     // motor->MotorConfig.angle_el_zero = angle_el_zero_all/(float)sample_total;
-    motor->MotorConfig.angle_el_zero = -Calculate_angle_el(motor->MotorConfig.Pole_pairs,angle_el_zero_all/(float)sample_total, 0.0f);
+    motor->MotorConfig.angle_el_zero = Calculate_angle_el(motor->MotorConfig.Pole_pairs,angle_el_zero_all/(float)sample_total, 0.0f);
 
     set_svpwm(motor,0.0f, 0.0f , 0.0f);
     free((void*)angle_el_zero);
