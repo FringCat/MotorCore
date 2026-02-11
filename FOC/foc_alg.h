@@ -14,11 +14,15 @@ typedef struct
     volatile double dt;            // 时间差（ThisTime - PastTime，单位：s/ms，需根据计时基准统一）
 }Time_t;
 
+
+
 typedef struct 
 {
     float alpha;    // 滤波系数（0~1，值越大滤波越平滑，但响应越慢）
     float last_output;   // 滤波输出值（上一次滤波后的结果，用于下一次滤波计算）
 }LPF_t;
+
+
 
 /**
  * @brief 滑动平均滤波（SMA）结构体
@@ -32,6 +36,8 @@ typedef struct
     uint8_t max_num;     // 最大采样点数（滑动窗口大小，需≤buffer数组长度，去掉const）
     float sum;           // 缓冲区数值总和（优化计算效率）
 } SMA_t;
+
+
 
 /**
  * @brief PID控制器核心结构体
@@ -56,6 +62,8 @@ typedef struct
     float output_max;     // 输出最大值（输出限幅上限）
     float output_min;     // 输出最小值（输出限幅下限）
 } PID_t;
+
+
 
 /**
  * @brief 电机硬件参数配置结构体
@@ -85,6 +93,8 @@ typedef struct
     float GT_B;
     int loopcount_rotor ;
 } Motor_ConfigTypeDef;
+
+
 
 /**
  * @brief 电机控制算法层结构体
@@ -118,6 +128,8 @@ typedef struct
 
     int Sector;          // SVPWM扇区（1~6，对应不同的空间矢量位置，用于计算PWM占空比）
 } Motor_AlgTypeDef;
+
+
 
 /**
  * @brief 电机数据采集与校准结构体
@@ -160,6 +172,8 @@ typedef struct
     // float I_ADC_CONV;    // 注释：可选，电流ADC转换系数（实际电流 = (ADC值 - 偏移) × 转换系数，单位：A/ADC_LSB）
 } Motor_DataTypeDef;
 
+
+
 /**
  * @brief 电机驱动层函数指针结构体
  * @note 驱动层与上层解耦的核心：通过函数指针定义硬件操作接口，不同MCU（如STM32/GD32）只需实现此接口，上层无需修改
@@ -189,6 +203,8 @@ typedef struct
     float (*Update_dt)(Time_t* time);  // 计算时间差dt函数（参数：Time_t结构体，返回：当前dt值，用于速度计算）
 } Motor_DrvTypeDef;
 
+
+
 /**
  * @brief 电机控制总句柄结构体
  * @note 整合电机所有资源（配置、驱动、算法、数据、时间），支持多电机管理（通过motor_number区分）
@@ -196,12 +212,14 @@ typedef struct
 typedef struct
 {
     uint32_t motor_number;         // 电机编号（多电机控制时用于区分不同电机，如关节1/关节2）
-    Time_t time;                   // 时间管理实例（绑定当前电机的计时逻辑）
+    Time_t time;                   // 时间管理实例（绑定当前电机的计时逻辑）    
     Motor_ConfigTypeDef MotorConfig;    // 电机硬件配置实例（存储当前电机的固有参数）
     Motor_DrvTypeDef MotorDrv;          // 电机驱动接口实例（绑定当前电机的硬件操作函数）
     Motor_AlgTypeDef MotorAlg;          // 电机算法层实例（存储当前电机的控制中间变量与PID）
     Motor_DataTypeDef MotorData;        // 电机数据处理实例（存储当前电机的原始数据与校准参数）
 } Motor_HandleTypeDef;
+
+
 
 // 数学常数（FOC核心计算用）
 #define PI          3.14159265359f      // 圆周率
@@ -216,6 +234,9 @@ float myabs(float x);                // 绝对值函数
 float Limit(float x, float max, float min);  // 限幅（将x限制在[min,max]）
 float mymap(float x, float in_min, float in_max, float out_min, float out_max);  // 数值映射（范围转换）
 float round_to_decimal(float x, int n);
+
+// 数据重置与初始化
+void reset_data_angle(Motor_HandleTypeDef *motor);
 
 // 电角度处理
 float Limit_angle(float angle, float Low, float High);

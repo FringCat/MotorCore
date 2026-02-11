@@ -25,9 +25,9 @@
 #include "foc_alg.h"
 #include "can_handler.h"
 #include "fdcan.h"
-#include "arm_math.h"  // 保留ARM Math库引入
+#include "arm_math.h"  
 #include "fsm.h"
-// 手动定义1/√3的高精度常量（与官方ARM_MATH_1_BY_SQRT3完全一致）
+
 #define INV_SQRT3_F   (1.0f / 1.7320508075688772f)  // ≈0.5773502691896257f
 #define INV_3_F       (1.0f / 3.0f)                 // 1/3，Clark变换用
 #define PI_F          3.141592653589793f
@@ -346,15 +346,15 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
       HAL_GPIO_TogglePin(TEST1_GPIO_Port, TEST1_Pin);
       if(isoffset_done)
       {
-        motor.MotorAlg.angle_flange = Limit_angle_flange(motor.MotorData.angle_all,motor.MotorConfig.GR);
-        motor.MotorAlg.Velocity_flange = motor.MotorAlg.Velocity/motor.MotorConfig.GR; //更新法兰速度
-        motor.MotorAlg.Uq = Calculate_PID(30.0f, motor.MotorAlg.Velocity, motor.time.dt , &motor.MotorAlg.velocity_pid);
-        // output = (forward_torque + Kp * (target_Position - motor.MotorAlg.angle)  + Kd * (target_Velocity - motor.MotorAlg.Velocity)); //无减速箱
-        // output = (1/motor.MotorConfig.Kt)*(forward_torque_flange + Kp * (target_Position - motor.MotorAlg.angle_flange)  + Kd * (target_Velocity - motor.MotorAlg.Velocity_flange));//带减速箱
-        // motor.MotorAlg.Uq = Calculate_PID(output, motor.MotorAlg.Iq , motor.time.dt , &motor.MotorAlg.iq_pid);
-        // motor.MotorAlg.Ud = Calculate_PID(0.0f, motor.MotorAlg.Id , motor.time.dt , &motor.MotorAlg.id_pid);
-        update_svpwm(&motor);//输出SVPWM
-        // fsm_run();
+        // motor.MotorAlg.angle_flange = Limit_angle_flange(motor.MotorData.angle_all,motor.MotorConfig.GR);
+        // motor.MotorAlg.Velocity_flange = motor.MotorAlg.Velocity/motor.MotorConfig.GR; //更新法兰速度
+        // motor.MotorAlg.Uq = Calculate_PID(30.0f, motor.MotorAlg.Velocity, motor.time.dt , &motor.MotorAlg.velocity_pid);
+        // // output = (forward_torque + Kp * (target_Position - motor.MotorAlg.angle)  + Kd * (target_Velocity - motor.MotorAlg.Velocity)); //无减速箱
+        // // output = (1/motor.MotorConfig.Kt)*(forward_torque_flange + Kp * (target_Position - motor.MotorAlg.angle_flange)  + Kd * (target_Velocity - motor.MotorAlg.Velocity_flange));//带减速箱
+        // // motor.MotorAlg.Uq = Calculate_PID(output, motor.MotorAlg.Iq , motor.time.dt , &motor.MotorAlg.iq_pid);
+        // // motor.MotorAlg.Ud = Calculate_PID(0.0f, motor.MotorAlg.Id , motor.time.dt , &motor.MotorAlg.id_pid);
+        // update_svpwm(&motor);//输出SVPWM
+        fsm_run();
       }
       HAL_GPIO_TogglePin(TEST1_GPIO_Port, TEST1_Pin);
     }

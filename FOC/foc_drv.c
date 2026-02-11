@@ -146,7 +146,7 @@ void foc_init(Motor_HandleTypeDef *motor)
     motor->time.dt = 0.01f;
 
     //初始化电机配置
-    motor->MotorConfig.Pole_pairs = 14; // 设置电机极对数
+    motor->MotorConfig.Pole_pairs = 16; // 设置电机极对数
     motor->MotorConfig.GR = 10.8f ;          //设置减速箱减速比
     motor->MotorConfig.DIR = 1 ;        // 设置电机转向
     motor->MotorConfig.IMAX = 20.0f;   // 设置电流限幅
@@ -158,7 +158,7 @@ void foc_init(Motor_HandleTypeDef *motor)
     // motor->MotorConfig.angle_zero = motor->MotorConfig.angle_zero_gear_A; // 测功机电机
     // motor->MotorConfig.angle_el_zero = -4.37605f; // 设置角度零点
     motor->MotorConfig.angle_zero = motor->MotorConfig.angle_zero_gear_A; // 涛宇电机
-    motor->MotorConfig.angle_el_zero = 0.71f; // 设置角度零点
+    motor->MotorConfig.angle_el_zero = 5.99412f; // 设置角度零点
     // motor->MotorConfig.angle_zero = -1.28362f*motor->MotorConfig.GR; // 备用电机
     // motor->MotorConfig.angle_el_zero = -1.28362f; // 设置电角度零点
     // motor->MotorConfig.angle_zero = -1.28979f*motor->MotorConfig.GR; // 8115电机
@@ -218,7 +218,7 @@ void foc_init(Motor_HandleTypeDef *motor)
     // motor->MotorData.LastVelocity = 0.0f;
     // motor->MotorData.Velocity_raw = 0.0f;
     motor->MotorData.Velocity_LPF.last_output = 0.0f;
-    motor->MotorData.Velocity_LPF.alpha = 0.3f; // 速度滤波系数
+    motor->MotorData.Velocity_LPF.alpha = 0.5f; // 速度滤波系数
 
     uint8_t sma_max_num = 8;
     SMA_t *sma = &motor->MotorData.Velocity_SMA;
@@ -231,4 +231,5 @@ void foc_init(Motor_HandleTypeDef *motor)
 
     motor->MotorData.angle_all = 0.0f;
 }
+
 

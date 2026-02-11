@@ -125,22 +125,26 @@ int main(void)
   mt6835 = mt6835_stm32_spi_port_init();            //主磁编初始化
   DRV835X_Init();                                   //电驱芯片初始化
   HAL_Delay(1000);
-  // for(int i = 0; i<30 && motor.MotorConfig.loopcount_rotor == 0XFFFF ; i++)//双编码判定圈数（flange范围±Π）
-  // {
-  //   mt6816_update_angle(&mt6816);
-  //   update_loopcount_rotor_block(&motor,mt6816.angle);
-  //   motor.MotorData.angle_all = (motor.MotorConfig.loopcount_rotor * 2 * PI + Limit_angle_el(motor.MotorAlg.angle-motor.MotorConfig.angle_zero_gear_A) );
-  //   motor.MotorAlg.angle_flange = Limit_angle_flange(motor.MotorData.angle_all,motor.MotorConfig.GR);
-  //   motor.MotorDrv.Delayms(1);
-  // }
+  for(int i = 0; i<30 && motor.MotorConfig.loopcount_rotor == 0XFFFF ; i++)//双编码判定圈数（flange范围±Π）
+  {
+    mt6816_update_angle(&mt6816);
+    update_loopcount_rotor_block(&motor,mt6816.angle);
+    motor.MotorData.angle_all = (motor.MotorConfig.loopcount_rotor * 2 * PI + Limit_angle_el(motor.MotorAlg.angle-motor.MotorConfig.angle_zero_gear_A) );
+    motor.MotorAlg.angle_flange = Limit_angle_flange(motor.MotorData.angle_all,motor.MotorConfig.GR);
+    motor.MotorDrv.Delayms(1);
+  } 
   update_flash(ADDR_FLASH_SECTOR_0,(uint64_t*)&motor.MotorConfig,sizeof(motor.MotorConfig)/4);
   flash_read(ADDR_FLASH_SECTOR_0,(uint32_t*)&motorconfig,sizeof(motor.MotorConfig)/4);
   SEGGER_RTT_printf(0,"LWJ666 has inited!\n");
 
-  // __HAL_ADC_ENABLE_IT(&hadc1, ADC_IT_JEOC);         //adc采样中断(PWM通道4触发)
-  // __HAL_TIM_ENABLE_IT(&htim1, TIM_IT_UPDATE);       //定时中断(20Khz 兼为PWM定时器)
-  // __HAL_FDCAN_ENABLE_IT(&hfdcan1, FDCAN_IT_RX_FIFO0_NEW_MESSAGE); //使能CAN中断
+  __HAL_ADC_ENABLE_IT(&hadc1, ADC_IT_JEOC);         //adc采样中断(PWM通道4触发)
+  __HAL_TIM_ENABLE_IT(&htim1, TIM_IT_UPDATE);       //定时中断(20Khz 兼为PWM定时器)
+  __HAL_FDCAN_ENABLE_IT(&hfdcan1, FDCAN_IT_RX_FIFO0_NEW_MESSAGE); //使能CAN中断
   
+  // __HAL_FDCAN_DISABLE_IT(&hfdcan1, FDCAN_IT_RX_FIFO0_NEW_MESSAGE); 
+  // __HAL_TIM_DISABLE_IT(&htim1, TIM_IT_UPDATE);      
+  // __HAL_ADC_DISABLE_IT(&hadc1, ADC_IT_JEOC);   
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -151,6 +155,9 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 
+    // static uint32_t time_now = 0;
+    // time_now = SysTick->VAL;
+
     // mt6816_update_angle(&mt6816);
     // update_loopcount_rotor_block(&motor,mt6816.angle);
     // motor.MotorData.angle_all = (motor.MotorConfig.loopcount_rotor * 2 * PI + Limit_angle_el(motor.MotorAlg.angle-motor.MotorConfig.angle_zero_gear_A) );
@@ -159,12 +166,42 @@ int main(void)
     // update_2DIR_sensor_block(&motor);
     // update_angle_el_zero_sensor_block(&motor);
     // HAL_Delay(2000);
-    update_angle_el_zero_no_sensor_block(&motor);
-    HAL_Delay(1000);
-  }
+    // update_angle_el_zero_no_sensor_block(&motor);
+    // HAL_Delay(1000);
+
+    switch(fsm_motor.state)
+    {
+      case CALIBRATION:
+      {
+        __HAL_FDCAN_DISABLE_IT(&hfdcan1, FDCAN_IT_RX_FIFO0_NEW_MESSAGE); 
+        __HAL_TIM_DISABLE_IT(&htim1, TIM_IT_UPDATE);      
+        __HAL_ADC_DISABLE_IT(&hadc1, ADC_IT_JEOC);
+
+        SEGGER_RTT_printf(0,"Start calibration!\n");
+
+        update_2DIR_sensor_block(&motor);
+        update_angle_el_zero_sensor_block(&motor);
+        HAL_Delay(1000);    
+        SEGGER_RTT_printf(0,"end calibration!\n");
+
+        __HAL_ADC_ENABLE_IT(&hadc1, ADC_IT_JEOC);         
+        __HAL_TIM_ENABLE_IT(&htim1, TIM_IT_UPDATE);      
+        __HAL_FDCAN_ENABLE_IT(&hfdcan1, FDCAN_IT_RX_FIFO0_NEW_MESSAGE); 
+        fsm_motor.state = SLEEP;
+      };break;
+      case SET_ZERO:
+      {
+        
+      };break;
+      default:
+      {
+
+      };break;
+    }
+
   /* USER CODE END 3 */
 }
-
+}
 /**
   * @brief System Clock Configuration
   * @retval None

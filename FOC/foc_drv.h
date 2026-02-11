@@ -10,5 +10,4 @@
 #define U_ADC_CONV    0.00080586
 
 void foc_init(Motor_HandleTypeDef *motor);
-
 #endif

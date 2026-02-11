@@ -28,10 +28,19 @@ void fsm_run(void)
             target_Velocity = 0.0f;
             target_Position =  0.0f;
             forward_torque_flange =  0.0f;
+            fsm_motor.timeout = 0.0f;
 
+            // if(motor.MotorAlg.Velocity_flange > 0.1f || motor.MotorAlg.Velocity_flange < -0.1f)
+            // {
+            //     Kd+= 0.000001f;  
+            // }
+            // else
+            // {
+            //     Kd = 0.1f;
+            // }   
             motor.MotorAlg.angle_flange = Limit_angle_flange(motor.MotorData.angle_all,motor.MotorConfig.GR);
             motor.MotorAlg.Velocity_flange = motor.MotorAlg.Velocity/motor.MotorConfig.GR; //更新法兰速度
-            // output = (forward_torque + Kp * (target_Position - motor.MotorAlg.angle)  + Kd * (target_Velocity - motor.MotorAlg.Velocity)); //无减速箱
+
             output = (1/motor.MotorConfig.Kt)*(forward_torque_flange + Kp * (target_Position - motor.MotorAlg.angle_flange)  + Kd * (target_Velocity - motor.MotorAlg.Velocity_flange));//带减速箱
             motor.MotorAlg.Uq = Calculate_PID(output, motor.MotorAlg.Iq , motor.time.dt , &motor.MotorAlg.iq_pid);
             motor.MotorAlg.Ud = Calculate_PID(0.0f, motor.MotorAlg.Id , motor.time.dt , &motor.MotorAlg.id_pid);
@@ -63,10 +72,17 @@ void fsm_run(void)
         }; break;
         case CALIBRATION:
         {
-            __disable_irq();
-            update_angle_el_zero_sensor_block(&motor);
-            __enable_irq();
-            fsm_motor.state = SLEEP;    
+            // __HAL_FDCAN_DISABLE_IT(&hfdcan1, FDCAN_IT_RX_FIFO0_NEW_MESSAGE); 
+            // __HAL_TIM_DISABLE_IT(&htim1, TIM_IT_UPDATE);      
+            // __HAL_ADC_DISABLE_IT(&hadc1, ADC_IT_JEOC);
+
+            // SEGGER_RTT_printf(0,"Start calibration!\n");
+            // // update_angle_el_zero_sensor_block(&motor);
+            // HAL_Delay(1000);    
+            // SEGGER_RTT_printf(0,"end calibration!\n");
+            // __HAL_ADC_ENABLE_IT(&hadc1, ADC_IT_JEOC);         
+            // __HAL_TIM_ENABLE_IT(&htim1, TIM_IT_UPDATE);      
+            // __HAL_FDCAN_ENABLE_IT(&hfdcan1, FDCAN_IT_RX_FIFO0_NEW_MESSAGE); 
         };break;
         case SET_ZERO:
         {

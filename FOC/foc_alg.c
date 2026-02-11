@@ -60,6 +60,13 @@ float mymap( float Data ,float formLOW,float formHIGH, float toLOW,float toHIGH)
 	return ((Data-formLOW)*((float)((toHIGH-toLOW)/(float)(formHIGH-formLOW))))+toLOW;
 }
 
+void reset_data_angle(Motor_HandleTypeDef *motor)
+{
+    motor->MotorData.angle_all = 0.0f;
+    motor->MotorAlg.last_angle = 0.0f;
+    motor->MotorAlg.angle = 0.0f;
+}
+
 float Limit_angle(float angle, float Low, float High)
 {
     // 异常处理：若上下限差值过小（周期为0），返回NaN标识错误
@@ -1330,6 +1337,7 @@ void update_angle_el_zero_no_sensor_block(Motor_HandleTypeDef *motor)
     set_svpwm(motor,0.0f, 0.0f , 0.0f);
     motor->MotorDrv.Delayms(1000);
 }
+
 void update_angle_el_zero_sensor_block(Motor_HandleTypeDef *motor)
 {
     uint32_t sample_per = 20 ; //每极对采样20个
@@ -1337,10 +1345,16 @@ void update_angle_el_zero_sensor_block(Motor_HandleTypeDef *motor)
     float *angle_el_zero = (float*)calloc(sample_total,sizeof(float));  //按照采样数定义动态数组
     float angle_el_zero_all = 0;
 
-    motor->MotorData.angle_all = 0.0f;
+    float angle_all_temp = motor->MotorData.angle_all;//保存现场
+    float angle_last_temp = motor->MotorAlg.last_angle;
+    float angle_temp = motor->MotorAlg.angle;
+
+    reset_data_angle(motor);
+
     static float angle_debug_0 = 0;//调试用变量
     static float angle_debug_1 = 0;//调试用变量
     static float angle_debug_2 = 0;//调试用变量
+    
     if(angle_el_zero == NULL)
     {   
         //打印报错信息
@@ -1401,96 +1415,15 @@ void update_angle_el_zero_sensor_block(Motor_HandleTypeDef *motor)
     angle_debug_2 = angle_el_zero_all/(float)sample_total;
     // motor->MotorConfig.angle_el_zero = angle_el_zero_all/(float)sample_total;
     motor->MotorConfig.angle_el_zero = Calculate_angle_el(motor->MotorConfig.Pole_pairs,angle_el_zero_all/(float)sample_total, 0.0f);
+    
+    motor->MotorData.angle_all = angle_all_temp ;//返回现场
+    motor->MotorAlg.last_angle = angle_last_temp;
+    motor->MotorAlg.angle = angle_temp;
 
     set_svpwm(motor,0.0f, 0.0f , 0.0f);
     free((void*)angle_el_zero);
 
 }
-// static float angle_error = 0 ;
-// void update_angle_el_zero_sensor_block(Motor_HandleTypeDef *motor)
-// {
-//     uint32_t sample_per = 50 ; //每极对采样100个
-//     uint32_t sample_total = motor->MotorConfig.Pole_pairs * sample_per; //总采样数
-//     float *angle_el_zero = (float*)calloc(sample_total,sizeof(float));  //按照采样数定义动态数组
-//     float angle_el_zero_all = 0;
-
-//     float angle_all_temp = 0;//现场变量
-//     float angle_last_temp = 0;
-//     float angle_temp = 0 ;
-//     static float angle_el_zero_ori = 0;//角度观测者，调试用
-
-//     angle_all_temp = motor->MotorData.angle_all ;
-//     angle_last_temp = motor->MotorAlg.last_angle ;
-//     motor->MotorAlg.last_angle = 0.0f;
-//     motor->MotorAlg.angle = 0.0f;
-//     motor->MotorData.angle_all = 0.0f;
-
-//     if(angle_el_zero == NULL)
-//     {   
-//         //打印报错信息
-//         SEGGER_RTT_printf(0, "Heap_Size is not enough!\n");
-//         free((void*)angle_el_zero);
-//         return;
-//     }
-
-//     set_svpwm(motor,motor->MotorConfig.UMAX*0.05f, 0.0f , 0.0f);
-//     motor->MotorDrv.Delayms(1000);
-//     // motor->MotorData.angle_all = update_angle(motor);
-//     // float angle_last = motor->MotorData.angle_all;
-//     float angle_now = 0.0f;
-//     do
-//     {
-//         update_dt(motor);
-//         update_angle(motor);//angle_all必须是0.0f
-//         angle_now = ctrl_motor_openloop_angle_nonblock(motor,2*PI,0.0f,0.3,motor->MotorConfig.UMAX*0.05f, 0.0f);
-//         // angle_error = angle_now - motor->MotorData.angle_all;
-//         uint32_t i =(uint32_t)round((angle_now/(2*PI))*(float)sample_total);
-        
-//         if(i>=sample_total|| i<0)
-//         {
-//             ctrl_motor_openloop_angle_nonblock(motor,0.0f,0.0f,1000.0f,0.0f,0.0f);//注销掉这个函数的angle_now，防止用到下一次开环执行程序中
-//             break;
-//         }
-//         angle_el_zero[i] = angle_now - motor->MotorData.angle_all;
-//         angle_el_zero_ori = angle_now;
-//         // angle_el_zero_ori = angle_el_zero[i];
-//         // printf("%d,%f,%f\n",i,angle_el_zero[i],angle_now);
-
-//     } while (angle_now);
-//     motor->MotorDrv.Delayms(500);
-//     do
-//     {
-//         update_dt(motor);
-//         update_angle(motor);
-//         angle_now = ctrl_motor_openloop_angle_nonblock(motor,0.0f,2*PI,-0.3,motor->MotorConfig.UMAX*0.05f, 0.0f);
-//         // angle_error = angle_now - motor->MotorData.angle_all;
-//         uint32_t i =(uint32_t)round((angle_now/(2*PI))*(float)sample_total);
-//         if(i>=sample_total || i<0)
-//         {
-//             ctrl_motor_openloop_angle_nonblock(motor,0.0f,0.0f,1000.0f,0.0f,0.0f);//注销掉这个函数的angle_now，防止用到下一次开环执行程序中
-//             break;
-//         }
-//         angle_el_zero[i] += angle_now - motor->MotorData.angle_all;
-//         angle_el_zero[i] /= 2;
-//         angle_el_zero_ori = angle_now;
-//         // angle_el_zero_ori = angle_el_zero[i];
-//         // printf("%d,%f,%f\n",i,angle_el_zero[i],angle_now);
-//     } while (angle_now);
-//     // printf("%f\n",angle_now);
-//     for(int i = 0; i<sample_total ;i++)
-//     {
-//         angle_el_zero_all += angle_el_zero[i];
-//     }
-//     motor->MotorConfig.angle_el_zero = angle_el_zero_all/(float)sample_total;
-    
-//     motor->MotorData.angle_all = angle_all_temp ;
-//     motor->MotorAlg.last_angle = angle_last_temp;
-//     motor->MotorAlg.angle = angle_temp;
-
-//     set_svpwm(motor,0.0f, 0.0f , 0.0f);
-//     free((void*)angle_el_zero);
-
-// }
 
 void update_angle_el_zero_sensor_nonblock(Motor_HandleTypeDef *motor)
 {
