@@ -3,19 +3,20 @@
         {
             "name": "x1",
             "includePath": [
-                "c:\\Users\\User\\work\\AAA_projects\\MotorCore\\MotorCore-main\\MotorCore-main\\Core\\Inc",
-                "c:\\Users\\User\\work\\AAA_projects\\MotorCore\\MotorCore-main\\MotorCore-main\\Drivers\\STM32G4xx_HAL_Driver\\Inc",
-                "c:\\Users\\User\\work\\AAA_projects\\MotorCore\\MotorCore-main\\MotorCore-main\\Drivers\\STM32G4xx_HAL_Driver\\Inc\\Legacy",
-                "c:\\Users\\User\\work\\AAA_projects\\MotorCore\\MotorCore-main\\MotorCore-main\\Drivers\\CMSIS\\Device\\ST\\STM32G4xx\\Include",
-                "c:\\Users\\User\\work\\AAA_projects\\MotorCore\\MotorCore-main\\MotorCore-main\\Drivers\\CMSIS\\Include",
-                "c:\\Users\\User\\work\\AAA_projects\\MotorCore\\MotorCore-main\\MotorCore-main\\FOC",
-                "c:\\Users\\User\\work\\AAA_projects\\MotorCore\\MotorCore-main\\MotorCore-main\\others",
-                "c:\\Users\\User\\work\\AAA_projects\\MotorCore\\MotorCore-main\\MotorCore-main\\Middlewares\\ST\\ARM\\DSP\\Inc",
-                "C:\\Keil_v5\\ARM\\ARMCC\\include",
-                "C:\\Keil_v5\\ARM\\ARMCC\\include\\rw",
-                "c:\\Users\\User\\work\\AAA_projects\\MotorCore\\MotorCore-main\\MotorCore-main\\MDK-ARM",
-                "c:\\Users\\User\\work\\AAA_projects\\MotorCore\\MotorCore-main\\MotorCore-main\\Core\\Src",
-                "c:\\Users\\User\\work\\AAA_projects\\MotorCore\\MotorCore-main\\MotorCore-main\\Drivers\\STM32G4xx_HAL_Driver\\Src"
+                "d:\\A-Work\\AAA_projects\\MotorCore\\x1\\Core\\Inc",
+                "d:\\A-Work\\AAA_projects\\MotorCore\\x1\\Drivers\\STM32G4xx_HAL_Driver\\Inc",
+                "d:\\A-Work\\AAA_projects\\MotorCore\\x1\\Drivers\\STM32G4xx_HAL_Driver\\Inc\\Legacy",
+                "d:\\A-Work\\AAA_projects\\MotorCore\\x1\\Drivers\\CMSIS\\Device\\ST\\STM32G4xx\\Include",
+                "d:\\A-Work\\AAA_projects\\MotorCore\\x1\\Drivers\\CMSIS\\Include",
+                "d:\\A-Work\\AAA_projects\\MotorCore\\x1\\FOC",
+                "d:\\A-Work\\AAA_projects\\MotorCore\\x1\\others",
+                "d:\\A-Work\\AAA_projects\\MotorCore\\x1\\Middlewares\\ST\\ARM\\DSP\\Inc",
+                "C:\\Keil5 MDK 1\\ARM\\ARMCC\\include",
+                "C:\\Keil5 MDK 1\\ARM\\ARMCC\\include\\rw",
+                "d:\\A-Work\\AAA_projects\\MotorCore\\x1\\MDK-ARM",
+                "d:\\A-Work\\AAA_projects\\MotorCore\\x1\\Core\\Src",
+                "d:\\A-Work\\AAA_projects\\MotorCore\\x1\\Drivers\\STM32G4xx_HAL_Driver\\Src",
+                "d:\\A-Work\\AAA_projects\\MotorCore\\x1\\Middlewares\\ST\\ARM\\DSP\\Lib"
             ],
             "defines": [
                 "USE_HAL_DRIVER",

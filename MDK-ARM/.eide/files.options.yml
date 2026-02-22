@@ -17,4 +17,17 @@ version: "2.1"
 options:
     x1:
         files: {}
-        virtualPathFiles: {}
+        virtualPathFiles:
+            <virtual_root>/Application/User/Core/gpio.c: ""
+            <virtual_root>/Application/User/Core/adc.c: ""
+            <virtual_root>/Application/User/Core/fdcan.c: ""
+            <virtual_root>/Application/User/Core/spi.c: ""
+            <virtual_root>/Application/User/Core/tim.c: ""
+            <virtual_root>/Drivers/STM32G4xx_HAL_Driver/stm32g4xx_hal_adc.c: ""
+            <virtual_root>/Drivers/STM32G4xx_HAL_Driver/stm32g4xx_hal_adc_ex.c: ""
+            <virtual_root>/Drivers/STM32G4xx_HAL_Driver/stm32g4xx_ll_adc.c: ""
+            <virtual_root>/Drivers/STM32G4xx_HAL_Driver/stm32g4xx_hal_fdcan.c: ""
+            <virtual_root>/Drivers/STM32G4xx_HAL_Driver/stm32g4xx_hal_spi.c: ""
+            <virtual_root>/Drivers/STM32G4xx_HAL_Driver/stm32g4xx_hal_spi_ex.c: ""
+            <virtual_root>/Drivers/STM32G4xx_HAL_Driver/stm32g4xx_hal_tim.c: ""
+            <virtual_root>/Drivers/STM32G4xx_HAL_Driver/stm32g4xx_hal_tim_ex.c: ""

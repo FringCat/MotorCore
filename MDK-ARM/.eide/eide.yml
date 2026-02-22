@@ -90,9 +90,8 @@ virtualFolder:
         - path: ../others/can_handler.h
         - path: ../others/fsm.c
         - path: ../others/fsm.h
-      folders: []
-    - name: ::CMSIS
-      files: []
+        - path: ../others/ADRC.c
+        - path: ../others/ADRC.h
       folders: []
     - name: Middlewares
       files: []
@@ -107,6 +106,9 @@ virtualFolder:
                   files:
                     - path: ../Middlewares/ST/ARM/DSP/Lib/arm_cortexM4lf_math.lib
                   folders: []
+    - name: ::CMSIS
+      files: []
+      folders: []
 dependenceList: []
 outDir: build
 miscInfo:
@@ -143,7 +145,8 @@ targets:
         options:
           version: 4
           afterBuildTasks: []
-          asm-compiler: {}
+          asm-compiler:
+            defines: []
           beforeBuildTasks: []
           c/cpp-compiler:
             CXX_FLAGS: --diag_suppress=2803,1,1035
