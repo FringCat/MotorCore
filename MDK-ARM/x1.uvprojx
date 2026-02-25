@@ -1361,6 +1361,16 @@
               <FileType>5</FileType>
               <FilePath>..\others\ADRC.h</FilePath>
             </File>
+            <File>
+              <FileName>SMO.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\others\SMO.c</FilePath>
+            </File>
+            <File>
+              <FileName>SMO.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\others\SMO.h</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

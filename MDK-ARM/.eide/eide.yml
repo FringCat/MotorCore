@@ -92,6 +92,8 @@ virtualFolder:
         - path: ../others/fsm.h
         - path: ../others/ADRC.c
         - path: ../others/ADRC.h
+        - path: ../others/SMO.c
+        - path: ../others/SMO.h
       folders: []
     - name: Middlewares
       files: []
