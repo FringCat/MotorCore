@@ -146,7 +146,7 @@ void foc_init(Motor_HandleTypeDef *motor)
     motor->time.dt = 0.01f;
 
     //初始化电机配置
-    motor->MotorConfig.Pole_pairs = 16; // 设置电机极对数
+    motor->MotorConfig.Pole_pairs = 14; // 设置电机极对数
     motor->MotorConfig.GR = 10.8f ;          //设置减速箱减速比
     motor->MotorConfig.DIR = 1 ;        // 设置电机转向
     motor->MotorConfig.IMAX = 20.0f;   // 设置电流限幅
@@ -158,7 +158,7 @@ void foc_init(Motor_HandleTypeDef *motor)
     // motor->MotorConfig.angle_zero = motor->MotorConfig.angle_zero_gear_A; // 测功机电机
     // motor->MotorConfig.angle_el_zero = -4.37605f; // 设置角度零点
     motor->MotorConfig.angle_zero = motor->MotorConfig.angle_zero_gear_A; // 涛宇电机
-    motor->MotorConfig.angle_el_zero = 5.99412f; // 设置角度零点
+    motor->MotorConfig.angle_el_zero = 2.76984f; // 设置角度零点
     // motor->MotorConfig.angle_zero = -1.28362f*motor->MotorConfig.GR; // 备用电机
     // motor->MotorConfig.angle_el_zero = -1.28362f; // 设置电角度零点
     // motor->MotorConfig.angle_zero = -1.28979f*motor->MotorConfig.GR; // 8115电机
@@ -169,14 +169,14 @@ void foc_init(Motor_HandleTypeDef *motor)
     motor->MotorConfig.loopcount_rotor = 0XFFFF;
 
     // 初始化PID参数(要用哪个初始化哪个)
-    motor->MotorAlg.position_pid.KP = 0.1f;
-    motor->MotorAlg.position_pid.KI = 0.01f;
+    motor->MotorAlg.position_pid.KP = 0.03f;
+    motor->MotorAlg.position_pid.KI = 0.05f;
     motor->MotorAlg.position_pid.KD = 0.0f;
     motor->MotorAlg.position_pid.integral_limit = 10.0f;
     motor->MotorAlg.position_pid.output_limit = 100.0f;
 
-    motor->MotorAlg.velocity_pid.KP = 0.2f;
-    motor->MotorAlg.velocity_pid.KI = 0.1f;
+    motor->MotorAlg.velocity_pid.KP = 0.3f;
+    motor->MotorAlg.velocity_pid.KI = 0.0f;
     motor->MotorAlg.velocity_pid.KD = 0.0f;
     motor->MotorAlg.velocity_pid.integral_max = 100.0f;
     motor->MotorAlg.velocity_pid.integral_min = -100.0f;

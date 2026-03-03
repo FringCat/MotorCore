@@ -246,7 +246,9 @@ float Get_angle_el(Motor_HandleTypeDef *motor);  // 获取当前电角度
 float update_angle_el(Motor_HandleTypeDef *motor);  // 更新电角度（机械角→电角度）
 float Calculate_angle_el(float Pole_pairs,float angle,float angle_el_zero);  // 计算电角度（含极对数和零点）
 float update_angle(Motor_HandleTypeDef *motor);
+float update_angle_NLLUT(Motor_HandleTypeDef *motor);
 float Calculate_angle_flange(float angle ,float GR,float angle_zero);
+float Calculate_angle_NLLUT(float angle ,float* NLLUT_encoder,uint32_t size_NLLUT);
 
 // FOC坐标变换
 float *Calculate_Park_N(float Uq , float Ud , float angle_el);  // Park逆变换（dq→αβ电压）
@@ -321,6 +323,8 @@ void update_NLLUT_encoder_sensor_block(Motor_HandleTypeDef *motor);             
 void update_NLLUT_encoder_sensor_nonblock(Motor_HandleTypeDef *motor);               // 更新磁编的非线性插值表 （非阻塞式更新）
 
 void update_loopcount_rotor_block(Motor_HandleTypeDef *motor,float angle_encoder_B);                      //阻塞式转子圈数估计
+
+void update_NLLUT_and_angle_el_zero_sensor_block(Motor_HandleTypeDef *motor);       //更新插值表跟电角度零点
 
 void ctrl_motor_openloop_velocity_el_nonblock(Motor_HandleTypeDef *motor,float velocity_el_target,float Uq,float Ud);
 void ctrl_motor_openloop_velocity_nonblock(Motor_HandleTypeDef *motor,float velocity_target,float Uq,float Ud);

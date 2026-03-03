@@ -35,6 +35,8 @@
 #include "flash.h"
 #include "can_handler.h"
 #include "fsm.h"
+#include "ADRC.h"
+#include "SMO.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -61,6 +63,8 @@ mt6835_t *mt6835 = NULL;
 mt6816_HandleTypeDef mt6816;
 Motor_ConfigTypeDef motorconfig;
 CAN_Handler_t can_handler;
+ADRC_HandleTypeDef ADRC;
+SMO_HandleTypeDef SMO;
 
 int isoffset_done = 0;
 int isFirstRun_done = 0;
@@ -124,6 +128,10 @@ int main(void)
   mt6816_init(&mt6816);                             //副磁编初始化
   mt6835 = mt6835_stm32_spi_port_init();            //主磁编初始化
   DRV835X_Init();                                   //电驱芯片初始化
+
+  ADRC_Init(&ADRC,1,0.00005,700.0f);  
+  SMO_Init(&SMO);
+
   HAL_Delay(1000);
   for(int i = 0; i<30 && motor.MotorConfig.loopcount_rotor == 0XFFFF ; i++)//双编码判定圈数（flange范围±Π）
   {
@@ -139,7 +147,7 @@ int main(void)
 
   __HAL_ADC_ENABLE_IT(&hadc1, ADC_IT_JEOC);         //adc采样中断(PWM通道4触发)
   __HAL_TIM_ENABLE_IT(&htim1, TIM_IT_UPDATE);       //定时中断(20Khz 兼为PWM定时器)
-  __HAL_FDCAN_ENABLE_IT(&hfdcan1, FDCAN_IT_RX_FIFO0_NEW_MESSAGE); //使能CAN中断
+  // __HAL_FDCAN_ENABLE_IT(&hfdcan1, FDCAN_IT_RX_FIFO0_NEW_MESSAGE); //使能CAN中断
   
   // __HAL_FDCAN_DISABLE_IT(&hfdcan1, FDCAN_IT_RX_FIFO0_NEW_MESSAGE); 
   // __HAL_TIM_DISABLE_IT(&htim1, TIM_IT_UPDATE);      
@@ -155,8 +163,8 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 
-    // static uint32_t time_now = 0;
-    // time_now = SysTick->VAL;
+    // motor.MotorAlg.Uq = Calculate_PID(30.0f, motor.MotorAlg.Velocity, motor.time.dt , &motor.MotorAlg.velocity_pid);
+    // update_svpwm(&motor);//输出SVPWM
 
     // mt6816_update_angle(&mt6816);
     // update_loopcount_rotor_block(&motor,mt6816.angle);
@@ -165,39 +173,41 @@ int main(void)
 
     // update_2DIR_sensor_block(&motor);
     // update_angle_el_zero_sensor_block(&motor);
+    // update_NLLUT_and_angle_el_zero_sensor_block(&motor);
     // HAL_Delay(2000);
     // update_angle_el_zero_no_sensor_block(&motor);
     // HAL_Delay(1000);
 
-    switch(fsm_motor.state)
-    {
-      case CALIBRATION:
-      {
-        __HAL_FDCAN_DISABLE_IT(&hfdcan1, FDCAN_IT_RX_FIFO0_NEW_MESSAGE); 
-        __HAL_TIM_DISABLE_IT(&htim1, TIM_IT_UPDATE);      
-        __HAL_ADC_DISABLE_IT(&hadc1, ADC_IT_JEOC);
+    // switch(fsm_motor.state)
+    // {
+    //   case CALIBRATION:
+    //   {
+    //     __HAL_FDCAN_DISABLE_IT(&hfdcan1, FDCAN_IT_RX_FIFO0_NEW_MESSAGE); 
+    //     __HAL_TIM_DISABLE_IT(&htim1, TIM_IT_UPDATE);      
+    //     __HAL_ADC_DISABLE_IT(&hadc1, ADC_IT_JEOC);
 
-        SEGGER_RTT_printf(0,"Start calibration!\n");
+    //     SEGGER_RTT_printf(0,"Start calibration!\n");
+    //     // update_2DIR_sensor_block(&motor);
+    //     // update_angle_el_zero_sensor_block(&motor);
+    //     // HAL_Delay(1000); 
+    //     update_NLLUT_and_angle_el_zero_sensor_block(&motor);
+    //     HAL_Delay(1000);    
+    //     SEGGER_RTT_printf(0,"end calibration!\n");
 
-        update_2DIR_sensor_block(&motor);
-        update_angle_el_zero_sensor_block(&motor);
-        HAL_Delay(1000);    
-        SEGGER_RTT_printf(0,"end calibration!\n");
-
-        __HAL_ADC_ENABLE_IT(&hadc1, ADC_IT_JEOC);         
-        __HAL_TIM_ENABLE_IT(&htim1, TIM_IT_UPDATE);      
-        __HAL_FDCAN_ENABLE_IT(&hfdcan1, FDCAN_IT_RX_FIFO0_NEW_MESSAGE); 
-        fsm_motor.state = SLEEP;
-      };break;
-      case SET_ZERO:
-      {
+    //     __HAL_ADC_ENABLE_IT(&hadc1, ADC_IT_JEOC);         
+    //     __HAL_TIM_ENABLE_IT(&htim1, TIM_IT_UPDATE);      
+    //     __HAL_FDCAN_ENABLE_IT(&hfdcan1, FDCAN_IT_RX_FIFO0_NEW_MESSAGE); 
+    //     fsm_motor.state = SLEEP;
+    //   };break;
+    //   case SET_ZERO:
+    //   {
         
-      };break;
-      default:
-      {
+    //   };break;
+    //   default:
+    //   {
 
-      };break;
-    }
+    //   };break;
+    // }
 
   /* USER CODE END 3 */
 }

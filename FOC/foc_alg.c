@@ -55,6 +55,17 @@ float round_to_decimal(float x, int n)
     return round(x * scale) / scale;  // 四舍五入后还原
 }
 
+int32_t fast_round(float x) 
+{
+    if (x >= 0) 
+    {
+        return (int32_t)(x + 0.5f);
+    } else 
+    {
+        return (int32_t)(x - 0.5f);
+    }
+}
+
 float mymap( float Data ,float formLOW,float formHIGH, float toLOW,float toHIGH)
 {
 	return ((Data-formLOW)*((float)((toHIGH-toLOW)/(float)(formHIGH-formLOW))))+toLOW;
@@ -125,6 +136,7 @@ float Limit_angle_flange(float angle_all,float GR)
 
 float update_angle(Motor_HandleTypeDef *motor)//待更新:angle_all的更新是上一个周期的angle_all 不是这次的angle_all
 {
+    static float data_debug_0_ = 0.0f;
     float error_angle = motor->MotorAlg.angle-motor->MotorAlg.last_angle;
     if(fabs(error_angle) > (0.8f*2*PI))
     {
@@ -140,7 +152,32 @@ float update_angle(Motor_HandleTypeDef *motor)//待更新:angle_all的更新是�
 
     motor->MotorData.AngleData.Angle_raw = motor->MotorDrv.Update_Angle_raw();
     motor->MotorAlg.angle = motor->MotorDrv.Cal_Angle(motor->MotorData.AngleData.Angle_raw);
+    // data_debug_0_ = Calculate_angle_NLLUT(motor->MotorAlg.angle,motor->MotorConfig.NLLUT_encoder,128);
+    // motor->MotorAlg.angle_flange = Calculate_angle_flange(motor->MotorData.angle_all,motor->MotorConfig.GR,motor->MotorConfig.angle_zero);
 
+    motor->MotorAlg.angle_el = Calculate_angle_el(motor->MotorConfig.Pole_pairs,motor->MotorAlg.angle, motor->MotorConfig.angle_el_zero);
+
+    return motor->MotorAlg.angle;
+}
+
+float update_angle_NLLUT(Motor_HandleTypeDef *motor)
+{
+    static float data_debug_0_ = 0.0f;
+    float error_angle = motor->MotorAlg.angle-motor->MotorAlg.last_angle;
+    if(fabs(error_angle) > (0.8f*2*PI))
+    {
+        if((error_angle)<0){motor->MotorData.angle_all += (2*PI - motor->MotorAlg.last_angle + motor->MotorAlg.angle) ;}//正转
+        else if((error_angle)>=0){motor->MotorData.angle_all += -(2*PI - motor->MotorAlg.angle + motor->MotorAlg.last_angle) ;}//反转
+    }
+    else 
+    {
+        motor->MotorData.angle_all += error_angle ;
+    }
+
+    motor->MotorAlg.last_angle = motor->MotorAlg.angle;
+
+    motor->MotorData.AngleData.Angle_raw = motor->MotorDrv.Update_Angle_raw();
+    motor->MotorAlg.angle = Calculate_angle_NLLUT(motor->MotorDrv.Cal_Angle(motor->MotorData.AngleData.Angle_raw),motor->MotorConfig.NLLUT_encoder,128);
     // motor->MotorAlg.angle_flange = Calculate_angle_flange(motor->MotorData.angle_all,motor->MotorConfig.GR,motor->MotorConfig.angle_zero);
 
     motor->MotorAlg.angle_el = Calculate_angle_el(motor->MotorConfig.Pole_pairs,motor->MotorAlg.angle, motor->MotorConfig.angle_el_zero);
@@ -161,6 +198,23 @@ float Calculate_angle_el(float Pole_pairs,float angle,float angle_el_zero)
 float Calculate_angle_flange(float angle ,float GR,float angle_zero)
 {
     return Limit_angle_el(angle* (1/GR) + angle_zero);
+}
+
+float Calculate_angle_NLLUT(float angle ,float* NLLUT_encoder,uint32_t size_NLLUT)
+{
+    uint32_t sector_NLLUT = (uint32_t)fast_round((angle/(2*PI))*(float)size_NLLUT);
+    float angle_1 = ((float)sector_NLLUT * (2*PI))/(float)size_NLLUT;
+    float angle_2 = ((float)(sector_NLLUT+1) * (2*PI))/(float)size_NLLUT;
+    float error_1 = NLLUT_encoder[sector_NLLUT];
+    float error_2 = NLLUT_encoder[sector_NLLUT+1];
+    if(sector_NLLUT >= (size_NLLUT-1))
+    {
+        return angle;
+        // angle_2 = 0;
+        // error_2 = NLLUT_encoder[0];
+    }
+
+    return angle+error_1+((error_2-error_1)*(angle-angle_1))/(angle_2-angle_1);
 }
 
 float update_angle_flange(Motor_HandleTypeDef *motor)//引出一个新问题：数据更新需要一个同步机制，同一个周期内只能有一次获取数据更新的操作，不能让其他函数重复发起数据更新的操作
@@ -188,7 +242,7 @@ float Limit(float value , float high , float low)
 // 	static float Upark_N[2];
 	
 // 	Upark_N[0] = Ud*cos(angle_el) - Uq*sin(angle_el); //Park逆变换 ①Ualpha = Ud * cosθ - Uq * sinθ
-//     Upark_N[1] = Uq*cos(angle_el) + Ud*sin(angle_el); //           ②Ubeta  = Uq * cosθ + Ud * sinθ
+//  Upark_N[1] = Uq*cos(angle_el) + Ud*sin(angle_el); //           ②Ubeta  = Uq * cosθ + Ud * sinθ
 // 	return Upark_N;
 	
 // }
@@ -1589,6 +1643,7 @@ void update_NLLUT_encoder_sensor_block(Motor_HandleTypeDef *motor)
         angle_el_zero_all += angle_el_zero[i];
     }
     motor->MotorConfig.angle_el_zero = angle_el_zero_all/(float)sample_total;
+
     for(int i = 0; i<sample_total ;i++)
     {
         angle_el_zero[i] -= motor->MotorConfig.angle_el_zero; 
@@ -1788,6 +1843,98 @@ void update_loopcount_rotor_block(Motor_HandleTypeDef *motor,float angle_encoder
       }
     }
 }
+
+void update_NLLUT_and_angle_el_zero_sensor_block(Motor_HandleTypeDef *motor)
+{
+    static float data_debug_0 = 0.0f;
+    static uint32_t data_debug_1 = 0 ;
+    static uint32_t data_debug_2 = 0 ;
+
+    uint32_t sample_per = 20 ; //每极对采样20个
+    uint32_t sample_total = motor->MotorConfig.Pole_pairs * sample_per; //总采样数
+    uint32_t sample_total_NLLUT = sizeof(motor->MotorConfig.NLLUT_encoder)/sizeof(float);
+    float *angle_el_zero = (float*)calloc(sample_total,sizeof(float));  //按照采样数定义动态数组
+    float angle_el_zero_all = 0;
+
+    float angle_all_temp = motor->MotorData.angle_all;//保存现场
+    float angle_last_temp = motor->MotorAlg.last_angle;
+    float angle_temp = motor->MotorAlg.angle;
+
+    reset_data_angle(motor);
+    
+    if(angle_el_zero == NULL)
+    {   
+        //打印报错信息
+        SEGGER_RTT_printf(0, "Heap_Size is not enough!\n");
+        free((void*)angle_el_zero);
+        return;
+    }
+
+    set_svpwm(motor,0.0f, motor->MotorConfig.UMAX*0.05f , 0.0f);
+    motor->MotorDrv.Delayms(1000);
+
+    float angle_now = 0.0f;
+    do
+    {
+        update_dt(motor);
+        update_angle(motor);
+        angle_now = ctrl_motor_openloop_angle_nonblock(motor,2*PI,0.0f,0.6,0.0f,motor->MotorConfig.UMAX*0.05f);
+        uint32_t i = (uint32_t)round((angle_now/(2*PI))*(float)sample_total) ;
+        uint32_t j = (uint32_t)round((angle_now/(2*PI))*(float)sample_total_NLLUT);
+        if((i>=sample_total|| i<0)&&(j>=sample_total_NLLUT || j<0))
+        {
+            ctrl_motor_openloop_angle_nonblock(motor,0.0f,0.0f,1000.0f,0.0f,0.0f);//注销掉这个函数的angle_now，防止用到下一次开环执行程序中
+            break;
+        }
+        angle_el_zero[i] = angle_now - motor->MotorData.angle_all;
+        motor->MotorConfig.NLLUT_encoder[j] = angle_el_zero[i];
+
+        data_debug_0 = motor->MotorConfig.NLLUT_encoder[j];
+        data_debug_1 = j ;
+        data_debug_2 = i ;
+    } while (angle_now);
+    motor->MotorDrv.Delayms(500);
+    do
+    {
+        update_dt(motor);
+        update_angle(motor);
+        angle_now = ctrl_motor_openloop_angle_nonblock(motor,0.0f,2*PI,-0.6,0.0f,motor->MotorConfig.UMAX*0.05f);
+        uint32_t i = (uint32_t)round((angle_now/(2*PI))*(float)sample_total);
+        uint32_t j = (uint32_t)round((angle_now/(2*PI))*(float)sample_total_NLLUT);
+        if((i>=sample_total|| i<0)&&(j>=sample_total_NLLUT || j<0))
+        {
+            ctrl_motor_openloop_angle_nonblock(motor,0.0f,0.0f,1000.0f,0.0f,0.0f);//注销掉这个函数的angle_now，防止用到下一次开环执行程序中
+            break;
+        }
+        angle_el_zero[i] += angle_now - motor->MotorData.angle_all;
+        angle_el_zero[i] /= 2;
+
+        // motor->MotorConfig.NLLUT_encoder[j] += angle_now - motor->MotorData.angle_all;
+        // motor->MotorConfig.NLLUT_encoder[j] /= 2;
+
+        data_debug_0 = motor->MotorConfig.NLLUT_encoder[j];
+        data_debug_1 = j ;
+        data_debug_2 = i ;
+    } while (angle_now);
+
+    for(int i = 0; i<sample_total ; i++)
+    {
+        angle_el_zero_all += angle_el_zero[i];
+    }
+    motor->MotorConfig.angle_el_zero = Calculate_angle_el(motor->MotorConfig.Pole_pairs,angle_el_zero_all/(float)sample_total, 0.0f);
+    motor->MotorData.angle_all = angle_all_temp ;//返回现场
+    motor->MotorAlg.last_angle = angle_last_temp;
+    motor->MotorAlg.angle = angle_temp;
+
+    for(int i = 0 ; i<sample_total_NLLUT ; i++)
+    {
+        motor->MotorConfig.NLLUT_encoder[i] -= angle_el_zero_all/(float)sample_total;
+    }
+
+    set_svpwm(motor,0.0f, 0.0f , 0.0f);
+    free((void*)angle_el_zero);    
+}
+
 
 // void update_loopcount_rotor_block(Motor_HandleTypeDef *motor,float angle_encoder_B)
 // {
