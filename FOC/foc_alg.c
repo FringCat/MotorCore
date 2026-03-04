@@ -972,14 +972,24 @@ void update_spwm(Motor_HandleTypeDef *motor)
 {
     update_Park_N(motor);
     update_Clark_N(motor);
-    set_pwm(motor,motor->MotorAlg.UA/motor->MotorConfig.UMAX, motor->MotorAlg.UB/motor->MotorConfig.UMAX , motor->MotorAlg.UC/motor->MotorConfig.UMAX);
+
+    float TA = mymap(motor->MotorAlg.UA,-motor->MotorConfig.UMAX/2,motor->MotorConfig.UMAX/2,0.0f,1.0f);
+    float TB = mymap(motor->MotorAlg.UB,-motor->MotorConfig.UMAX/2,motor->MotorConfig.UMAX/2,0.0f,1.0f);
+    float TC = mymap(motor->MotorAlg.UC,-motor->MotorConfig.UMAX/2,motor->MotorConfig.UMAX/2,0.0f,1.0f);
+    
+    set_pwm(motor,TA, TB, TC);
 }
 
 void set_spwm(Motor_HandleTypeDef *motor,float Uq, float Ud ,float angle_el)
 {
     float *Upark = Calculate_Park_N(Uq , Ud , angle_el);
     float *Uclark = Calculate_Clark_N(Upark[0] , Upark[1] , motor->MotorConfig.UMAX);
-    set_pwm_nodir(motor,Uclark[0]/motor->MotorConfig.UMAX , Uclark[1]/motor->MotorConfig.UMAX , Uclark[2]/motor->MotorConfig.UMAX);
+    
+    float TA = mymap(Uclark[0],-motor->MotorConfig.UMAX/2,motor->MotorConfig.UMAX/2,0.0f,1.0f);
+    float TB = mymap(Uclark[1],-motor->MotorConfig.UMAX/2,motor->MotorConfig.UMAX/2,0.0f,1.0f);
+    float TC = mymap(Uclark[2],-motor->MotorConfig.UMAX/2,motor->MotorConfig.UMAX/2,0.0f,1.0f);
+
+    set_pwm_nodir(motor,TA, TB, TC);
 }
 
 float get_dt(Motor_HandleTypeDef *motor)

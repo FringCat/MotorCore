@@ -245,11 +245,11 @@ void ADC1_2_IRQHandler(void)
   }
 
   update_dt(&motor);
-  // update_angle(&motor);
+  update_angle(&motor);
   update_Clark(&motor);
   update_Park(&motor);
-  update_angle_SMO(&SMO, &motor, motor.MotorAlg.Ualpha, motor.MotorAlg.Ubeta, motor.MotorAlg.Ialpha, motor.MotorAlg.Ibeta);
-  // update_velocity_LPF(&motor);
+  // update_angle_SMO(&SMO, &motor, motor.MotorAlg.Ualpha, motor.MotorAlg.Ubeta, motor.MotorAlg.Ialpha, motor.MotorAlg.Ibeta); //打开SMO时记得关闭 update_angle 跟 update_velocity_LPF
+  update_velocity_LPF(&motor);
   
 
   HAL_GPIO_TogglePin(TEST2_GPIO_Port, TEST2_Pin);
@@ -352,6 +352,10 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
       HAL_GPIO_TogglePin(TEST1_GPIO_Port, TEST1_Pin);
       if(isoffset_done)
       {
+        // RLS例程
+        { 
+
+        }
 
         // 无减速箱的MIT例程
         // {  
@@ -388,7 +392,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
         //   motor.MotorAlg.Uq = Calculate_PID(1.0f, motor.MotorAlg.Iq , motor.time.dt , &motor.MotorAlg.iq_pid);
         //   motor.MotorAlg.Ud = Calculate_PID(0.0f, motor.MotorAlg.Id , motor.time.dt , &motor.MotorAlg.id_pid);
         //   update_svpwm(&motor);//输出SVPWM
-        // }+
+        // }
 
         // 速度电流环例程
         // {
@@ -399,13 +403,13 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
         // }
         
         // SMO例程
-        {
-          float output = Calculate_PID(20.0f, motor.MotorAlg.Velocity, motor.time.dt , &motor.MotorAlg.velocity_pid);
-          motor.MotorAlg.Uq = Calculate_PID(output, motor.MotorAlg.Iq , motor.time.dt , &motor.MotorAlg.iq_pid);
-          motor.MotorAlg.Ud = Calculate_PID(0.0f, motor.MotorAlg.Id , motor.time.dt , &motor.MotorAlg.id_pid);
-          update_svpwm(&motor);//输出SVPWM
-          // update_angle_SMO(&SMO, &motor, motor.MotorAlg.Ualpha, motor.MotorAlg.Ubeta, motor.MotorAlg.Ialpha, motor.MotorAlg.Ibeta);
-        }
+        // {
+        //   float output = Calculate_PID(20.0f, motor.MotorAlg.Velocity, motor.time.dt , &motor.MotorAlg.velocity_pid);
+        //   motor.MotorAlg.Uq = Calculate_PID(output, motor.MotorAlg.Iq , motor.time.dt , &motor.MotorAlg.iq_pid);
+        //   motor.MotorAlg.Ud = Calculate_PID(0.0f, motor.MotorAlg.Id , motor.time.dt , &motor.MotorAlg.id_pid);
+        //   update_svpwm(&motor);//输出SVPWM
+        //   // update_angle_SMO(&SMO, &motor, motor.MotorAlg.Ualpha, motor.MotorAlg.Ubeta, motor.MotorAlg.Ialpha, motor.MotorAlg.Ibeta); //这个要放在ADC中断里跑
+        // }
 
         //状态机例程
         // {

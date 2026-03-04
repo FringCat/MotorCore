@@ -163,21 +163,23 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 
-    // motor.MotorAlg.Uq = Calculate_PID(30.0f, motor.MotorAlg.Velocity, motor.time.dt , &motor.MotorAlg.velocity_pid);
-    // update_svpwm(&motor);//输出SVPWM
+    // 双编码实时读取法兰角度例程
+    // {
+    //   mt6816_update_angle(&mt6816);
+    //   update_loopcount_rotor_block(&motor,mt6816.angle);
+    //   motor.MotorData.angle_all = (motor.MotorConfig.loopcount_rotor * 2 * PI + Limit_angle_el(motor.MotorAlg.angle-motor.MotorConfig.angle_zero_gear_A) );
+    //   motor.MotorAlg.angle_flange = Limit_angle_flange(motor.MotorData.angle_all,motor.MotorConfig.GR);
+    // }
 
-    // mt6816_update_angle(&mt6816);
-    // update_loopcount_rotor_block(&motor,mt6816.angle);
-    // motor.MotorData.angle_all = (motor.MotorConfig.loopcount_rotor * 2 * PI + Limit_angle_el(motor.MotorAlg.angle-motor.MotorConfig.angle_zero_gear_A) );
-    // motor.MotorAlg.angle_flange = Limit_angle_flange(motor.MotorData.angle_all,motor.MotorConfig.GR);
+    // 各类校准例程
+    // {
+    //   update_2DIR_sensor_block(&motor);
+    //   update_angle_el_zero_sensor_block(&motor);
+    //   update_angle_el_zero_no_sensor_block(&motor);
+    //   update_NLLUT_and_angle_el_zero_sensor_block(&motor);
+    // }
 
-    // update_2DIR_sensor_block(&motor);
-    // update_angle_el_zero_sensor_block(&motor);
-    // update_NLLUT_and_angle_el_zero_sensor_block(&motor);
-    // HAL_Delay(2000);
-    // update_angle_el_zero_no_sensor_block(&motor);
-    // HAL_Delay(1000);
-
+    // 关节电机产品例程
     // switch(fsm_motor.state)
     // {
     //   case CALIBRATION:
