@@ -47,13 +47,6 @@ void RLS_Init(RLS_HandleTypeDef *RLS, float32_t lambda)
  *         2. 包含除0保护、维度检查，保证运行稳定性
  *         3. 局部缓冲区静态分配，避免栈溢出
  */
-#include "rls.h"
-#include <math.h>  // 用于isnan/isinf函数
-#include <string.h> // 用于memset（如果需要）
-
-// 确保头文件中定义：#define RLS_PARAM_NUM        2U
-// RLS_HandleTypeDef结构体包含：P_mat/phi_mat/K_mat/theta_mat等矩阵成员
-
 void RLS_update_theta(RLS_HandleTypeDef *RLS, float32_t y, float32_t *phi)
 {
     // 局部静态缓冲区（避免栈溢出，复用内存）
@@ -210,6 +203,76 @@ void RLS_update_theta(RLS_HandleTypeDef *RLS, float32_t y, float32_t *phi)
         }
     }
 }
+
+void RLS_Ls_update_theta_scalar(RLS_HandleTypeDef *RLS, float32_t int_u, float32_t int_i, float32_t i, float32_t R_fixed)
+{
+    // 1. 安全检查
+    if (RLS == NULL || isnan(int_u) || isnan(int_i) || isnan(i) || isnan(R_fixed))
+    {
+        return;
+    }
+
+    // 2. 计算一阶RLS的输入y（标量）：y = ∫u dt - R×∫i dt
+    float32_t y = int_u - R_fixed * int_i;
+    // 清洗y值
+    y = (isnan(y) || isinf(y)) ? 0.0f : y;
+    RLS->y = y; // 存入结构体（兼容原有逻辑）
+
+    // 3. 回归项phi（标量）：phi = i
+    float32_t phi = (isnan(i) || isinf(i)) ? 0.0f : i;
+    RLS->phi[0] = phi; // 存入结构体
+
+    // 4. 提取协方差P（标量，仅用P[0][0]）
+    float32_t P = RLS->P[0][0];
+    // 清洗P值
+    P = (isnan(P) || isinf(P)) ? 10.0f : P;
+
+    // -------------------------- 一阶RLS标量核心运算 --------------------------
+    // 步骤1：计算分母 λ + P×φ²
+    float32_t denominator = RLS->lambda + P * phi * phi;
+    // 除0保护
+    if (fabs(denominator) < 1e-6f)
+    {
+        denominator = 1e-6f;
+    }
+
+    // 步骤2：计算增益K（标量）
+    float32_t K = (P * phi) / denominator;
+    // 清洗K值
+    K = (isnan(K) || isinf(K)) ? 0.0f : K;
+    RLS->K[0] = K; // 存入结构体
+
+    // 步骤3：计算预测误差（标量）
+    float32_t error = y - phi * RLS->theta[0];
+    error = (isnan(error) || isinf(error)) ? 0.0f : error;
+
+    // 步骤4：更新Ls（标量，theta[0] = Ls）
+    float32_t delta = K * error;
+    delta = (isnan(delta) || isinf(delta)) ? 0.0f : delta;
+    RLS->theta[0] += delta;
+
+    // 步骤5：更新协方差P（标量）
+    P = (1.0f / RLS->lambda) * (P - K * phi * P);
+    // 清洗P值（避免溢出/NaN）
+    P = (isnan(P) || isinf(P)) ? 10.0f : P;
+    P = (fabs(P) > 1e6f) ? 1e6f : P; // 限幅，防止P过大
+    RLS->P[0][0] = P;
+
+    // // -------------------------- 物理约束（关键） --------------------------
+    // // Ls非负 + 合理范围（根据你的电机调整，比如0~0.1H=100mH）
+    // if (isnan(RLS->theta[0]) || isinf(RLS->theta[0]))
+    // {
+    //     RLS->theta[0] = 0.0f;
+    // }
+    // RLS->theta[0] = (RLS->theta[0] < 0.0f) ? 0.0f : RLS->theta[0];
+    // RLS->theta[0] = (RLS->theta[0] > 0.1f) ? 0.1f : RLS->theta[0];
+
+    // JScope调试：Ls值（theta[0]）
+    static float rls_ls_debug = 0.0f;
+    rls_ls_debug = RLS->theta[0];
+}
+
+
 // void RLS_update(RLS_HandleTypeDef *RLS, Motor_HandleTypeDef *motor)
 // {
 //     static float last_I = 0.0f;
@@ -235,21 +298,25 @@ void RLS_update_theta(RLS_HandleTypeDef *RLS, float32_t y, float32_t *phi)
 //     // set_pwm(motor,Ua/motor->MotorConfig.UMAX,0.0f,0.0f);
 // }
 
-void RLS_update(RLS_HandleTypeDef *RLS, Motor_HandleTypeDef *motor)
+void RLS_update(RLS_HandleTypeDef *RLS, Motor_HandleTypeDef *motor)//根据积分形式电压方程修改
 {
     static float last_I = 0.0f;
     static float I = 0.0f;
     static float U = 0.0f;
     static float phi[2] = {0.0f,0.0f};
-    static float time = 0.0f;
 
-    time += motor->time.dt;
-    I = motor->MotorAlg.Id * time;
-    U = motor->MotorAlg.Ud * time;
+    // static float time = 0.0f;
+    // time += motor->time.dt;
+    // I = motor->MotorAlg.Id * time;
+    // U = motor->MotorAlg.Ud * time;
+
+    I += motor->MotorAlg.Id * motor->time.dt;
+    U += motor->MotorAlg.Ud * motor->time.dt;
 
     phi[0] = I ;
     phi[1] = motor->MotorAlg.Id;
 
     RLS_update_theta(RLS,U,phi);
+    // RLS_Ls_update_theta_scalar(RLS,U,I,motor->MotorAlg.Id,0.2f);
 
 }

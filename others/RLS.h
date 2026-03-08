@@ -48,6 +48,7 @@ typedef struct
 
 void RLS_Init(RLS_HandleTypeDef *RLS, float32_t lambda);
 void RLS_update_theta(RLS_HandleTypeDef *RLS, float32_t y, float32_t *phi);
+void RLS_Ls_update_theta_scalar(RLS_HandleTypeDef *RLS, float32_t int_u, float32_t int_i, float32_t i, float32_t R_fixed);
 void RLS_update(RLS_HandleTypeDef *RLS, Motor_HandleTypeDef *motor);
 
 #endif // !RLS_H_

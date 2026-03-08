@@ -354,7 +354,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
       if(isoffset_done)
       {
         
-        //三角波注入例程
+        // 三角波注入例程
         // {
         //   static float time = 0.0f;
         //   static int flag = 0;
@@ -376,20 +376,64 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
         // }
 
         //正弦注入例程
+        // {
+        //   static float time = 0.0f;
+        //   static float output_sin = 0.0f;
+        //   time += motor.time.dt;
+        //   output_sin = arm_sin_f32(Limit_angle_el(time*500.0f))*5.0f;
+
+        //   //电流注入例程
+        //   {
+        //     motor.MotorAlg.Uq = Calculate_PID(0.0f, motor.MotorAlg.Iq , motor.time.dt , &motor.MotorAlg.iq_pid);
+        //     motor.MotorAlg.Ud = Calculate_PID(output_sin, motor.MotorAlg.Id , motor.time.dt , &motor.MotorAlg.id_pid);
+        //   }
+
+        //   //电压注入例程
+        //   // {
+        //   //   motor.MotorAlg.Uq = 0.0f;
+        //   //   motor.MotorAlg.Ud = output_sin*0.1f;
+        //   // }
+
+        //   update_svpwm(&motor);//输出SVPWM
+        // }
+
+        //脉冲注入例程
         {
+          static float T = 5.0f;
+          static float T_windows = 0.1f;
           static float time = 0.0f;
-          static float output_sin = 0.0f;
-          time += motor.time.dt;
-          output_sin = arm_sin_f32(Limit_angle_el(time*500.0f))*5.0f;
-          motor.MotorAlg.Uq = Calculate_PID(0.0f, motor.MotorAlg.Iq , motor.time.dt , &motor.MotorAlg.iq_pid);
-          motor.MotorAlg.Ud = Calculate_PID(output_sin, motor.MotorAlg.Id , motor.time.dt , &motor.MotorAlg.id_pid);
+          static int flag_RLS = 0;
+          time += motor.time.dt ;
+          if(time<T)
+          {
+            if(time<T_windows)
+            {
+              motor.MotorAlg.Uq = 0.0f;
+              motor.MotorAlg.Ud = 0.5f;
+              RLS_update(&RLS, &motor);
+            }
+          }
+          else if(time>T && time < T*2)
+          {
+            if(time<T+T_windows)
+            {
+              motor.MotorAlg.Uq = 0.0f;
+              motor.MotorAlg.Ud = 0.0f; 
+              RLS_update(&RLS, &motor);
+            }
+           
+          }
+          else
+          {
+            time = 0.0f;
+          }
           update_svpwm(&motor);//输出SVPWM
         }
 
         // RLS例程
-        { 
-          RLS_update(&RLS, &motor);
-        }
+        // { 
+        //   RLS_update(&RLS, &motor);
+        // }
 
         // 无减速箱的MIT例程
         // {  
