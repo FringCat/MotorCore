@@ -882,6 +882,9 @@ void set_svpwm_dir(Motor_HandleTypeDef *motor, float Uq , float Ud ,float angle_
     float *Upark = Calculate_Park_N(Uq , Ud , angle_el);
     Ualpha = Upark[0];
     Ubeta  = Upark[1];
+
+    motor->MotorAlg.Ualpha = Upark[0];//打印
+    motor->MotorAlg.Ubeta = Upark[1];
     
     int Sector = Calculate_Sector(Ualpha , Ubeta);
     
@@ -962,6 +965,10 @@ void set_svpwm_dir(Motor_HandleTypeDef *motor, float Uq , float Ud ,float angle_
 			break;
 	}
 
+    motor->MotorAlg.UA = Ta*motor->MotorConfig.UMAX - motor->MotorConfig.UMAX/2;
+    motor->MotorAlg.UB = Tb*motor->MotorConfig.UMAX - motor->MotorConfig.UMAX/2;
+    motor->MotorAlg.UC = Tc*motor->MotorConfig.UMAX - motor->MotorConfig.UMAX/2;
+
 	float a = mymap(Ta,-1,1,0,1);
 	float b = mymap(Tb,-1,1,0,1);
 	float c = mymap(Tc,-1,1,0,1);
@@ -985,11 +992,20 @@ void set_spwm(Motor_HandleTypeDef *motor,float Uq, float Ud ,float angle_el)
     float *Upark = Calculate_Park_N(Uq , Ud , angle_el);
     float *Uclark = Calculate_Clark_N(Upark[0] , Upark[1] , motor->MotorConfig.UMAX);
     
+    Uclark[0]= Uclark[0] - motor->MotorConfig.UMAX/2;
+    Uclark[1]= Uclark[1] - motor->MotorConfig.UMAX/2;
+    Uclark[2]= Uclark[2] - motor->MotorConfig.UMAX/2;
+
+    // motor->MotorAlg.UA = Uclark[0];
+    // motor->MotorAlg.UB = Uclark[1];
+    // motor->MotorAlg.UC = Uclark[2];
+    
     float TA = mymap(Uclark[0],-motor->MotorConfig.UMAX/2,motor->MotorConfig.UMAX/2,0.0f,1.0f);
     float TB = mymap(Uclark[1],-motor->MotorConfig.UMAX/2,motor->MotorConfig.UMAX/2,0.0f,1.0f);
     float TC = mymap(Uclark[2],-motor->MotorConfig.UMAX/2,motor->MotorConfig.UMAX/2,0.0f,1.0f);
 
-    set_pwm_nodir(motor,TA, TB, TC);
+    set_pwm(motor,TA, TB, TC);
+    // set_pwm_nodir(motor,TA, TB, TC);
 }
 
 float get_dt(Motor_HandleTypeDef *motor)
@@ -1990,6 +2006,7 @@ void ctrl_motor_openloop_velocity_nonblock(Motor_HandleTypeDef *motor,float velo
     static float velocity_integral = 0;
     velocity_integral += velocity_target*motor->time.dt;
     set_svpwm_dir(motor,Uq,Ud,Limit_angle_el(velocity_integral*(float)motor->MotorConfig.Pole_pairs));
+    // set_spwm(motor,Uq,Ud,Limit_angle_el(velocity_integral*(float)motor->MotorConfig.Pole_pairs));
 }
 
 float ctrl_motor_openloop_angle_el_nonblock(Motor_HandleTypeDef *motor,float angle_el_target,float angle_el_start,float velocity_el_target ,float Uq,float Ud)

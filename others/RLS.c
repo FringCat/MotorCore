@@ -11,47 +11,30 @@
  */
 void RLS_Init(RLS_HandleTypeDef *RLS, float32_t lambda)
 {
-    if (RLS == NULL)
-    {
-        return;
-    }
+    if (RLS == NULL) return;
 
-    if (lambda <= 0.0f || lambda > 1.0f)
-    {
-        RLS->lambda = 0.98f;  // 默认值
-    }
-    else
-    {
-        RLS->lambda = lambda;
-    }
-
+    // 1. 初始化基础参数
+    RLS->lambda = (lambda <= 0 || lambda > 1) ? 0.999f : lambda;
+    
+    // 2. 初始化P矩阵（对角阵，10.0f）
     for (uint8_t i = 0; i < RLS_PARAM_NUM; i++)
     {
         for (uint8_t j = 0; j < RLS_PARAM_NUM; j++)
         {
-            if (i == j)
-            {
-                RLS->P[i][j] = 1000.0f;  // 对角线元素为1000
-            }
-            else
-            {
-                RLS->P[i][j] = 0.0f;     // 非对角线元素为0
-            }
+            RLS->P[i][j] = (i == j) ? 1.0f : 0.0f;
         }
     }
 
-    for (uint8_t i = 0; i < RLS_PARAM_NUM; i++)
-    {
-        RLS->K[i] = 0.0f;
-        RLS->theta[i] = 0.0f;
-        RLS->phi[i] = 0.0f;
-    }
+    // 3. 初始化K/theta/phi/y为0
+    memset(RLS->K, 0, sizeof(RLS->K));
+    memset(RLS->theta, 0, sizeof(RLS->theta));
+    memset(RLS->phi, 0, sizeof(RLS->phi));
     RLS->y = 0.0f;
 
-    arm_mat_init_f32(&RLS->P_mat, RLS_PARAM_NUM, RLS_PARAM_NUM, (float32_t *)RLS->P);
-    arm_mat_init_f32(&RLS->K_mat, RLS_PARAM_NUM, 1, RLS->K);
-    arm_mat_init_f32(&RLS->theta_mat, RLS_PARAM_NUM, 1, RLS->theta);
-    arm_mat_init_f32(&RLS->phi_mat, RLS_PARAM_NUM, 1, RLS->phi);
+    arm_mat_init_f32(&RLS->P_mat,  RLS_PARAM_NUM, RLS_PARAM_NUM, (float32_t *)RLS->P);
+    arm_mat_init_f32(&RLS->K_mat,  RLS_PARAM_NUM, 1, RLS->K);
+    arm_mat_init_f32(&RLS->theta_mat,  RLS_PARAM_NUM, 1, RLS->theta);
+    arm_mat_init_f32(&RLS->phi_mat,  RLS_PARAM_NUM, 1, RLS->phi);
 }
 
 /**
@@ -64,6 +47,13 @@ void RLS_Init(RLS_HandleTypeDef *RLS, float32_t lambda)
  *         2. 包含除0保护、维度检查，保证运行稳定性
  *         3. 局部缓冲区静态分配，避免栈溢出
  */
+#include "rls.h"
+#include <math.h>  // 用于isnan/isinf函数
+#include <string.h> // 用于memset（如果需要）
+
+// 确保头文件中定义：#define RLS_PARAM_NUM        2U
+// RLS_HandleTypeDef结构体包含：P_mat/phi_mat/K_mat/theta_mat等矩阵成员
+
 void RLS_update_theta(RLS_HandleTypeDef *RLS, float32_t y, float32_t *phi)
 {
     // 局部静态缓冲区（避免栈溢出，复用内存）
@@ -84,17 +74,17 @@ void RLS_update_theta(RLS_HandleTypeDef *RLS, float32_t y, float32_t *phi)
     static arm_matrix_instance_f32 temp_mat;          // 临时矩阵缓冲区 (N×N)
     static float32_t temp_buf[RLS_PARAM_NUM][RLS_PARAM_NUM]; // 临时数据缓冲区
 
-    // 1. 安全检查
+    // 1. 安全检查：空指针防护
     if (RLS == NULL || phi == NULL)
     {
         return;
     }
 
-    // 2. 更新输入输出缓存
-    RLS->y = y;
+    // 2. 更新输入输出缓存 + 输入数据清洗
+    RLS->y = (isnan(y) || isinf(y)) ? 0.0f : y; // 清洗y值
     for (uint8_t i = 0; i < RLS_PARAM_NUM; i++)
     {
-        RLS->phi[i] = phi[i];
+        RLS->phi[i] = (isnan(phi[i]) || isinf(phi[i])) ? 0.0f : phi[i]; // 清洗phi值
     }
 
     // 3. 初始化局部矩阵结构体（仅首次调用初始化，后续复用）
@@ -110,14 +100,14 @@ void RLS_update_theta(RLS_HandleTypeDef *RLS, float32_t y, float32_t *phi)
             }
         }
 
-        // 初始化局部矩阵结构体
-        arm_mat_init_f32(&P_phi_mat, RLS_PARAM_NUM, 1, P_phi_buf);
-        arm_mat_init_f32(&phi_T_mat, 1, RLS_PARAM_NUM, phi_T_buf);
-        arm_mat_init_f32(&phi_T_P_phi_mat, 1, 1, phi_T_P_phi_buf);
-        arm_mat_init_f32(&K_phi_T_mat, RLS_PARAM_NUM, RLS_PARAM_NUM, (float32_t *)K_phi_T_buf);
+        // 初始化局部矩阵结构体（绑定维度和缓冲区）
+        arm_mat_init_f32(&P_phi_mat,     RLS_PARAM_NUM, 1,              P_phi_buf);
+        arm_mat_init_f32(&phi_T_mat,     1,              RLS_PARAM_NUM, phi_T_buf);
+        arm_mat_init_f32(&phi_T_P_phi_mat, 1,           1,              phi_T_P_phi_buf);
+        arm_mat_init_f32(&K_phi_T_mat,   RLS_PARAM_NUM, RLS_PARAM_NUM, (float32_t *)K_phi_T_buf);
         arm_mat_init_f32(&I_K_phi_T_mat, RLS_PARAM_NUM, RLS_PARAM_NUM, (float32_t *)I_K_phi_T_buf);
-        arm_mat_init_f32(&I_mat, RLS_PARAM_NUM, RLS_PARAM_NUM, (float32_t *)I_mat_buf);
-        arm_mat_init_f32(&temp_mat, RLS_PARAM_NUM, RLS_PARAM_NUM, (float32_t *)temp_buf);
+        arm_mat_init_f32(&I_mat,         RLS_PARAM_NUM, RLS_PARAM_NUM, (float32_t *)I_mat_buf);
+        arm_mat_init_f32(&temp_mat,      RLS_PARAM_NUM, RLS_PARAM_NUM, (float32_t *)temp_buf);
 
         first_init = 1;
     }
@@ -142,14 +132,23 @@ void RLS_update_theta(RLS_HandleTypeDef *RLS, float32_t y, float32_t *phi)
     // 3.1 计算分母：λ + φᵀ×P×φ
     float32_t denominator = RLS->lambda + phi_T_P_phi_buf[0];
 
-    // 3.2 除0保护
-    if (fabs(denominator) < 1e-6f)
+    // 3.2 除0保护 + 分母清洗
+    if (fabs(denominator) < 1e-6f || isnan(denominator) || isinf(denominator))
     {
         denominator = 1e-6f;
     }
 
     // 3.3 K = (P×φ) / denominator → 标量缩放
     arm_mat_scale_f32(&P_phi_mat, 1.0f / denominator, &RLS->K_mat);
+
+    // 3.4 清洗K值，避免NAN/INF
+    for (uint8_t i = 0; i < RLS_PARAM_NUM; i++)
+    {
+        if (isnan(RLS->K[i]) || isinf(RLS->K[i]))
+        {
+            RLS->K[i] = 0.0f;
+        }
+    }
 
     // -------------------------- 步骤4：计算 I - K×φᵀ --------------------------
     // 4.1 计算 K×φᵀ
@@ -162,34 +161,95 @@ void RLS_update_theta(RLS_HandleTypeDef *RLS, float32_t y, float32_t *phi)
     // 5.1 计算 (I - K×φᵀ) × P
     arm_mat_mult_f32(&I_K_phi_T_mat, &RLS->P_mat, &temp_mat);
 
-    // 5.2 计算 P = (1/λ) × (I - K×φᵀ)×P
+    // 5.2 计算 P = (1/λ) × (I - K×φᵀ)×P + P矩阵清洗
     arm_mat_scale_f32(&temp_mat, 1.0f / RLS->lambda, &RLS->P_mat);
+    for (uint8_t i = 0; i < RLS_PARAM_NUM; i++)
+    {
+        for (uint8_t j = 0; j < RLS_PARAM_NUM; j++)
+        {
+            if (isnan(RLS->P[i][j]) || isinf(RLS->P[i][j]))
+            {
+                RLS->P[i][j] = (i == j) ? 10.0f : 0.0f; // 异常时重置为初始对角阵
+            }
+        }
+    }
 
     // -------------------------- 步骤6：更新待辨识参数 θ --------------------------
     // 6.1 计算预测误差：error = y - φᵀ×θ
-    float32_t error = y;
+    float32_t error = RLS->y; // 用清洗后的y值
     for (uint8_t i = 0; i < RLS_PARAM_NUM; i++)
     {
-        error -= phi[i] * RLS->theta[i];
+        // 逐个项清洗，避免单个项污染error
+        float32_t term = RLS->phi[i] * RLS->theta[i];
+        term = (isnan(term) || isinf(term)) ? 0.0f : term;
+        error -= term;
     }
 
-    // 6.2 更新θ：θ = θ + K×error
+    // 6.2 提前清洗error（核心：更新theta前完成）
+    if (isnan(error) || isinf(error))
+    {
+        error = 0.0f;
+    }
+
+    // 6.3 JScope调试值（已清洗，无NAN）
+    static float rls_debug_data_0 = 0.0f;
+    rls_debug_data_0 = error;
+
+    // 6.4 更新θ：θ = θ + K×error + 最终清洗
     for (uint8_t i = 0; i < RLS_PARAM_NUM; i++)
     {
-        RLS->theta[i] += RLS->K[i] * error;
+        float32_t delta = RLS->K[i] * error;
+        delta = (isnan(delta) || isinf(delta)) ? 0.0f : delta;
+        
+        RLS->theta[i] += delta;
+
+        // 兜底防护：确保theta绝对无NAN
+        if (isnan(RLS->theta[i]) || isinf(RLS->theta[i]))
+        {
+            RLS->theta[i] = 0.0f;
+        }
     }
 }
+// void RLS_update(RLS_HandleTypeDef *RLS, Motor_HandleTypeDef *motor)
+// {
+//     static float last_I = 0.0f;
+//     static float I = 0.0f;
+//     static float U = 0.0f;
+//     static float phi[2] = {0.0f,0.0f};
+
+//     // arm_sqrt_f32(motor->MotorAlg.Iq*motor->MotorAlg.Iq + motor->MotorAlg.Id*motor->MotorAlg.Id,&I);
+//     // arm_sqrt_f32(motor->MotorAlg.Uq*motor->MotorAlg.Uq + motor->MotorAlg.Ud*motor->MotorAlg.Ud,&U);
+
+//     // motor->MotorData.Ibus = I;
+//     // motor->MotorData.Ubus = U;
+
+//     I = motor->MotorAlg.Id;
+//     U = motor->MotorAlg.Ud;
+
+//     phi[0] = I ;
+//     phi[1] = (I - last_I);
+
+//     RLS_update_theta(RLS,U,phi);
+//     last_I = I;
+
+//     // set_pwm(motor,Ua/motor->MotorConfig.UMAX,0.0f,0.0f);
+// }
 
 void RLS_update(RLS_HandleTypeDef *RLS, Motor_HandleTypeDef *motor)
 {
-    static float last_IA = 0.0f;
+    static float last_I = 0.0f;
+    static float I = 0.0f;
+    static float U = 0.0f;
     static float phi[2] = {0.0f,0.0f};
+    static float time = 0.0f;
 
-    phi[0] = motor->MotorAlg.IA;
-    phi[1] = (motor->MotorAlg.IA - last_IA)/motor->time.dt;
+    time += motor->time.dt;
+    I = motor->MotorAlg.Id * time;
+    U = motor->MotorAlg.Ud * time;
 
-    RLS_update_theta(RLS,motor->MotorAlg.UA,phi);
-    last_IA = motor->MotorAlg.IA;
+    phi[0] = I ;
+    phi[1] = motor->MotorAlg.Id;
 
-    //需要摸清楚设置相电压的函数
+    RLS_update_theta(RLS,U,phi);
+
 }

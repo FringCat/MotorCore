@@ -29,6 +29,7 @@
 #include "fsm.h"
 #include "ADRC.h"
 #include "SMO.h"
+#include "RLS.h"
 
 #define INV_SQRT3_F   (1.0f / 1.7320508075688772f)  // ≈0.5773502691896257f
 #define INV_3_F       (1.0f / 3.0f)                 // 1/3，Clark变换用
@@ -77,6 +78,7 @@ extern fsm_HandleTypeDef fsm_motor;
 extern int isoffset_done;
 extern ADRC_HandleTypeDef ADRC;
 extern SMO_HandleTypeDef SMO;
+extern RLS_HandleTypeDef RLS;
 /* USER CODE END EV */
 
 /******************************************************************************/
@@ -248,10 +250,9 @@ void ADC1_2_IRQHandler(void)
   update_angle(&motor);
   update_Clark(&motor);
   update_Park(&motor);
+  // update_velocity_LPF(&motor);
   // update_angle_SMO(&SMO, &motor, motor.MotorAlg.Ualpha, motor.MotorAlg.Ubeta, motor.MotorAlg.Ialpha, motor.MotorAlg.Ibeta); //打开SMO时记得关闭 update_angle 跟 update_velocity_LPF
-  update_velocity_LPF(&motor);
-  
-
+  // RLS_update(&RLS, &motor);
   HAL_GPIO_TogglePin(TEST2_GPIO_Port, TEST2_Pin);
   /* USER CODE END ADC1_2_IRQn 1 */
 }
@@ -352,9 +353,42 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
       HAL_GPIO_TogglePin(TEST1_GPIO_Port, TEST1_Pin);
       if(isoffset_done)
       {
+        
+        //三角波注入例程
+        // {
+        //   static float time = 0.0f;
+        //   static int flag = 0;
+          
+        //   if(flag == 0){time += motor.time.dt;}
+        //   else{time -= motor.time.dt;}
+
+        //   if(flag == 0 && time > 0.1f)
+        //   {
+        //     flag = 1;
+        //   }
+        //   else if(flag == 1 && time < 0.0f)
+        //   {
+        //     flag = 0;
+        //   }
+        //   motor.MotorAlg.Uq = 0.0f;
+        //   motor.MotorAlg.Ud = motor.MotorConfig.UMAX*0.2f*time;
+        //   update_svpwm(&motor);
+        // }
+
+        //正弦注入例程
+        {
+          static float time = 0.0f;
+          static float output_sin = 0.0f;
+          time += motor.time.dt;
+          output_sin = arm_sin_f32(Limit_angle_el(time*500.0f))*5.0f;
+          motor.MotorAlg.Uq = Calculate_PID(0.0f, motor.MotorAlg.Iq , motor.time.dt , &motor.MotorAlg.iq_pid);
+          motor.MotorAlg.Ud = Calculate_PID(output_sin, motor.MotorAlg.Id , motor.time.dt , &motor.MotorAlg.id_pid);
+          update_svpwm(&motor);//输出SVPWM
+        }
+
         // RLS例程
         { 
-
+          RLS_update(&RLS, &motor);
         }
 
         // 无减速箱的MIT例程
@@ -396,7 +430,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 
         // 速度电流环例程
         // {
-        //   float output = Calculate_PID(20.0f, motor.MotorAlg.Velocity, motor.time.dt , &motor.MotorAlg.velocity_pid);
+        //   float output = Calculate_PID(22.0f, motor.MotorAlg.Velocity, motor.time.dt , &motor.MotorAlg.velocity_pid);
         //   motor.MotorAlg.Uq = Calculate_PID(output, motor.MotorAlg.Iq , motor.time.dt , &motor.MotorAlg.iq_pid);
         //   motor.MotorAlg.Ud = Calculate_PID(0.0f, motor.MotorAlg.Id , motor.time.dt , &motor.MotorAlg.id_pid);
         //   update_svpwm(&motor);//输出SVPWM

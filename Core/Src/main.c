@@ -37,6 +37,7 @@
 #include "fsm.h"
 #include "ADRC.h"
 #include "SMO.h"
+#include "RLS.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -65,6 +66,7 @@ Motor_ConfigTypeDef motorconfig;
 CAN_Handler_t can_handler;
 ADRC_HandleTypeDef ADRC;
 SMO_HandleTypeDef SMO;
+RLS_HandleTypeDef RLS;
 
 int isoffset_done = 0;
 int isFirstRun_done = 0;
@@ -131,7 +133,8 @@ int main(void)
 
   ADRC_Init(&ADRC,1,0.00005,700.0f);  
   SMO_Init(&SMO);
-
+  memset(&RLS, 0, sizeof(RLS_HandleTypeDef)); // 强制清空所有成员为0
+  RLS_Init(&RLS,0.99999f);
   HAL_Delay(1000);
   for(int i = 0; i<30 && motor.MotorConfig.loopcount_rotor == 0XFFFF ; i++)//双编码判定圈数（flange范围±Π）
   {
@@ -165,18 +168,18 @@ int main(void)
 
     // 双编码实时读取法兰角度例程
     // {
-    //   mt6816_update_angle(&mt6816);
-    //   update_loopcount_rotor_block(&motor,mt6816.angle);
-    //   motor.MotorData.angle_all = (motor.MotorConfig.loopcount_rotor * 2 * PI + Limit_angle_el(motor.MotorAlg.angle-motor.MotorConfig.angle_zero_gear_A) );
-    //   motor.MotorAlg.angle_flange = Limit_angle_flange(motor.MotorData.angle_all,motor.MotorConfig.GR);
+      // mt6816_update_angle(&mt6816);
+      // update_loopcount_rotor_block(&motor,mt6816.angle);
+      // motor.MotorData.angle_all = (motor.MotorConfig.loopcount_rotor * 2 * PI + Limit_angle_el(motor.MotorAlg.angle-motor.MotorConfig.angle_zero_gear_A) );
+      // motor.MotorAlg.angle_flange = Limit_angle_flange(motor.MotorData.angle_all,motor.MotorConfig.GR);
     // }
 
     // 各类校准例程
     // {
-    //   update_2DIR_sensor_block(&motor);
-    //   update_angle_el_zero_sensor_block(&motor);
-    //   update_angle_el_zero_no_sensor_block(&motor);
-    //   update_NLLUT_and_angle_el_zero_sensor_block(&motor);
+    // update_2DIR_sensor_block(&motor);
+    // update_angle_el_zero_sensor_block(&motor);
+    // update_angle_el_zero_no_sensor_block(&motor);
+    // update_NLLUT_and_angle_el_zero_sensor_block(&motor);
     // }
 
     // 关节电机产品例程

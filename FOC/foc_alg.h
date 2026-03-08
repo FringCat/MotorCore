@@ -138,6 +138,7 @@ typedef struct
 typedef struct
 {
     float Ibus;            // 母线电流（注释：可选，用于功率计算与过流保护，单位：A）
+    float Ubus;
     // -------------------------- 电流校准参数 --------------------------
     uint32_t IA_offset_raw;        // IA电流零点偏移（ADC零漂校准值，采集无电流时的ADC值转换而来）
     uint32_t IB_offset_raw;        // IB电流零点偏移（同上）
