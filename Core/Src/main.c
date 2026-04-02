@@ -143,7 +143,7 @@ int main(void)
     motor.MotorData.angle_all = (motor.MotorConfig.loopcount_rotor * 2 * PI + Limit_angle_el(motor.MotorAlg.angle-motor.MotorConfig.angle_zero_gear_A) );
     motor.MotorAlg.angle_flange = Limit_angle_flange(motor.MotorData.angle_all,motor.MotorConfig.GR);
     motor.MotorDrv.Delayms(1);
-  } 
+  }
   update_flash(ADDR_FLASH_SECTOR_0,(uint64_t*)&motor.MotorConfig,sizeof(motor.MotorConfig)/4);
   flash_read(ADDR_FLASH_SECTOR_0,(uint32_t*)&motorconfig,sizeof(motor.MotorConfig)/4);
   SEGGER_RTT_printf(0,"LWJ666 has inited!\n");

@@ -169,14 +169,21 @@ void foc_init(Motor_HandleTypeDef *motor)
     motor->MotorConfig.loopcount_rotor = 0XFFFF;
 
     // 初始化PID参数(要用哪个初始化哪个)
-    motor->MotorAlg.position_pid.KP = 0.03f;
-    motor->MotorAlg.position_pid.KI = 0.05f;
+    motor->MotorAlg.position_pid.KP = 20.3f;
+    motor->MotorAlg.position_pid.KI = 0.0f;
     motor->MotorAlg.position_pid.KD = 0.0f;
+    motor->MotorAlg.position_pid.integral_max = 100.0f;
+    motor->MotorAlg.position_pid.integral_min = -100.0f;
+    motor->MotorAlg.position_pid.output_max = 100.0f;
+    motor->MotorAlg.position_pid.output_min = -100.0f;
     motor->MotorAlg.position_pid.integral_limit = 10.0f;
     motor->MotorAlg.position_pid.output_limit = 100.0f;
 
-    motor->MotorAlg.velocity_pid.KP = 0.3f;
-    motor->MotorAlg.velocity_pid.KI = 0.0f;
+
+    // motor->MotorAlg.velocity_pid.KP = 0.3f;//普通速度环
+    // motor->MotorAlg.velocity_pid.KI = 5.8f;
+    motor->MotorAlg.velocity_pid.KP = 0.1f;
+    motor->MotorAlg.velocity_pid.KI = 0.5f;//SMO
     motor->MotorAlg.velocity_pid.KD = 0.0f;
     motor->MotorAlg.velocity_pid.integral_max = 100.0f;
     motor->MotorAlg.velocity_pid.integral_min = -100.0f;

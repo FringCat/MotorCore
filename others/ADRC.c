@@ -16,11 +16,11 @@ void ADRC_Init(ADRC_HandleTypeDef *adrc, int id, float h, float b0)
 
     /********************* TD模块初始化 *********************/
     // 速度因子r：电机控制常用50（平衡响应速度与抗噪）
-    adrc->TD.r = 6940.01f;
+    adrc->TD.r = 6000.01f;
     // 采样周期h：与系统采样周期一致（外部传入）
     adrc->TD.h = h;
     // 整体增益R：默认1.0f（强化跟踪时可改2~5）
-    adrc->TD.R = 160.5f;
+    adrc->TD.R = 100.5f;
     // TD状态初始化（避免初始突变）
     adrc->TD.x1 = 0.0f;
     adrc->TD.x2 = 0.0f;
@@ -47,11 +47,11 @@ void ADRC_Init(ADRC_HandleTypeDef *adrc, int id, float h, float b0)
 
     /********************* NLSEF模块初始化 *********************/
     // 反馈增益（速度环经验值）
-    adrc->NLSEF.beta1 = 1600.5f;   // 位置/速度误差反馈增益
+    adrc->NLSEF.beta1 = 1300.5f;   // 位置/速度误差反馈增益
     adrc->NLSEF.beta2 = 3.1f;    // 微分误差反馈增益
 
     // NLSEF的fal非线性参数
-    adrc->NLSEF.alpha_1 = 0.85f; adrc->NLSEF.delta_1 = 0.00000000000005f;
+    adrc->NLSEF.alpha_1 = 0.9f; adrc->NLSEF.delta_1 = 0.00000000000005f;
     adrc->NLSEF.alpha_2 = 0.9f;  adrc->NLSEF.delta_2 = 0.001f;
 
     // NLSEF状态初始化

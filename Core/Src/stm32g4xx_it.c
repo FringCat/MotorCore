@@ -245,13 +245,13 @@ void ADC1_2_IRQHandler(void)
     motor.MotorAlg.IB = motor.MotorDrv.Cal_Ib(motor.MotorData.CurrentData.I_raw.IB_raw , motor.MotorData.IB_offset_raw);
     motor.MotorAlg.IA = -(motor.MotorAlg.IC+motor.MotorAlg.IB);
   }
-
+  
   update_dt(&motor);
-  update_angle(&motor);
+  // update_angle(&motor);
   update_Clark(&motor);
   update_Park(&motor);
   // update_velocity_LPF(&motor);
-  // update_angle_SMO(&SMO, &motor, motor.MotorAlg.Ualpha, motor.MotorAlg.Ubeta, motor.MotorAlg.Ialpha, motor.MotorAlg.Ibeta); //打开SMO时记得关闭 update_angle 跟 update_velocity_LPF
+  update_angle_SMO(&SMO, &motor, motor.MotorAlg.Ualpha, motor.MotorAlg.Ubeta, motor.MotorAlg.Ialpha, motor.MotorAlg.Ibeta); //打开SMO时记得关闭 update_angle 跟 update_velocity_LPF
   // RLS_update(&RLS, &motor);
   HAL_GPIO_TogglePin(TEST2_GPIO_Port, TEST2_Pin);
   /* USER CODE END ADC1_2_IRQn 1 */
@@ -398,37 +398,37 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
         // }
 
         //脉冲注入例程
-        {
-          static float T = 5.0f;
-          static float T_windows = 0.1f;
-          static float time = 0.0f;
-          static int flag_RLS = 0;
-          time += motor.time.dt ;
-          if(time<T)
-          {
-            if(time<T_windows)
-            {
-              motor.MotorAlg.Uq = 0.0f;
-              motor.MotorAlg.Ud = 0.5f;
-              RLS_update(&RLS, &motor);
-            }
-          }
-          else if(time>T && time < T*2)
-          {
-            if(time<T+T_windows)
-            {
-              motor.MotorAlg.Uq = 0.0f;
-              motor.MotorAlg.Ud = 0.0f; 
-              RLS_update(&RLS, &motor);
-            }
+        // {
+        //   static float T = 0.5f;
+        //   static float T_windows = 0.005f;
+        //   static float time = 0.0f;
+        //   static int flag_RLS = 0;
+        //   time += motor.time.dt ;
+        //   if(time<T)
+        //   {
+        //     if(time<T_windows)
+        //     {
+        //       motor.MotorAlg.Uq = 0.0f;
+        //       motor.MotorAlg.Ud = 2.0f;
+        //       RLS_update(&RLS, &motor);
+        //     }
+        //   }
+        //   else if(time>T && time < T*2)
+        //   {
+        //     if(time<T+T_windows)
+        //     {
+        //       motor.MotorAlg.Uq = 0.0f;
+        //       motor.MotorAlg.Ud = 0.0f; 
+        //       RLS_update(&RLS, &motor);
+        //     }
            
-          }
-          else
-          {
-            time = 0.0f;
-          }
-          update_svpwm(&motor);//输出SVPWM
-        }
+        //   }
+        //   else
+        //   {
+        //     time = 0.0f;
+        //   }
+        //   update_svpwm(&motor);//输出SVPWM
+        // }
 
         // RLS例程
         // { 
@@ -455,13 +455,14 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 
         // ADRC例程
         // {
-        //   motor.MotorAlg.Uq = Limit(update_ADRC(&ADRC,adrc_input,motor.MotorAlg.Velocity),12.0f,-12.0f);
+        //   static float target_Velocity = 40.0f;
+        //   motor.MotorAlg.Uq = Limit(update_ADRC(&ADRC,target_Velocity,motor.MotorAlg.Velocity),12.0f,-12.0f);
         //   update_svpwm(&motor);//输出SVPWM
         // }
 
         // 速度环例程
         // {
-        //   motor.MotorAlg.Uq = Calculate_PID(30.0f, motor.MotorAlg.Velocity, motor.time.dt , &motor.MotorAlg.velocity_pid);
+        //   motor.MotorAlg.Uq = Calculate_PID(20.0f, motor.MotorAlg.Velocity, motor.time.dt , &motor.MotorAlg.velocity_pid);
         //   update_svpwm(&motor);//输出SVPWM
         // }
 
@@ -474,20 +475,38 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 
         // 速度电流环例程
         // {
-        //   float output = Calculate_PID(22.0f, motor.MotorAlg.Velocity, motor.time.dt , &motor.MotorAlg.velocity_pid);
+        //   float output = Calculate_PID(20.0f, motor.MotorAlg.Velocity, motor.time.dt , &motor.MotorAlg.velocity_pid);
         //   motor.MotorAlg.Uq = Calculate_PID(output, motor.MotorAlg.Iq , motor.time.dt , &motor.MotorAlg.iq_pid);
+        //   motor.MotorAlg.Ud = Calculate_PID(0.0f, motor.MotorAlg.Id , motor.time.dt , &motor.MotorAlg.id_pid);
+        //   update_svpwm(&motor);//输出SVPWM
+        // }
+
+        // 位置速度电流环例程
+        // {
+        //   static float output_pos = 0.0f;
+        //   static float output_vel = 0.0f;
+        //   output_pos = Calculate_PID(20.0f, motor.MotorData.angle_all, motor.time.dt , &motor.MotorAlg.position_pid);
+        //   output_vel = Calculate_PID(output_pos, motor.MotorAlg.Velocity, motor.time.dt , &motor.MotorAlg.velocity_pid);
+        //   motor.MotorAlg.Uq = Calculate_PID(output_vel, motor.MotorAlg.Iq , motor.time.dt , &motor.MotorAlg.iq_pid);
         //   motor.MotorAlg.Ud = Calculate_PID(0.0f, motor.MotorAlg.Id , motor.time.dt , &motor.MotorAlg.id_pid);
         //   update_svpwm(&motor);//输出SVPWM
         // }
         
         // SMO例程
-        // {
-        //   float output = Calculate_PID(20.0f, motor.MotorAlg.Velocity, motor.time.dt , &motor.MotorAlg.velocity_pid);
-        //   motor.MotorAlg.Uq = Calculate_PID(output, motor.MotorAlg.Iq , motor.time.dt , &motor.MotorAlg.iq_pid);
-        //   motor.MotorAlg.Ud = Calculate_PID(0.0f, motor.MotorAlg.Id , motor.time.dt , &motor.MotorAlg.id_pid);
-        //   update_svpwm(&motor);//输出SVPWM
-        //   // update_angle_SMO(&SMO, &motor, motor.MotorAlg.Ualpha, motor.MotorAlg.Ubeta, motor.MotorAlg.Ialpha, motor.MotorAlg.Ibeta); //这个要放在ADC中断里跑
-        // }
+        {
+          static TD_HandleTypeDef SMO_TD;
+          SMO_TD.h = motor.time.dt;
+          SMO_TD.r = 6.01f;
+          SMO_TD.R = 3.5f;
+          update_ADRC_TD(&SMO_TD,20);
+          // static float angle_sensor;
+          // angle_sensor = Limit_angle_el(motor.MotorDrv.Cal_Angle(motor.MotorDrv.Update_Angle_raw()) + 3.1415926f);
+          float output = Calculate_PID(SMO_TD.x1, motor.MotorAlg.Velocity, motor.time.dt , &motor.MotorAlg.velocity_pid);
+          motor.MotorAlg.Uq = Calculate_PID(output, motor.MotorAlg.Iq , motor.time.dt , &motor.MotorAlg.iq_pid);
+          motor.MotorAlg.Ud = Calculate_PID(0.0f, motor.MotorAlg.Id , motor.time.dt , &motor.MotorAlg.id_pid);
+          update_svpwm(&motor);//输出SVPWM
+          // update_angle_SMO(&SMO, &motor, motor.MotorAlg.Ualpha, motor.MotorAlg.Ubeta, motor.MotorAlg.Ialpha, motor.MotorAlg.Ibeta); //这个要放在ADC中断里跑
+        }
 
         //状态机例程
         // {

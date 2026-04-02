@@ -8,7 +8,7 @@ void SMO_Init(SMO_HandleTypeDef *hsmo)
   hsmo->PolePairs = 14;         // 实际极对数
 
   /* #################### 2. SMO核心配置 #################### */
-  hsmo->SmoGain = 75.1f;        // 滑模增益（根据调试调整）
+  hsmo->SmoGain = 75.1f;        // 滑模增益
   hsmo->Ts = 1.0e-4f;           // 10kHz控制周期
 
   /* #################### 3. 状态变量清零 #################### */
@@ -27,8 +27,8 @@ void SMO_Init(SMO_HandleTypeDef *hsmo)
   hsmo->LastTheta = 0.0f;
 
   /* #################### 4. PLL参数初始化（核心新增） #################### */
-  hsmo->PlKp = 3000.0f;          // PLL比例增益（初始值，调试范围50~200）
-  hsmo->PlKi = 0.0f;           // PLL积分增益（初始值，调试范围5~50）
+  hsmo->PlKp = 3000.0f;          // PLL比例增益
+  hsmo->PlKi = 0.0f;           // PLL积分增益
   hsmo->PlIntegral = 0.0f;      // 积分项初始化为0
   hsmo->PlErr = 0.0f;           // 相位误差初始化为0
   hsmo->SinTheta = 0.0f;        // 初始正弦值

@@ -1857,7 +1857,7 @@ void update_loopcount_rotor_block(Motor_HandleTypeDef *motor,float angle_encoder
     update_angle(motor);
     // mt6816_update_angle(&mt6816);
     angle_A = Limit_angle_el(motor->MotorAlg.angle-motor->MotorConfig.angle_zero_gear_A);
-    angle_B = Limit_angle_el(2*PI - angle_encoder_B +motor->MotorConfig.angle_zero_gear_B);
+    angle_B = Limit_angle_el(2*PI - angle_encoder_B + motor->MotorConfig.angle_zero_gear_B);
 
     for(int i = -8 ; i<9 ;i++)
     {
