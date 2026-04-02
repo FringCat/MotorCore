@@ -312,8 +312,13 @@ float get_Ic_offset(Motor_HandleTypeDef *motor);  // 获取IC电流偏置
 void update_pole_pairs_sensor_block(Motor_HandleTypeDef *motor);        // 极对数辨识（有传感器，阻塞式更新）
 void update_pole_pairs_sensor_nonblock(Motor_HandleTypeDef *motor);     // 极对数辨识（有传感器，非阻塞式更新）
 
-void update_2DIR_sensor_block(Motor_HandleTypeDef *motor);              //  相线辨识（基于磁编，阻塞式更新）
-void update_2DIR_sensor_nonblock(Motor_HandleTypeDef *motor);           //  相线辨识（基于磁编，非阻塞式更新）
+// 相序辨识两步流程：先调第一轮确定编码器方向，再调第二轮确定电流接线
+// 完成后调 save_dir_to_flash 保存，下次上电调 load_dir_from_flash 恢复
+void update_2DIR_sensor_block(Motor_HandleTypeDef *motor);              // 第一轮：传感器方向辨识（阻塞式）→ DIR=1 或 DIR=2
+void update_2DIR_sensor_nonblock(Motor_HandleTypeDef *motor);           // 第一轮：传感器方向辨识（非阻塞式）
+void update_6DIR_current_block(Motor_HandleTypeDef *motor);             // 第二轮：电流注入法辨识接线顺序（阻塞式）→ 最终 DIR
+void save_dir_to_flash(Motor_HandleTypeDef *motor);                     // 将辨识结果 DIR 保存到 Flash
+void load_dir_from_flash(Motor_HandleTypeDef *motor);                   // 从 Flash 读取 DIR 并写入 motor 配置
 
 void update_angle_el_zero_sensor_block(Motor_HandleTypeDef *motor);     //  电角度零点校准 （有传感器，阻塞式更新）
 void update_angle_el_zero_sensor_nonblock(Motor_HandleTypeDef *motor);  //  电角度零点校准 （有传感器，非阻塞式更新）

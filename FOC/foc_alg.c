@@ -5,6 +5,12 @@
 #include <stdlib.h>
 #include "SEGGER_RTT.h"
 #include "foc_drv.h"
+#include "flash.h"
+
+// Flash 中存储 DIR 的专用扇区（SECTOR_1，与 MotorConfig 的 SECTOR_0 分开）
+#define DIR_FLASH_ADDR  ADDR_FLASH_SECTOR_1
+// 魔数：用于判断 Flash 中的数据是否有效
+#define DIR_FLASH_MAGIC 0xD1A50000UL
 float sgn(float x)
 {
 	if(x>0)
@@ -1284,128 +1290,363 @@ void update_pole_pairs_sensor_nonblock(Motor_HandleTypeDef *motor)
 
 }
 
+// ============================================================
+// 相序辨识 —— 第一轮：传感器方向（编码器正/反转）
+//
+// 原理：用 set_pwm_nodir 以固定物理相序驱动，绕过 DIR 换相，
+//       积分编码器速度判断方向。
+// 结果：DIR=1（正序组候选 1/4/5）或 DIR=2（逆序组候选 2/3/6）
+// ============================================================
 void update_2DIR_sensor_block(Motor_HandleTypeDef *motor)
 {
-    float velocity_target = 0.03f; 
-    static float velocity_integral = 0.0f;
-    static float angle_openloop = 0;
+    const float velocity_target = 0.03f;
+    float velocity_integral = 0.0f;
 
-    for(int i=0 ; i<1000 ; i++)
-    {
-        update_dt(motor);  //预热dt，防止因初次启动产生的极小dt干扰后面的速度计算
-        update_angle(motor);
-        update_velocity_raw(motor);
-        set_svpwm(motor,0.001f*i*motor->MotorConfig.UMAX*0.05f, motor->MotorConfig.UMAX*0.05f - 0.001f*i*motor->MotorConfig.UMAX*0.05f , 0.0f);
-        motor->MotorDrv.Delayms(1);
-    }
-
-    for(int i=0 ; i<2000 ; i++)
+    // 用 set_pwm_nodir 做 d 轴励磁斜坡预热，绕过 DIR 换相，
+    // 保证物理 A 相电流最大，转子对齐到固定位置
+    for (int i = 0; i < 1000; i++)
     {
         update_dt(motor);
         update_angle(motor);
         update_velocity_raw(motor);
-        angle_openloop = Limit_angle_el((float)i*velocity_target);
-        // if(myabs(motor->MotorData.Velocity_raw) > 2*velocity_target)
-        // {
-        //     motor->MotorData.Velocity_raw = 0.0f ;
-        // }
-        set_svpwm(motor,motor->MotorConfig.UMAX*0.05f,0.0f,Limit_angle_el((float)i*velocity_target));
-        velocity_integral += motor->MotorData.Velocity_raw;
-        // printf("%f,%f\n",motor->MotorData.Velocity_raw,velocity_integral);
+        float k = (float)(i + 1) / 1000.0f;
+        // Clark 逆变换在 θ=0 时：Ua=2/3*Ud, Ub=Uc=-1/3*Ud
+        // 直接用 set_svpwm 的底层计算，但通过 set_pwm_nodir 输出，绕过 DIR 换相
+        float *up = Calculate_Park_N(0.0f, k * motor->MotorConfig.UMAX * 0.05f, 0.0f);
+        float *uc = Calculate_Clark_N(up[0], up[1], motor->MotorConfig.UMAX);
+        float ta = mymap(uc[0], -motor->MotorConfig.UMAX/2, motor->MotorConfig.UMAX/2, 0.0f, 1.0f);
+        float tb = mymap(uc[1], -motor->MotorConfig.UMAX/2, motor->MotorConfig.UMAX/2, 0.0f, 1.0f);
+        float tc = mymap(uc[2], -motor->MotorConfig.UMAX/2, motor->MotorConfig.UMAX/2, 0.0f, 1.0f);
+        set_pwm_nodir(motor, ta, tb, tc);
         motor->MotorDrv.Delayms(1);
     }
-    motor->MotorDrv.Delayms(500);
 
-    if(velocity_integral>0)
+    // 正向开环旋转，同样用 set_pwm_nodir 绕过 DIR 换相，
+    // 保证驱动方向固定，通过编码器反馈速度积分判断传感器方向
+    for (int i = 0; i < 2000; i++)
+    {
+        update_dt(motor);
+        update_angle(motor);
+        update_velocity_raw(motor);
+        float angle_cmd = Limit_angle_el((float)i * velocity_target);
+        float *up = Calculate_Park_N(motor->MotorConfig.UMAX * 0.05f, 0.0f, angle_cmd);
+        float *uc = Calculate_Clark_N(up[0], up[1], motor->MotorConfig.UMAX);
+        float ta = mymap(uc[0], -motor->MotorConfig.UMAX/2, motor->MotorConfig.UMAX/2, 0.0f, 1.0f);
+        float tb = mymap(uc[1], -motor->MotorConfig.UMAX/2, motor->MotorConfig.UMAX/2, 0.0f, 1.0f);
+        float tc = mymap(uc[2], -motor->MotorConfig.UMAX/2, motor->MotorConfig.UMAX/2, 0.0f, 1.0f);
+        set_pwm_nodir(motor, ta, tb, tc);
+        velocity_integral += motor->MotorData.Velocity_raw * motor->time.dt;
+        motor->MotorDrv.Delayms(1);
+    }
+    motor->MotorDrv.Delayms(300);
+    set_pwm_nodir(motor, 0.0f, 0.0f, 0.0f);
+
+    if (velocity_integral > 0.0f)
     {
         motor->MotorConfig.DIR = 1;
-        velocity_integral = 0.0f;
+        SEGGER_RTT_printf(0, "[DIR Round1] Sensor forward, DIR group=1/4/5\r\n");
     }
-    else if(velocity_integral<0)
+    else if (velocity_integral < 0.0f)
     {
         motor->MotorConfig.DIR = 2;
-        velocity_integral = 0.0f;
+        SEGGER_RTT_printf(0, "[DIR Round1] Sensor reverse, DIR group=2/3/6\r\n");
     }
     else
     {
-        /*传感器异常报错*/
+        SEGGER_RTT_printf(0, "[DIR Round1] Failed: no movement detected\r\n");
     }
-    set_svpwm(motor,0.0f,0.0f,0);
 }
 
+// ============================================================
+// 相序辨识 —— 第一轮（非阻塞版）：传感器方向
+// 状态机：0-空闲  1-励磁预热  2-正向旋转采样  3-判断写结果
+// ============================================================
 void update_2DIR_sensor_nonblock(Motor_HandleTypeDef *motor)
 {
-    float velocity_target = 10.0f; 
-    float time_init = 0.5f;
-    float time_prep = 1.0f;
-    float time_process = 2.0f;
-    // float time_finish = 0.5f;
+    const float velocity_target = 10.0f;
+    const float time_init  = 0.2f;
+    const float time_prep  = 0.8f;
+    const float time_run   = 2.0f;
 
-    static uint8_t state = 0 ;
-    static float total_time = 0.0f ;
+    static uint8_t state = 0;
+    static float total_time = 0.0f;
     static float velocity_integral = 0.0f;
 
-    total_time += update_dt(motor); //预热
+    total_time += update_dt(motor);
     update_angle(motor);
     update_velocity_raw(motor);
-    if(total_time < time_init)
-    {
-        state = 0;
-    }
-    else if(total_time >= time_init && total_time < (time_init+time_prep))
-    {
-        state = 1;
-    }
-    else if(total_time >= (time_init+time_prep) && total_time < (time_init+time_prep+time_process))
-    {
-        state = 2;
-    }
-    else if(total_time >= (time_init+time_prep+time_process))
-    {
-        state = 3;
-    }
+
+    if      (total_time < time_init)                        { state = 0; }
+    else if (total_time < time_init + time_prep)            { state = 1; }
+    else if (total_time < time_init + time_prep + time_run) { state = 2; }
+    else                                                    { state = 3; }
 
     switch (state)
     {
         case 0:
-        {
-            set_svpwm(motor,0.0f, 0.0f , 0.0f);
-        }break;
+            set_pwm_nodir(motor, 0.0f, 0.0f, 0.0f);
+            break;
+
         case 1:
         {
-            float K =  (total_time-time_init)/time_process;
-            set_svpwm(motor,0.0f,K*motor->MotorConfig.UMAX*0.5f, 0.0f);
-        }break;
+            // d 轴励磁预热，用 set_pwm_nodir 绕过 DIR 换相
+            float k = (total_time - time_init) / time_prep;
+            float *up = Calculate_Park_N(0.0f, k * motor->MotorConfig.UMAX * 0.05f, 0.0f);
+            float *uc = Calculate_Clark_N(up[0], up[1], motor->MotorConfig.UMAX);
+            float ta = mymap(uc[0], -motor->MotorConfig.UMAX/2, motor->MotorConfig.UMAX/2, 0.0f, 1.0f);
+            float tb = mymap(uc[1], -motor->MotorConfig.UMAX/2, motor->MotorConfig.UMAX/2, 0.0f, 1.0f);
+            float tc = mymap(uc[2], -motor->MotorConfig.UMAX/2, motor->MotorConfig.UMAX/2, 0.0f, 1.0f);
+            set_pwm_nodir(motor, ta, tb, tc);
+        }
+        break;
+
         case 2:
         {
-            set_svpwm(motor,motor->MotorConfig.UMAX*0.5f,3.0f, Limit_angle_el((float)(total_time-time_init-time_prep)*velocity_target));
-            velocity_integral += motor->MotorData.Velocity_raw;
-        }break;
+            // 正向开环旋转，用 set_pwm_nodir 绕过 DIR 换相
+            float angle_cmd = Limit_angle_el((total_time - time_init - time_prep) * velocity_target);
+            float *up = Calculate_Park_N(motor->MotorConfig.UMAX * 0.05f, 0.0f, angle_cmd);
+            float *uc = Calculate_Clark_N(up[0], up[1], motor->MotorConfig.UMAX);
+            float ta = mymap(uc[0], -motor->MotorConfig.UMAX/2, motor->MotorConfig.UMAX/2, 0.0f, 1.0f);
+            float tb = mymap(uc[1], -motor->MotorConfig.UMAX/2, motor->MotorConfig.UMAX/2, 0.0f, 1.0f);
+            float tc = mymap(uc[2], -motor->MotorConfig.UMAX/2, motor->MotorConfig.UMAX/2, 0.0f, 1.0f);
+            set_pwm_nodir(motor, ta, tb, tc);
+            velocity_integral += motor->MotorData.Velocity_raw * motor->time.dt;
+        }
+        break;
+
         case 3:
         {
-            if(velocity_integral>0)
+            set_pwm_nodir(motor, 0.0f, 0.0f, 0.0f);
+            if (velocity_integral > 0.0f)
             {
                 motor->MotorConfig.DIR = 1;
+                SEGGER_RTT_printf(0, "[DIR Round1] Sensor forward, DIR group=1/4/5\r\n");
             }
-            else if(velocity_integral<0)
+            else if (velocity_integral < 0.0f)
             {
                 motor->MotorConfig.DIR = 2;
+                SEGGER_RTT_printf(0, "[DIR Round1] Sensor reverse, DIR group=2/3/6\r\n");
             }
             else
             {
-                /*传感器异常报错*/
+                SEGGER_RTT_printf(0, "[DIR Round1] Failed: no movement detected\r\n");
             }
-            set_svpwm(motor,0.0f, 0.0f , 0.0f);
             total_time = 0.0f;
             velocity_integral = 0.0f;
+            state = 0;
         }
+        break;
+
         default:
-        {
-            /* 打印报错信息 */
-        }break;
+            set_pwm_nodir(motor, 0.0f, 0.0f, 0.0f);
+            break;
     }
-    // printf("%f,%d,%f,%f,%f\n",velocity_integral,motor->MotorConfig.DIR,motor->MotorData.Velocity_raw,motor->MotorAlg.angle,motor->time.dt);
 }
+
+// ============================================================
+// 相序辨识 —— 第二轮（阻塞式）：电流注入法辨识接线顺序
+//
+// 原理（下桥臂采样注入法）：
+//   依次激励物理 A、B、C 三相：
+//     激励 X 相 = 令其他两相上桥臂全开（占空比=1），X 相下桥臂小占空比导通
+//     电流路径：VCC → 其他两相 → 绕组 → X 相 → 采样电阻 → GND
+//   读取三路 ADC 原始值，响应最大的那路就是 X 相的采样通道。
+//   重复三次建立完整映射：ADC_RANK_1/2/3 各对应哪根物理线。
+//   再查表得到正确的 DIR（同时包含 PWM 换相和电流换相）。
+//
+// 前提：
+//   已完成第一轮传感器方向辨识，motor->MotorConfig.DIR 已为 1 或 2。
+//   候选范围：DIR=1 → {1,4,5}；DIR=2 → {2,3,6}
+//
+// 注意：
+//   - 注入占空比用小值（INJECT_DUTY），避免过流
+//   - 完全不依赖 angle_el_zero，不需要电机转动
+//   - 直接操作 Set_PWM_A/B/C，绕过所有换相逻辑
+// ============================================================
+
+// 注入占空比：其他两相上桥臂，X 相下桥臂
+// 上桥臂接近 1，下桥臂用小值，电流 ≈ UMAX * INJECT_DUTY / Rs
+#define DIR_INJECT_DUTY_HIGH  0.9f
+#define DIR_INJECT_DUTY_LOW   0.1f
+#define DIR_INJECT_SAMPLE_N   100
+#define DIR_INJECT_SETTLE_MS  50
+
+// 读取三路 ADC 原始值（不做换相，直接读硬件通道）
+static void read_raw_iabc(Motor_HandleTypeDef *motor, uint32_t *ra, uint32_t *rb, uint32_t *rc)
+{
+    *ra = motor->MotorDrv.Update_Ia_raw();
+    *rb = motor->MotorDrv.Update_Ib_raw();
+    *rc = motor->MotorDrv.Update_Ic_raw();
+}
+
+void update_6DIR_current_block(Motor_HandleTypeDef *motor)
+{
+    // 候选组（由第一轮传感器方向决定）
+    const int candidates_fwd[3] = {1, 4, 5};
+    const int candidates_rev[3] = {2, 3, 6};
+    const int *candidates = (motor->MotorConfig.DIR == 1) ? candidates_fwd : candidates_rev;
+
+    // 三相注入配置：[激励相][A占空比, B占空比, C占空比]
+    // 激励 A 相：B/C 上桥臂全开，A 下桥臂小占空比
+    // 激励 B 相：A/C 上桥臂全开，B 下桥臂小占空比
+    // 激励 C 相：A/B 上桥臂全开，C 下桥臂小占空比
+    const float inject_pwm[3][3] = {
+        {DIR_INJECT_DUTY_LOW,  DIR_INJECT_DUTY_HIGH, DIR_INJECT_DUTY_HIGH}, // 激励物理 A
+        {DIR_INJECT_DUTY_HIGH, DIR_INJECT_DUTY_LOW,  DIR_INJECT_DUTY_HIGH}, // 激励物理 B
+        {DIR_INJECT_DUTY_HIGH, DIR_INJECT_DUTY_HIGH, DIR_INJECT_DUTY_LOW},  // 激励物理 C
+    };
+
+    // 采样结果：inject_result[激励相][ADC通道] = 平均原始值
+    float inject_result[3][3] = {{0}};
+
+    SEGGER_RTT_printf(0, "[DIR Inject] Start current injection identification\r\n");
+
+    for (int ph = 0; ph < 3; ph++)
+    {
+        // 施加注入 PWM（直接操作硬件，绕过 DIR 换相）
+        motor->MotorDrv.Set_PWM_A(inject_pwm[ph][0]);
+        motor->MotorDrv.Set_PWM_B(inject_pwm[ph][1]);
+        motor->MotorDrv.Set_PWM_C(inject_pwm[ph][2]);
+        motor->MotorDrv.Delayms(DIR_INJECT_SETTLE_MS);
+
+        // 多次采样取平均，消除 ADC 噪声
+        float sum_a = 0, sum_b = 0, sum_c = 0;
+        for (int s = 0; s < DIR_INJECT_SAMPLE_N; s++)
+        {
+            uint32_t ra, rb, rc;
+            read_raw_iabc(motor, &ra, &rb, &rc);
+            // 取与零偏的差值绝对值（电流幅值）
+            sum_a += (float)((ra > motor->MotorData.IA_offset_raw)
+                             ? (ra - motor->MotorData.IA_offset_raw)
+                             : (motor->MotorData.IA_offset_raw - ra));
+            sum_b += (float)((rb > motor->MotorData.IB_offset_raw)
+                             ? (rb - motor->MotorData.IB_offset_raw)
+                             : (motor->MotorData.IB_offset_raw - rb));
+            sum_c += (float)((rc > motor->MotorData.IC_offset_raw)
+                             ? (rc - motor->MotorData.IC_offset_raw)
+                             : (motor->MotorData.IC_offset_raw - rc));
+        }
+        inject_result[ph][0] = sum_a / DIR_INJECT_SAMPLE_N;
+        inject_result[ph][1] = sum_b / DIR_INJECT_SAMPLE_N;
+        inject_result[ph][2] = sum_c / DIR_INJECT_SAMPLE_N;
+
+        SEGGER_RTT_printf(0, "[DIR Inject] Ph%d: ADC_A=%d ADC_B=%d ADC_C=%d\r\n",
+                          ph,
+                          (int)inject_result[ph][0],
+                          (int)inject_result[ph][1],
+                          (int)inject_result[ph][2]);
+
+        // 关闭 PWM，等待电流衰减
+        motor->MotorDrv.Set_PWM_A(0.0f);
+        motor->MotorDrv.Set_PWM_B(0.0f);
+        motor->MotorDrv.Set_PWM_C(0.0f);
+        motor->MotorDrv.Delayms(50);
+    }
+
+    // 建立映射：对每个激励相，找响应最大的 ADC 通道
+    // adc_to_phys[adc_ch] = 物理相（0=A,1=B,2=C）
+    // phys_to_adc[phys_ph] = ADC 通道（0=RANK1,1=RANK2,2=RANK3）
+    int phys_to_adc[3] = {-1, -1, -1};
+    for (int ph = 0; ph < 3; ph++)
+    {
+        int best_ch = 0;
+        float best_val = inject_result[ph][0];
+        if (inject_result[ph][1] > best_val) { best_val = inject_result[ph][1]; best_ch = 1; }
+        if (inject_result[ph][2] > best_val) { best_val = inject_result[ph][2]; best_ch = 2; }
+        phys_to_adc[ph] = best_ch;
+    }
+
+    SEGGER_RTT_printf(0, "[DIR Inject] Mapping: PhysA->ADC%d, PhysB->ADC%d, PhysC->ADC%d\r\n",
+                      phys_to_adc[0], phys_to_adc[1], phys_to_adc[2]);
+
+    // 根据 phys_to_adc 映射和候选组，查找正确的 DIR
+    // DIR 的 set_pwm 换相定义（Ua->物理相，即 ADC 通道对应关系）：
+    //   DIR=1: Ua->A(adc0), Ub->B(adc1), Uc->C(adc2)  → phys_to_adc = {0,1,2}
+    //   DIR=2: Ua->B(adc1), Ub->A(adc0), Uc->C(adc2)  → phys_to_adc = {1,0,2}
+    //   DIR=3: Ua->C(adc2), Ub->B(adc1), Uc->A(adc0)  → phys_to_adc = {2,1,0}
+    //   DIR=4: Ua->C(adc2), Ub->A(adc0), Uc->B(adc1)  → phys_to_adc = {2,0,1}
+    //   DIR=5: Ua->B(adc1), Ub->C(adc2), Uc->A(adc0)  → phys_to_adc = {1,2,0}
+    //   DIR=6: Ua->A(adc0), Ub->C(adc2), Uc->B(adc1)  → phys_to_adc = {0,2,1}
+    // 其中 phys_to_adc[ph] 表示：激励物理 ph 相时，哪路 ADC 响应最大
+    // 即 phys_to_adc[ph] = 物理 ph 相对应的 ADC 通道编号
+    //
+    // set_pwm 中 DIR=N 时：Set_PWM_A 输出 Ua，Set_PWM_B 输出 Ub，Set_PWM_C 输出 Uc
+    // 所以物理 A 相（ADC_A 采样的那相）接收的是哪路 Ux，由 phys_to_adc[0] 决定：
+    //   phys_to_adc[0]=0 → ADC_A 采物理 A → Ua 给 A → DIR=1 或 DIR=6
+    //   phys_to_adc[0]=1 → ADC_B 采物理 A → Ub 给 A → DIR=2 或 DIR=5
+    //   phys_to_adc[0]=2 → ADC_C 采物理 A → Uc 给 A → DIR=3 或 DIR=4
+    // 再结合 phys_to_adc[1] 区分同组内的两个候选
+
+    // DIR 对应的 phys_to_adc 期望值表
+    // dir_map[DIR-1] = {phys_to_adc[0], phys_to_adc[1], phys_to_adc[2]}
+    const int dir_map[6][3] = {
+        {0, 1, 2}, // DIR=1: A->adc0, B->adc1, C->adc2
+        {1, 0, 2}, // DIR=2: A->adc1, B->adc0, C->adc2
+        {2, 1, 0}, // DIR=3: A->adc2, B->adc1, C->adc0
+        {2, 0, 1}, // DIR=4: A->adc2, B->adc0, C->adc1
+        {1, 2, 0}, // DIR=5: A->adc1, B->adc2, C->adc0
+        {0, 2, 1}, // DIR=6: A->adc0, B->adc2, C->adc1
+    };
+
+    int best_dir = candidates[0];
+    for (int ci = 0; ci < 3; ci++)
+    {
+        int dir_try = candidates[ci];
+        const int *expected = dir_map[dir_try - 1];
+        if (phys_to_adc[0] == expected[0] &&
+            phys_to_adc[1] == expected[1] &&
+            phys_to_adc[2] == expected[2])
+        {
+            best_dir = dir_try;
+            break;
+        }
+    }
+
+    motor->MotorConfig.DIR = best_dir;
+    SEGGER_RTT_printf(0, "[DIR Inject] Done, DIR=%d\r\n", best_dir);
+}
+
+// ============================================================
+// Flash 存读 DIR
+//
+// 格式（64-bit doubleword，Flash 最小写入单元）：
+//   高 32 位：魔数 DIR_FLASH_MAGIC（用于有效性校验）
+//   低 32 位：DIR 值（1~6）
+//
+// save_dir_to_flash：将当前 DIR 写入 DIR_FLASH_ADDR
+// load_dir_from_flash：从 Flash 读取 DIR，魔数匹配则写入 motor，否则保留默认值
+// ============================================================
+void save_dir_to_flash(Motor_HandleTypeDef *motor)
+{
+    uint64_t data = ((uint64_t)DIR_FLASH_MAGIC << 32) | (uint32_t)motor->MotorConfig.DIR;
+    // 先擦除该扇区（page 1，长度 1 页）
+    flash_erase_address(1, 1);
+    flash_write_single_address(DIR_FLASH_ADDR, &data, 1);
+    SEGGER_RTT_printf(0, "[DIR Flash] Saved DIR=%d to Flash addr=0x%08X\r\n",
+                      motor->MotorConfig.DIR, DIR_FLASH_ADDR);
+}
+
+void load_dir_from_flash(Motor_HandleTypeDef *motor)
+{
+    uint32_t buf[2] = {0};
+    flash_read(DIR_FLASH_ADDR, buf, 2);
+    // buf[0] = 低 32 位（DIR 值），buf[1] = 高 32 位（魔数）
+    // 注意 STM32 小端：doubleword 低地址存低 32 位
+    uint32_t magic = buf[1];
+    uint32_t dir   = buf[0];
+
+    if (magic == DIR_FLASH_MAGIC && dir >= 1 && dir <= 6)
+    {
+        motor->MotorConfig.DIR = (int)dir;
+        SEGGER_RTT_printf(0, "[DIR Flash] Loaded DIR=%d from Flash\r\n", dir);
+    }
+    else
+    {
+        SEGGER_RTT_printf(0, "[DIR Flash] No valid data (magic=0x%08X), keep default DIR=%d\r\n",
+                          magic, motor->MotorConfig.DIR);
+    }
+}
+
 void update_angle_el_zero_no_sensor_block(Motor_HandleTypeDef *motor)
 {
     motor->MotorDrv.Delayms(1000);
@@ -2082,7 +2323,7 @@ void ctrl_motor_openloop_angle_block(Motor_HandleTypeDef *motor,float angle_targ
 {
     while(ctrl_motor_openloop_angle_nonblock(motor,angle_target,angle_start,velocity_target,Uq,Ud))
     {
-        static float iqid[2] = NULL ;
+        static float iqid[2] = {0.0f, 0.0f};
         static float iq = 0;
         static float id = 0;
         update_dt(motor);

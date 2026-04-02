@@ -131,6 +131,9 @@ int main(void)
   mt6835 = mt6835_stm32_spi_port_init();            //主磁编初始化
   DRV835X_Init();                                   //电驱芯片初始化
 
+  // 上电自动从 Flash 恢复上次辨识的 DIR，无需重新校准
+  load_dir_from_flash(&motor);
+
   ADRC_Init(&ADRC,1,0.00005,700.0f);  
   SMO_Init(&SMO);
   memset(&RLS, 0, sizeof(RLS_HandleTypeDef)); // 强制清空所有成员为0
@@ -166,53 +169,109 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 
-    // 双编码实时读取法兰角度例程
-    // {
-      // mt6816_update_angle(&mt6816);
-      // update_loopcount_rotor_block(&motor,mt6816.angle);
-      // motor.MotorData.angle_all = (motor.MotorConfig.loopcount_rotor * 2 * PI + Limit_angle_el(motor.MotorAlg.angle-motor.MotorConfig.angle_zero_gear_A) );
-      // motor.MotorAlg.angle_flange = Limit_angle_flange(motor.MotorData.angle_all,motor.MotorConfig.GR);
-    // }
+    // -------------------------------------------------------
+    // RTT 命令触发校准（通过 J-Link RTT Viewer 发送单字符命令）
+    //
+    // 命令列表：
+    //   'd' → 执行相序完整辨识（第一轮传感器方向 + 第二轮电流注入）
+    //          辨识完成后自动保存 DIR 到 Flash
+    //   'z' → 执行电角度零点校准（angle_el_zero）
+    //   'n' → 执行 NLLUT + 电角度零点联合校准
+    //   'r' → 打印当前 DIR 和 angle_el_zero
+    //   's' → 将当前 MotorConfig 保存到 Flash（SECTOR_0）
+    // -------------------------------------------------------
+    {
+      char rtt_cmd = 0;
+      if (SEGGER_RTT_Read(0, &rtt_cmd, 1) > 0)
+      {
+        switch (rtt_cmd)
+        {
+          case 'd':
+          {
+            SEGGER_RTT_printf(0, "[Calib] Start phase sequence identification...\r\n");
 
-    // 各类校准例程
-    // {
-    // update_2DIR_sensor_block(&motor);
-    // update_angle_el_zero_sensor_block(&motor);
-    // update_angle_el_zero_no_sensor_block(&motor);
-    // update_NLLUT_and_angle_el_zero_sensor_block(&motor);
-    // }
+            // 关闭中断，防止 FOC 控制环干扰校准
+            __HAL_FDCAN_DISABLE_IT(&hfdcan1, FDCAN_IT_RX_FIFO0_NEW_MESSAGE);
+            __HAL_TIM_DISABLE_IT(&htim1, TIM_IT_UPDATE);
+            __HAL_ADC_DISABLE_IT(&hadc1, ADC_IT_JEOC);
 
-    // 关节电机产品例程
-    // switch(fsm_motor.state)
-    // {
-    //   case CALIBRATION:
-    //   {
-    //     __HAL_FDCAN_DISABLE_IT(&hfdcan1, FDCAN_IT_RX_FIFO0_NEW_MESSAGE); 
-    //     __HAL_TIM_DISABLE_IT(&htim1, TIM_IT_UPDATE);      
-    //     __HAL_ADC_DISABLE_IT(&hadc1, ADC_IT_JEOC);
+            // 先校准电流零偏，保证注入法采样准确
+            SEGGER_RTT_printf(0, "[Calib] Step 0: Update current offset...\r\n");
+            update_Ioffset_block(&motor);
 
-    //     SEGGER_RTT_printf(0,"Start calibration!\n");
-    //     // update_2DIR_sensor_block(&motor);
-    //     // update_angle_el_zero_sensor_block(&motor);
-    //     // HAL_Delay(1000); 
-    //     update_NLLUT_and_angle_el_zero_sensor_block(&motor);
-    //     HAL_Delay(1000);    
-    //     SEGGER_RTT_printf(0,"end calibration!\n");
+            // 第一轮：传感器方向辨识
+            SEGGER_RTT_printf(0, "[Calib] Step 1: Sensor direction...\r\n");
+            update_2DIR_sensor_block(&motor);
 
-    //     __HAL_ADC_ENABLE_IT(&hadc1, ADC_IT_JEOC);         
-    //     __HAL_TIM_ENABLE_IT(&htim1, TIM_IT_UPDATE);      
-    //     __HAL_FDCAN_ENABLE_IT(&hfdcan1, FDCAN_IT_RX_FIFO0_NEW_MESSAGE); 
-    //     fsm_motor.state = SLEEP;
-    //   };break;
-    //   case SET_ZERO:
-    //   {
-        
-    //   };break;
-    //   default:
-    //   {
+            // 第二轮：电流注入法辨识接线顺序
+            SEGGER_RTT_printf(0, "[Calib] Step 2: Current injection...\r\n");
+            update_6DIR_current_block(&motor);
 
-    //   };break;
-    // }
+            // 保存到 Flash
+            save_dir_to_flash(&motor);
+            SEGGER_RTT_printf(0, "[Calib] Phase sequence done. DIR=%d saved to Flash.\r\n",
+                              motor.MotorConfig.DIR);
+
+            // 恢复中断
+            __HAL_ADC_ENABLE_IT(&hadc1, ADC_IT_JEOC);
+            __HAL_TIM_ENABLE_IT(&htim1, TIM_IT_UPDATE);
+            __HAL_FDCAN_ENABLE_IT(&hfdcan1, FDCAN_IT_RX_FIFO0_NEW_MESSAGE);
+          }
+          break;
+
+          case 'z':
+          {
+            SEGGER_RTT_printf(0, "[Calib] Start angle_el_zero calibration...\r\n");
+            __HAL_FDCAN_DISABLE_IT(&hfdcan1, FDCAN_IT_RX_FIFO0_NEW_MESSAGE);
+            __HAL_TIM_DISABLE_IT(&htim1, TIM_IT_UPDATE);
+            __HAL_ADC_DISABLE_IT(&hadc1, ADC_IT_JEOC);
+
+            update_angle_el_zero_sensor_block(&motor);
+
+            // 将更新后的 MotorConfig（含 angle_el_zero）保存到 Flash
+            update_flash(ADDR_FLASH_SECTOR_0, (uint64_t*)&motor.MotorConfig, sizeof(motor.MotorConfig)/4);
+            SEGGER_RTT_printf(0, "[Calib] angle_el_zero=%.6f saved.\r\n", motor.MotorConfig.angle_el_zero);
+
+            __HAL_ADC_ENABLE_IT(&hadc1, ADC_IT_JEOC);
+            __HAL_TIM_ENABLE_IT(&htim1, TIM_IT_UPDATE);
+            __HAL_FDCAN_ENABLE_IT(&hfdcan1, FDCAN_IT_RX_FIFO0_NEW_MESSAGE);
+          }
+          break;
+
+          case 'n':
+          {
+            SEGGER_RTT_printf(0, "[Calib] Start NLLUT + angle_el_zero calibration...\r\n");
+            __HAL_FDCAN_DISABLE_IT(&hfdcan1, FDCAN_IT_RX_FIFO0_NEW_MESSAGE);
+            __HAL_TIM_DISABLE_IT(&htim1, TIM_IT_UPDATE);
+            __HAL_ADC_DISABLE_IT(&hadc1, ADC_IT_JEOC);
+
+            update_NLLUT_and_angle_el_zero_sensor_block(&motor);
+
+            update_flash(ADDR_FLASH_SECTOR_0, (uint64_t*)&motor.MotorConfig, sizeof(motor.MotorConfig)/4);
+            SEGGER_RTT_printf(0, "[Calib] NLLUT + angle_el_zero done, saved.\r\n");
+
+            __HAL_ADC_ENABLE_IT(&hadc1, ADC_IT_JEOC);
+            __HAL_TIM_ENABLE_IT(&htim1, TIM_IT_UPDATE);
+            __HAL_FDCAN_ENABLE_IT(&hfdcan1, FDCAN_IT_RX_FIFO0_NEW_MESSAGE);
+          }
+          break;
+
+          case 'r':
+            SEGGER_RTT_printf(0, "[Status] DIR=%d, angle_el_zero=%.6f\r\n",
+                              motor.MotorConfig.DIR, motor.MotorConfig.angle_el_zero);
+            break;
+
+          case 's':
+            update_flash(ADDR_FLASH_SECTOR_0, (uint64_t*)&motor.MotorConfig, sizeof(motor.MotorConfig)/4);
+            SEGGER_RTT_printf(0, "[Flash] MotorConfig saved to SECTOR_0.\r\n");
+            break;
+
+          default:
+            SEGGER_RTT_printf(0, "[CMD] Unknown: '%c'. Commands: d=DIR calib, z=el_zero, n=NLLUT, r=status, s=save\r\n", rtt_cmd);
+            break;
+        }
+      }
+    }
 
   /* USER CODE END 3 */
 }
