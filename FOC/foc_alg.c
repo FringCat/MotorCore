@@ -34,7 +34,7 @@ float Sat(float e, float r)
         return e;
     }
 }
-
+//love11111
 float myabs(float val)
 {
 	if(val>=0)
