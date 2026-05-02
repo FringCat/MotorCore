@@ -52,6 +52,7 @@ void RLS_update_theta(RLS_HandleTypeDef *RLS, float32_t y, float32_t *phi)
     // 局部静态缓冲区（避免栈溢出，复用内存）
     static float32_t P_phi_buf[RLS_PARAM_NUM];        // P×φ的结果缓冲区 (N×1)
     static float32_t phi_T_buf[RLS_PARAM_NUM];        // φ转置的缓冲区 (1×N)
+    static float32_t phi_T_P_row[RLS_PARAM_NUM];      // φᵀ×P 的行向量缓冲区 (1×N)，供 MATRIX_CHECK 下合法乘法链
     static float32_t phi_T_P_phi_buf[1];              // φᵀ×P×φ的结果缓冲区 (1×1)
     static float32_t K_phi_T_buf[RLS_PARAM_NUM][RLS_PARAM_NUM]; // K×φᵀ的缓冲区 (N×N)
     static float32_t I_K_phi_T_buf[RLS_PARAM_NUM][RLS_PARAM_NUM]; // I - K×φᵀ的缓冲区 (N×N)
@@ -60,6 +61,7 @@ void RLS_update_theta(RLS_HandleTypeDef *RLS, float32_t y, float32_t *phi)
     // 局部矩阵结构体（复用，避免重复初始化）
     static arm_matrix_instance_f32 P_phi_mat;
     static arm_matrix_instance_f32 phi_T_mat;
+    static arm_matrix_instance_f32 phi_T_P_mat;       // 1×N：φᵀ×P（不可写入 N×N 的 temp，否则 MATRIX_CHECK / 越界）
     static arm_matrix_instance_f32 phi_T_P_phi_mat;
     static arm_matrix_instance_f32 K_phi_T_mat;
     static arm_matrix_instance_f32 I_K_phi_T_mat;
@@ -96,6 +98,7 @@ void RLS_update_theta(RLS_HandleTypeDef *RLS, float32_t y, float32_t *phi)
         // 初始化局部矩阵结构体（绑定维度和缓冲区）
         arm_mat_init_f32(&P_phi_mat,     RLS_PARAM_NUM, 1,              P_phi_buf);
         arm_mat_init_f32(&phi_T_mat,     1,              RLS_PARAM_NUM, phi_T_buf);
+        arm_mat_init_f32(&phi_T_P_mat,   1,              RLS_PARAM_NUM, phi_T_P_row);
         arm_mat_init_f32(&phi_T_P_phi_mat, 1,           1,              phi_T_P_phi_buf);
         arm_mat_init_f32(&K_phi_T_mat,   RLS_PARAM_NUM, RLS_PARAM_NUM, (float32_t *)K_phi_T_buf);
         arm_mat_init_f32(&I_K_phi_T_mat, RLS_PARAM_NUM, RLS_PARAM_NUM, (float32_t *)I_K_phi_T_buf);
@@ -112,14 +115,23 @@ void RLS_update_theta(RLS_HandleTypeDef *RLS, float32_t y, float32_t *phi)
     }
 
     // -------------------------- 步骤2：计算 φᵀ×P×φ --------------------------
-    // 2.1 转置φ得到φᵀ
-    arm_mat_trans_f32(&RLS->phi_mat, &phi_T_mat);
+    // 2.1 转置φ得到φᵀ（N×1 → 1×N）
+    if (arm_mat_trans_f32(&RLS->phi_mat, &phi_T_mat) != ARM_MATH_SUCCESS)
+    {
+        return;
+    }
 
-    // 2.2 计算 φᵀ×P
-    arm_mat_mult_f32(&phi_T_mat, &RLS->P_mat, &temp_mat);
+    // 2.2 计算 φᵀ×P → 结果必须为 1×N，写入 phi_T_P_mat（原先用 N×N temp 违反 MATRIX_CHECK 且可能越界）
+    if (arm_mat_mult_f32(&phi_T_mat, &RLS->P_mat, &phi_T_P_mat) != ARM_MATH_SUCCESS)
+    {
+        return;
+    }
 
-    // 2.3 计算 (φᵀ×P)×φ = φᵀ×P×φ
-    arm_mat_mult_f32(&temp_mat, &RLS->phi_mat, &phi_T_P_phi_mat);
+    // 2.3 计算 (φᵀ×P)×φ = φᵀ×P×φ → 1×1
+    if (arm_mat_mult_f32(&phi_T_P_mat, &RLS->phi_mat, &phi_T_P_phi_mat) != ARM_MATH_SUCCESS)
+    {
+        return;
+    }
 
     // -------------------------- 步骤3：计算修正增益 K --------------------------
     // 3.1 计算分母：λ + φᵀ×P×φ
@@ -132,7 +144,10 @@ void RLS_update_theta(RLS_HandleTypeDef *RLS, float32_t y, float32_t *phi)
     }
 
     // 3.3 K = (P×φ) / denominator → 标量缩放
-    arm_mat_scale_f32(&P_phi_mat, 1.0f / denominator, &RLS->K_mat);
+    if (arm_mat_scale_f32(&P_phi_mat, 1.0f / denominator, &RLS->K_mat) != ARM_MATH_SUCCESS)
+    {
+        return;
+    }
 
     // 3.4 清洗K值，避免NAN/INF
     for (uint8_t i = 0; i < RLS_PARAM_NUM; i++)
@@ -144,18 +159,30 @@ void RLS_update_theta(RLS_HandleTypeDef *RLS, float32_t y, float32_t *phi)
     }
 
     // -------------------------- 步骤4：计算 I - K×φᵀ --------------------------
-    // 4.1 计算 K×φᵀ
-    arm_mat_mult_f32(&RLS->K_mat, &phi_T_mat, &K_phi_T_mat);
+    // 4.1 计算 K×φᵀ（N×1 乘 1×N → N×N）
+    if (arm_mat_mult_f32(&RLS->K_mat, &phi_T_mat, &K_phi_T_mat) != ARM_MATH_SUCCESS)
+    {
+        return;
+    }
 
     // 4.2 计算 I - K×φᵀ
-    arm_mat_sub_f32(&I_mat, &K_phi_T_mat, &I_K_phi_T_mat);
+    if (arm_mat_sub_f32(&I_mat, &K_phi_T_mat, &I_K_phi_T_mat) != ARM_MATH_SUCCESS)
+    {
+        return;
+    }
 
     // -------------------------- 步骤5：更新协方差矩阵 P --------------------------
-    // 5.1 计算 (I - K×φᵀ) × P
-    arm_mat_mult_f32(&I_K_phi_T_mat, &RLS->P_mat, &temp_mat);
+    // 5.1 计算 (I - K×φᵀ) × P（N×N）
+    if (arm_mat_mult_f32(&I_K_phi_T_mat, &RLS->P_mat, &temp_mat) != ARM_MATH_SUCCESS)
+    {
+        return;
+    }
 
     // 5.2 计算 P = (1/λ) × (I - K×φᵀ)×P + P矩阵清洗
-    arm_mat_scale_f32(&temp_mat, 1.0f / RLS->lambda, &RLS->P_mat);
+    if (arm_mat_scale_f32(&temp_mat, 1.0f / RLS->lambda, &RLS->P_mat) != ARM_MATH_SUCCESS)
+    {
+        return;
+    }
     for (uint8_t i = 0; i < RLS_PARAM_NUM; i++)
     {
         for (uint8_t j = 0; j < RLS_PARAM_NUM; j++)

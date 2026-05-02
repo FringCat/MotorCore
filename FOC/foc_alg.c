@@ -1151,7 +1151,7 @@ int update_Ioffset_nonblock(Motor_HandleTypeDef *motor)
     {
         motor->MotorData.IA_offset_raw += motor->MotorDrv.Update_Ia_raw();
         motor->MotorData.IB_offset_raw += motor->MotorDrv.Update_Ib_raw();
-        motor->MotorData.IC_offset_raw += motor->MotorDrv.Update_Ib_raw();
+        // motor->MotorData.IC_offset_raw += motor->MotorDrv.Update_Ib_raw();
         count++;
         return 0 ;
     }
@@ -1159,7 +1159,7 @@ int update_Ioffset_nonblock(Motor_HandleTypeDef *motor)
     {
         motor->MotorData.IA_offset_raw = motor->MotorData.IA_offset_raw/1000 ;
         motor->MotorData.IB_offset_raw = motor->MotorData.IB_offset_raw/1000 ;
-        motor->MotorData.IC_offset_raw = motor->MotorData.IC_offset_raw/1000 ;
+        motor->MotorData.IC_offset_raw = motor->MotorData.IB_offset_raw ;
         return 1 ;
     }
 }

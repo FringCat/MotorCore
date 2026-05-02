@@ -140,6 +140,7 @@ targets:
         - RTE/_x1
       libList: []
     excludeList: []
+    settings: {}
     toolchain: AC5
     toolchainConfigMap:
       AC5:
