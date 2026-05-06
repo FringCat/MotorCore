@@ -418,12 +418,12 @@ void DRV835X_Init( void )
     DRV835X_PWML_HIGH;
     DRV835X_ENABLE_HIGH;
     HAL_Delay(200);
-    // DRV835X_PWML_LOW;
+    // DRV835X_PWML_LOW; 
     // DRV835X_ENABLE_LOW;
 }
 
 
-
+ 
 void DRV835X_read_FaultStatusReg1(void)
 {
     stru_DRV8353Obj.faultStatusReg1_obj.data = read_reg( FSR1 );

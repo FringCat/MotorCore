@@ -137,7 +137,7 @@ int main(void)
   ADRC_Init(&ADRC,1,0.00005,700.0f);  
   SMO_Init(&SMO);
   memset(&RLS, 0, sizeof(RLS_HandleTypeDef)); // 强制清空所有成员为0
-  RLS_Init(&RLS,1.0f);
+  RLS_Init(&RLS,0.99f);
   HAL_Delay(1000);
   for(int i = 0; i<30 && motor.MotorConfig.loopcount_rotor == 0XFFFF ; i++)//双编码判定圈数（flange范围±Π）
   {
