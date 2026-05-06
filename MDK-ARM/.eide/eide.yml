@@ -140,6 +140,7 @@ targets:
         - RTE/_x1
       libList: []
     excludeList: []
+    settings: {}
     toolchain: AC5
     toolchainConfigMap:
       AC5:
@@ -253,5 +254,5 @@ targets:
           vendor: ST
         otherCmds: ""
         proType: 1
-        speed: 8000
+        speed: 4000
     uploader: JLink

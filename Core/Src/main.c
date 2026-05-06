@@ -73,6 +73,8 @@ int isFirstRun_done = 0;
 int flag_flash_error = 0 ;
 float flange_output = 0.0f;
 
+
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -125,6 +127,7 @@ int main(void)
   /* USER CODE BEGIN 2 */
   SEGGER_RTT_Init();                                //JLINK RTT 初始化
   SEGGER_RTT_SetTerminal(0);
+  
   fsm_init(&fsm_motor);                             //状态机初始化
   foc_init(&motor);                                 //foc初始化
   mt6816_init(&mt6816);                             //副磁编初始化

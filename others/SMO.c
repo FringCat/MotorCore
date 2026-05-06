@@ -88,9 +88,7 @@ float update_SMO(SMO_HandleTypeDef *hsmo,float T,float Ualpha,float Ubeta,float 
   // ------------ 4.2 PLL PI控制器（输出电角速度） ------------
   // 比例项 + 积分项（积分限幅避免饱和）
   hsmo->OmegaEst = hsmo->PlKp * hsmo->PlErr + hsmo->PlIntegral;
-  // 积分项更新（带限幅，防止积分饱和）
   hsmo->PlIntegral += hsmo->PlKi * hsmo->PlErr * hsmo->Ts;
-  // 积分限幅（根据电机最大电角速度调整，示例：14对极电机，最高3000rpm → ω=2π*3000/60*14=4398rad/s）
   if (hsmo->PlIntegral > 5000.0f) hsmo->PlIntegral = 5000.0f;
   if (hsmo->PlIntegral < -5000.0f) hsmo->PlIntegral = -5000.0f;
 
