@@ -35,9 +35,6 @@
 #include "flash.h"
 #include "can_handler.h"
 #include "fsm.h"
-#include "ADRC.h"
-#include "SMO.h"
-#include "RLS.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -64,16 +61,11 @@ mt6835_t *mt6835 = NULL;
 mt6816_HandleTypeDef mt6816;
 Motor_ConfigTypeDef motorconfig;
 CAN_Handler_t can_handler;
-ADRC_HandleTypeDef ADRC;
-SMO_HandleTypeDef SMO;
-RLS_HandleTypeDef RLS;
 
 int isoffset_done = 0;
 int isFirstRun_done = 0;
 int flag_flash_error = 0 ;
 float flange_output = 0.0f;
-
-
 
 /* USER CODE END PV */
 
@@ -134,10 +126,6 @@ int main(void)
   mt6835 = mt6835_stm32_spi_port_init();            //主磁编初始化
   DRV835X_Init();                                   //电驱芯片初始化
 
-  ADRC_Init(&ADRC,1,0.00005,700.0f);  
-  SMO_Init(&SMO);
-  memset(&RLS, 0, sizeof(RLS_HandleTypeDef)); // 强制清空所有成员为0
-  RLS_Init(&RLS,0.99f);
   HAL_Delay(1000);
   for(int i = 0; i<30 && motor.MotorConfig.loopcount_rotor == 0XFFFF ; i++)//双编码判定圈数（flange范围±Π）
   {

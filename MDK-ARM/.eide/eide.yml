@@ -126,6 +126,7 @@ targets:
         - __FPU_PRESENT=1
         - __TARGET_FPU_VFP
         - ARM_MATH_CM4
+        - ARM_MATH_MATRIX_CHECK
         - __CC_ARM
       incList:
         - ../Core/Inc
