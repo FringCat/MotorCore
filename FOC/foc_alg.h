@@ -22,23 +22,6 @@ typedef struct
     float last_output;   // 滤波输出值（上一次滤波后的结果，用于下一次滤波计算）
 }LPF_t;
 
-
-
-/**
- * @brief 滑动平均滤波（SMA）结构体
- * @note 用于速度滑动滤波：存储最近N个原始速度值，取平均值作为滤波结果
- */
-typedef struct
-{
-    float buffer[16];    // 速度采样缓冲区（可修改数组长度N，建议4~16点）
-    uint8_t index;       // 当前采样索引（循环覆盖缓冲区，0~N-1）
-    uint8_t sample_num;  // 实际有效采样点数（缓冲区未满时使用）
-    uint8_t max_num;     // 最大采样点数（滑动窗口大小，需≤buffer数组长度，去掉const）
-    float sum;           // 缓冲区数值总和（优化计算效率）
-} SMA_t;
-
-
-
 /**
  * @brief PID控制器核心结构体
  * @note 通用PID结构体，适配位置环、速度环、电流环、混合环等所有PID控制需求
@@ -73,25 +56,24 @@ typedef struct
 {
     uint32_t Pole_pairs;    // 电机极对数（关键参数：机械角度 → 电角度 = 机械角度 × 极对数）
     int DIR;           // 电机转向配置（1：正转，-1：反转，用于修正角度/电流方向）
-    // float Vdc;         // 直流母线电压（注释：可选，用于SVPWM电压幅值限制计算）
+    int PHASE;         // 电机接线相序（1：ABC，2：ACB，3：BAC，4：BCA，5：CAB，6：CBA，用于修正电流重构）
+    float Vdc;         // 直流母线电压
     float IMAX;             // 电流输出限幅（单位：A，保护电机/功率管，避免过流）
     float UMAX;             // 电压输出限幅（单位：V，基于母线电压，避免PWM占空比超范围）
     float Ls;               // 电机定子电感（单位：H，FOC电流环PI参数设计的核心参数）
     float Rs;               // 电机定子电阻（单位：Ω，FOC电流环前馈补偿、铜损计算）
-    // float Ke;          // 反电动势常数（注释：可选，用于速度前馈补偿，提升动态响应）
     float Kt;             // 转矩系数
-    // float J;           // 转动惯量（注释：可选，速度环PI参数设计，适配负载特性）
-    // float B;           // 粘性摩擦系数（注释：可选，速度环前馈，抑制低速抖动）
     float angle_zero;       // 机械角度零点（编码器零位校准值，用于位置控制基准）
     float angle_el_zero;    // 电角度零点（FOC磁链定向基准，由机械零点×极对数计算）     
     float NLLUT_encoder[128];  //编码器非线性误差查找表
-    uint32_t adc_sample_mid;   //ADC采样值中点 (例如0-4096的ADC,它的采样值中点为2048)
     float GR;
     float angle_zero_gear_A;
     float angle_zero_gear_B;
     float GT_A;
     float GT_B;
     int loopcount_rotor ;
+    int Mode_Sampling_ShuntRes ;     //电流采样模式：0：单电阻采样，1：双电阻采样，2：三电阻采样
+    int Mode_Sampling_Position ;     //电流采样位置：0：相线采样，  1：上桥臂采样, 2: 下桥臂采样 
 } Motor_ConfigTypeDef;
 
 
@@ -147,12 +129,9 @@ typedef struct
     // -------------------------- 速度数据 -------------------------------
     float Velocity_raw;     // 转速原始值（未滤波前的计算结果，用于后续平滑处理）
     LPF_t Velocity_LPF;     // 速度滤波器实例（用于平滑Velocity_raw，提升速度反馈质量）
-    SMA_t Velocity_SMA;     // 速度滑动平均滤波实例（可选，用于进一步平滑速度反馈）
-
     float angle_all;
 
     // -------------------------- 编码器角度原始数据（union适配两种读取方式） --------------------------
-    
     union 
     {
         uint32_t Angle_raw;       // 单个角度原始值
@@ -170,7 +149,6 @@ typedef struct
         }I_raw;                    // 结构化单个读取
        uint32_t I_raw_dma[3];     // DMA批量采集的电流原始数组
     } CurrentData __attribute__((packed));  // 定义联合体变量（如CurrentData）
-    // float I_ADC_CONV;    // 注释：可选，电流ADC转换系数（实际电流 = (ADC值 - 偏移) × 转换系数，单位：A/ADC_LSB）
 } Motor_DataTypeDef;
 
 
@@ -309,6 +287,7 @@ float get_Ib_offset(Motor_HandleTypeDef *motor);  // 获取IB电流偏置
 float get_Ic_offset(Motor_HandleTypeDef *motor);  // 获取IC电流偏置
 
 //初始化相关
+
 void update_pole_pairs_sensor_block(Motor_HandleTypeDef *motor);        // 极对数辨识（有传感器，阻塞式更新）
 void update_pole_pairs_sensor_nonblock(Motor_HandleTypeDef *motor);     // 极对数辨识（有传感器，非阻塞式更新）
 
@@ -323,7 +302,7 @@ void map_samples_to_lut(float *error_arr, int N_SAMPLES, float *lut_arr, int N_L
 void update_NLLUT_encoder_sensor_block(Motor_HandleTypeDef *motor);                  // 更新磁编的非线性插值表 （阻塞式更新）
 void update_NLLUT_encoder_sensor_nonblock(Motor_HandleTypeDef *motor);               // 更新磁编的非线性插值表 （非阻塞式更新）
 
-void update_loopcount_rotor_block(Motor_HandleTypeDef *motor,float angle_encoder_B);                      //阻塞式转子圈数估计
+void update_loopcount_rotor_block(Motor_HandleTypeDef *motor,float angle_encoder_B); //阻塞式转子圈数估计
 
 void update_NLLUT_and_angle_el_zero_sensor_block(Motor_HandleTypeDef *motor);       //更新插值表跟电角度零点
 

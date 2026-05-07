@@ -236,16 +236,22 @@ void ADC1_2_IRQHandler(void)
     motor.MotorData.CurrentData.I_raw.IA_raw = motor.MotorDrv.Update_Ia_raw();
     motor.MotorData.CurrentData.I_raw.IB_raw = motor.MotorDrv.Update_Ib_raw();
 
-    motor.MotorAlg.IC = motor.MotorDrv.Cal_Ia(motor.MotorData.CurrentData.I_raw.IA_raw , motor.MotorData.IA_offset_raw);
+    // motor.MotorAlg.IC = motor.MotorDrv.Cal_Ia(motor.MotorData.CurrentData.I_raw.IA_raw , motor.MotorData.IA_offset_raw);
+    // motor.MotorAlg.IB = motor.MotorDrv.Cal_Ib(motor.MotorData.CurrentData.I_raw.IB_raw , motor.MotorData.IB_offset_raw);
+    // motor.MotorAlg.IA = -(motor.MotorAlg.IC+motor.MotorAlg.IB);
+
+    motor.MotorAlg.IA = motor.MotorDrv.Cal_Ia(motor.MotorData.CurrentData.I_raw.IA_raw , motor.MotorData.IA_offset_raw);
     motor.MotorAlg.IB = motor.MotorDrv.Cal_Ib(motor.MotorData.CurrentData.I_raw.IB_raw , motor.MotorData.IB_offset_raw);
-    motor.MotorAlg.IA = -(motor.MotorAlg.IC+motor.MotorAlg.IB);
+    motor.MotorAlg.IC = -(motor.MotorAlg.IA+motor.MotorAlg.IB);
+
+    update_dt(&motor);
+    update_angle(&motor);
+    update_Clark(&motor);
+    update_Park(&motor);
+    update_velocity_LPF(&motor);
   }
   
-  update_dt(&motor);
-  update_angle(&motor);
-  update_Clark(&motor);
-  update_Park(&motor);
-  update_velocity_LPF(&motor);
+
   HAL_GPIO_TogglePin(TEST2_GPIO_Port, TEST2_Pin);
   /* USER CODE END ADC1_2_IRQn 1 */
 }

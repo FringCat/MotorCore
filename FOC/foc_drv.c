@@ -149,6 +149,7 @@ void foc_init(Motor_HandleTypeDef *motor)
     motor->MotorConfig.Pole_pairs = 14; // 设置电机极对数
     motor->MotorConfig.GR = 10.8f ;          //设置减速箱减速比
     motor->MotorConfig.DIR = 1 ;        // 设置电机转向
+    motor->MotorConfig.PHASE = 3;      // 设置电机接线相序
     motor->MotorConfig.IMAX = 20.0f;   // 设置电流限幅
     motor->MotorConfig.UMAX = 24.0f;   // 设置电压限幅
     motor->MotorConfig.Ls = 0.001f;    // 设置定子电感
@@ -166,6 +167,8 @@ void foc_init(Motor_HandleTypeDef *motor)
     motor->MotorConfig.GT_A = 20.0f; // 主齿轮齿数
     motor->MotorConfig.GT_B = 19.0f; // 副齿轮齿数
     motor->MotorConfig.Kt = 0.806325918;           //设置转矩系数
+    motor->MotorConfig.Mode_Sampling_ShuntRes = 1 ;//双电阻采样
+    motor->MotorConfig.Mode_Sampling_Position = 2 ;//下桥臂采样
     motor->MotorConfig.loopcount_rotor = 0XFFFF;
 
     // 初始化PID参数(要用哪个初始化哪个)
@@ -179,11 +182,8 @@ void foc_init(Motor_HandleTypeDef *motor)
     motor->MotorAlg.position_pid.integral_limit = 10.0f;
     motor->MotorAlg.position_pid.output_limit = 100.0f;
 
-
-    // motor->MotorAlg.velocity_pid.KP = 0.3f;//普通速度环
-    // motor->MotorAlg.velocity_pid.KI = 5.8f;
-    motor->MotorAlg.velocity_pid.KP = 0.1f;
-    motor->MotorAlg.velocity_pid.KI = 0.5f;//SMO
+    motor->MotorAlg.velocity_pid.KP = 0.3f;
+    motor->MotorAlg.velocity_pid.KI = 5.8f;
     motor->MotorAlg.velocity_pid.KD = 0.0f;
     motor->MotorAlg.velocity_pid.integral_max = 100.0f;
     motor->MotorAlg.velocity_pid.integral_min = -100.0f;
@@ -218,23 +218,8 @@ void foc_init(Motor_HandleTypeDef *motor)
     motor->MotorAlg.mixed_pid.integral_limit = 10.0f;
     motor->MotorAlg.mixed_pid.output_limit = 100.0f;
 
-    // motor->MotorData.IA_offset = 0.0f;
-    // motor->MotorData.IB_offset = 0.0f;
-    // motor->MotorData.IC_offset = 0.0f;
-    // motor->MotorData.LastAngle = 0.0f;
-    // motor->MotorData.LastVelocity = 0.0f;
-    // motor->MotorData.Velocity_raw = 0.0f;
     motor->MotorData.Velocity_LPF.last_output = 0.0f;
     motor->MotorData.Velocity_LPF.alpha = 0.5f; // 速度滤波系数
-
-    uint8_t sma_max_num = 8;
-    SMA_t *sma = &motor->MotorData.Velocity_SMA;
-    memset(sma->buffer, 0, sizeof(sma->buffer));
-    sma->index = 0;               
-    sma->sample_num = 0;          
-    sma->sum = 0.0f;               
-    sma->max_num = (sma_max_num > sizeof(sma->buffer)/sizeof(float)) ? 
-                   sizeof(sma->buffer)/sizeof(float) : sma_max_num;
 
     motor->MotorData.angle_all = 0.0f;
 }

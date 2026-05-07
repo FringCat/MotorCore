@@ -63,9 +63,6 @@ Motor_ConfigTypeDef motorconfig;
 CAN_Handler_t can_handler;
 
 int isoffset_done = 0;
-int isFirstRun_done = 0;
-int flag_flash_error = 0 ;
-float flange_output = 0.0f;
 
 /* USER CODE END PV */
 
@@ -157,6 +154,12 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 
+    if(isoffset_done)
+    {
+      set_pwm(&motor,0.0f,0.0f,0.05f);
+      // set_pwm_nodir(&motor,0.05f,0.0f,0.0f);
+    }
+    
     // 双编码实时读取法兰角度例程
     // {
       // mt6816_update_angle(&mt6816);
@@ -206,7 +209,7 @@ int main(void)
     // }
 
   /* USER CODE END 3 */
-}
+  }
 }
 /**
   * @brief System Clock Configuration

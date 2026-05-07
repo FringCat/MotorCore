@@ -356,35 +356,11 @@ void update_pwm(Motor_HandleTypeDef *motor)
                 motor->MotorDrv.Set_PWM_B(_Ub);
                 motor->MotorDrv.Set_PWM_C(_Uc);
             }break;
-            case 2:
+            case -1:
             {
                 motor->MotorDrv.Set_PWM_A(_Ub);
                 motor->MotorDrv.Set_PWM_B(_Ua);
                 motor->MotorDrv.Set_PWM_C(_Uc);
-            }break;
-            case 3:
-            {
-                motor->MotorDrv.Set_PWM_A(_Uc);
-                motor->MotorDrv.Set_PWM_B(_Ub);
-                motor->MotorDrv.Set_PWM_C(_Ua);
-            }break;
-            case 4:
-            {
-                motor->MotorDrv.Set_PWM_A(_Uc);
-                motor->MotorDrv.Set_PWM_B(_Ua);
-                motor->MotorDrv.Set_PWM_C(_Ub);
-            }break;
-            case 5:
-            {
-                motor->MotorDrv.Set_PWM_A(_Ub);
-                motor->MotorDrv.Set_PWM_B(_Uc);
-                motor->MotorDrv.Set_PWM_C(_Ua);
-            }break;
-            case 6:
-            {
-                motor->MotorDrv.Set_PWM_A(_Ua);
-                motor->MotorDrv.Set_PWM_B(_Uc);
-                motor->MotorDrv.Set_PWM_C(_Ub);
             }break;
             default:
             {
@@ -416,35 +392,11 @@ void set_pwm(Motor_HandleTypeDef *motor,float Ta , float Tb ,float Tc)
                 motor->MotorDrv.Set_PWM_B(_Ub);
                 motor->MotorDrv.Set_PWM_C(_Uc);
             }break;
-            case 2:
+            case -1:
             {
                 motor->MotorDrv.Set_PWM_A(_Ub);
                 motor->MotorDrv.Set_PWM_B(_Ua);
                 motor->MotorDrv.Set_PWM_C(_Uc);
-            }break;
-            case 3:
-            {
-                motor->MotorDrv.Set_PWM_A(_Uc);
-                motor->MotorDrv.Set_PWM_B(_Ub);
-                motor->MotorDrv.Set_PWM_C(_Ua);
-            }break;
-            case 4:
-            {
-                motor->MotorDrv.Set_PWM_A(_Uc);
-                motor->MotorDrv.Set_PWM_B(_Ua);
-                motor->MotorDrv.Set_PWM_C(_Ub);
-            }break;
-            case 5:
-            {
-                motor->MotorDrv.Set_PWM_A(_Ub);
-                motor->MotorDrv.Set_PWM_B(_Uc);
-                motor->MotorDrv.Set_PWM_C(_Ua);
-            }break;
-            case 6:
-            {
-                motor->MotorDrv.Set_PWM_A(_Ua);
-                motor->MotorDrv.Set_PWM_B(_Uc);
-                motor->MotorDrv.Set_PWM_C(_Ub);
             }break;
             default:
             {
@@ -1032,7 +984,7 @@ float update_IaIbIc(Motor_HandleTypeDef *motor)
         motor->MotorAlg.IB = motor->MotorDrv.Cal_Ib(motor->MotorData.CurrentData.I_raw.IB_raw , motor->MotorData.IB_offset_raw);
         motor->MotorAlg.IC = motor->MotorDrv.Cal_Ic(motor->MotorData.CurrentData.I_raw.IC_raw , motor->MotorData.IC_offset_raw);
         
-        switch (motor->MotorConfig.DIR)
+        switch (motor->MotorConfig.PHASE)
         {
             case 1:
             {
@@ -1144,7 +1096,7 @@ void update_Ioffset_block(Motor_HandleTypeDef *motor)
     motor->MotorData.IC_offset_raw = motor->MotorData.IC_offset_raw/1000 ;
 }
 
-int update_Ioffset_nonblock(Motor_HandleTypeDef *motor)
+int update_Ioffset_nonblock(Motor_HandleTypeDef *motor)//目前是双电阻采样形式
 {
     static int count = 0 ;
     if(count < 1000)
