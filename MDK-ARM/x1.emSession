@@ -39,10 +39,13 @@
   <Watches active="0" update="Never"/>
  </Watch4>
  <Files>
-  <SessionOpenFile windowGroup="DockEditLeft" x="75" y="15" useTextEdit="1" path="../Core/Src/main.c" left="0" selected="1" top="0" codecName="Default"/>
-  <SessionOpenFile windowGroup="DockEditLeft" x="5" y="30" useTextEdit="1" path="../Core/Src/spi.c" left="0" top="42" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="25" y="40" useTextEdit="1" path="../Core/Src/main.c" left="0" top="21" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="5" y="30" useTextEdit="1" path="../Core/Src/spi.c" left="0" top="30" codecName="Default"/>
   <SessionOpenFile windowGroup="DockEditLeft" x="5" y="36" useTextEdit="1" path="../Core/Src/gpio.c" left="0" top="14" codecName="Default"/>
   <SessionOpenFile windowGroup="DockEditLeft" x="0" y="0" useTextEdit="1" path="../others/mt6835.h" left="0" top="84" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="21" y="53" useTextEdit="1" path="startup_stm32g474xx.s" left="0" top="40" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="40" y="376" useTextEdit="1" path="../Drivers/CMSIS/Include/cmsis_armcc.h" left="0" selected="1" top="364" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="71" y="50" useTextEdit="1" path="../Drivers/CMSIS/Device/ST/STM32G4xx/Include/stm32g474xx.h" left="0" top="37" codecName="Default"/>
  </Files>
  <EMStudioWindow activeProject="x1" fileDialogDefaultFilter="*.c" autoConnectTarget="J-Link" buildConfiguration="x1 External" sessionSettings="" debugSearchFileMap="" fileDialogInitialDirectory="" debugSearchPath="" autoConnectCapabilities="3199"/>
 </session>

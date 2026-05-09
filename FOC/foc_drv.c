@@ -167,8 +167,7 @@ void foc_init(Motor_HandleTypeDef *motor)
     motor->MotorConfig.GT_A = 20.0f; // 主齿轮齿数
     motor->MotorConfig.GT_B = 19.0f; // 副齿轮齿数
     motor->MotorConfig.Kt = 0.806325918;           //设置转矩系数
-    motor->MotorConfig.Mode_Sampling_ShuntRes = 1 ;//双电阻采样
-    motor->MotorConfig.Mode_Sampling_Position = 2 ;//下桥臂采样
+    motor->MotorConfig.Mode_Sampling_ShuntRes = 0X110 ;//AB相双电阻采样
     motor->MotorConfig.loopcount_rotor = 0XFFFF;
 
     // 初始化PID参数(要用哪个初始化哪个)

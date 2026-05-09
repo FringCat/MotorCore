@@ -72,8 +72,8 @@ typedef struct
     float GT_A;
     float GT_B;
     int loopcount_rotor ;
-    int Mode_Sampling_ShuntRes ;     //电流采样模式：0：单电阻采样，1：双电阻采样，2：三电阻采样
-    int Mode_Sampling_Position ;     //电流采样位置：0：相线采样，  1：上桥臂采样, 2: 下桥臂采样 
+    int Mode_Sampling_ShuntRes ;     //电流采样模式：0x100: AXX, 0x010: XBX , 0x001: XXC, 0x110: ABX, 0x101: AXC, 0x011: XBC, 0x111: ABC
+    // int Mode_Sampling_Position ;     //电流采样位置：0：相线采样，  1：上桥臂采样, 2: 下桥臂采样 
 } Motor_ConfigTypeDef;
 
 
@@ -203,9 +203,10 @@ typedef struct
 // 数学常数（FOC核心计算用）
 #define PI          3.14159265359f      // 圆周率
 #define _3PI_2      4.71238898038f      // 3π/2
-#define sqrt_3      1.732050807568877293f  // 根号3
+#define SQRT3      1.732050807568877293f  // 根号3
 #define _1_SQRT3    0.57735026919f      // 1/根号3
 #define _2_SQRT3    1.15470053838f      // 2/根号3
+#define _1_3        (1.0f / 3.0f)       //
 
 // 通用数学工具
 float sgn(float x);                  // 符号函数（返回1/0/-1）
@@ -264,30 +265,33 @@ float get_velocity(Motor_HandleTypeDef *motor);  // 获取当前转速
 float get_velocity_raw(Motor_HandleTypeDef *motor);  // 获取当前原始转速
 float Calculate_velocity_LPF(float angle, float last_angle, float dt, float last_velocity, float alpha);  // 计算转速（含滤波）
 float Calculate_velocity_raw(float angle, float last_angle, float dt);  // 计算转速（不含滤波）
-float update_velocity_SMA(Motor_HandleTypeDef *motor);
 
 // PID控制
 float Calculate_PID(float target, float feedback, float dt ,PID_t* pid);  // PID计算（位置式，支持积分处理）
 float Calculate_PID_IS(float target, float feedback, float dt, PID_t* pid,float sep_err_upper, float sep_err_lower); //带有积分分离的PID计算
 float Calculate_PID_IS_AIS(float target, float feedback, float dt, PID_t* pid,float n); //带有自适应积分分离的PID计算
+
 // 时间相关
 float update_dt(Motor_HandleTypeDef *motor); // 更新dt值
 float get_dt(Motor_HandleTypeDef *motor); // 获取当前dt值
 
 // 数据采样与处理
-float update_IaIbIc(Motor_HandleTypeDef *motor);//更新采样电流+偏置+处理+电流相线调换
+int* Calculate_PHASE_int(float IA ,float IB ,float IC , int PHASE); // 相序重构函数(int)
+float* Calculate_PHASE_float(float IA ,float IB ,float IC , int PHASE); // 相序重构函数(float)
+void update_IaIbIcOrder(Motor_HandleTypeDef *motor);
+int update_IaIbIcData(Motor_HandleTypeDef *motor); /* 按 Mode_Sampling_ShuntRes 读 ADC 并换算 IA/IB/IC，不含相序重排 */
+void update_IaIbIc_PHASE(Motor_HandleTypeDef *motor);
+void update_IaIbIc_noPHASE(Motor_HandleTypeDef *motor);
+void update_Ioffset_block(Motor_HandleTypeDef *motor);  // 更新电流偏置-阻塞式（静止时多次采样平均）
+int update_Ioffset_nonblock(Motor_HandleTypeDef *motor);// 更新电流偏置-非阻塞式（静止时单次采样累加，需多次调用）
 float get_Ia(Motor_HandleTypeDef *motor);  // 获取IA电流
 float get_Ib(Motor_HandleTypeDef *motor);  // 获取IB电流
 float get_Ic(Motor_HandleTypeDef *motor);  // 获取IC电流
-void  update_Ioffset_block(Motor_HandleTypeDef *motor);  // 更新电流偏置-阻塞式（静止时多次采样平均）
-int update_Ioffset_nonblock(Motor_HandleTypeDef *motor);// 更新电流偏置-非阻塞式（静止时单次采样累加，需多次调用）
-
 float get_Ia_offset(Motor_HandleTypeDef *motor);  // 获取IA电流偏置
 float get_Ib_offset(Motor_HandleTypeDef *motor);  // 获取IB电流偏置
 float get_Ic_offset(Motor_HandleTypeDef *motor);  // 获取IC电流偏置
 
 //初始化相关
-
 void update_pole_pairs_sensor_block(Motor_HandleTypeDef *motor);        // 极对数辨识（有传感器，阻塞式更新）
 void update_pole_pairs_sensor_nonblock(Motor_HandleTypeDef *motor);     // 极对数辨识（有传感器，非阻塞式更新）
 
