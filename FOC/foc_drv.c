@@ -176,8 +176,8 @@ void foc_init(Motor_HandleTypeDef *motor)
     motor->MotorAlg.position_pid.integral_limit = 10.0f;
     motor->MotorAlg.position_pid.output_limit = 100.0f;
 
-    motor->MotorAlg.velocity_pid.KP = 0.3f;
-    motor->MotorAlg.velocity_pid.KI = 0.0f;
+    motor->MotorAlg.velocity_pid.KP = 0.1f;
+    motor->MotorAlg.velocity_pid.KI = 0.5f;
     motor->MotorAlg.velocity_pid.KD = 0.0f;
     motor->MotorAlg.velocity_pid.integral_max = 100.0f;
     motor->MotorAlg.velocity_pid.integral_min = -100.0f;
