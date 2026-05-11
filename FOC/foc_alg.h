@@ -121,9 +121,10 @@ typedef struct
 {
     float Ibus;            // 母线电流（注释：可选，用于功率计算与过流保护，单位：A）
     float Ubus;
-    float IA_Order;
-    float IB_Order;
-    float IC_Order;
+
+    float IA_NoOrder;
+    float IB_NoOrder;
+    float IC_NoOrder;
     // -------------------------- 电流校准参数 --------------------------
     uint32_t IA_offset_raw;        // IA电流零点偏移（ADC零漂校准值，采集无电流时的ADC值转换而来）
     uint32_t IB_offset_raw;        // IB电流零点偏移（同上）
@@ -281,9 +282,7 @@ float get_dt(Motor_HandleTypeDef *motor); // 获取当前dt值
 // 数据采样与处理
 int* Calculate_PHASE_int(float IA ,float IB ,float IC , int PHASE); // 相序重构函数(int)
 float* Calculate_PHASE_float(float IA ,float IB ,float IC , int PHASE); // 相序重构函数(float)
-int update_IaIbIc(Motor_HandleTypeDef *motor);
-int update_IaIbIc_Data(Motor_HandleTypeDef *motor,int Mode_Sampling);
-int update_IaIbIc_Order(Motor_HandleTypeDef *motor,int PHASE);
+int update_IaIbIc(Motor_HandleTypeDef *motor,int Mode_Sampling,int PHASE);
 void update_Ioffset_block(Motor_HandleTypeDef *motor);  // 更新电流偏置-阻塞式（静止时多次采样平均）
 int update_Ioffset_nonblock(Motor_HandleTypeDef *motor);// 更新电流偏置-非阻塞式（静止时单次采样累加，需多次调用）
 float get_Ia(Motor_HandleTypeDef *motor);  // 获取IA电流

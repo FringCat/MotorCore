@@ -1005,7 +1005,7 @@ float* Calculate_PHASE_float(float IA, float IB, float IC, int PHASE)
     return data_;
 }
 
-int update_IaIbIc_Data(Motor_HandleTypeDef *motor,int Mode_Sampling)
+int update_IaIbIc(Motor_HandleTypeDef *motor,int Mode_Sampling,int PHASE)
 {
     switch (Mode_Sampling)
     {
@@ -1019,9 +1019,9 @@ int update_IaIbIc_Data(Motor_HandleTypeDef *motor,int Mode_Sampling)
             motor->MotorData.CurrentData.I_raw.IB_raw = motor->MotorDrv.Update_Ib_raw();
             motor->MotorData.CurrentData.I_raw.IC_raw = motor->MotorDrv.Update_Ic_raw();
 
-            motor->MotorData.IA_Order= motor->MotorDrv.Cal_Ia(motor->MotorData.CurrentData.I_raw.IA_raw, motor->MotorData.IA_offset_raw);
-            motor->MotorData.IB_Order = motor->MotorDrv.Cal_Ib(motor->MotorData.CurrentData.I_raw.IB_raw, motor->MotorData.IB_offset_raw);
-            motor->MotorData.IC_Order = motor->MotorDrv.Cal_Ic(motor->MotorData.CurrentData.I_raw.IC_raw, motor->MotorData.IC_offset_raw);
+            motor->MotorData.IA_NoOrder= motor->MotorDrv.Cal_Ia(motor->MotorData.CurrentData.I_raw.IA_raw, motor->MotorData.IA_offset_raw);
+            motor->MotorData.IB_NoOrder = motor->MotorDrv.Cal_Ib(motor->MotorData.CurrentData.I_raw.IB_raw, motor->MotorData.IB_offset_raw);
+            motor->MotorData.IC_NoOrder = motor->MotorDrv.Cal_Ic(motor->MotorData.CurrentData.I_raw.IC_raw, motor->MotorData.IC_offset_raw);
         }break;
         case 0x110: /* ABX */
         {
@@ -1033,9 +1033,9 @@ int update_IaIbIc_Data(Motor_HandleTypeDef *motor,int Mode_Sampling)
             motor->MotorData.CurrentData.I_raw.IB_raw = motor->MotorDrv.Update_Ib_raw();
             motor->MotorData.CurrentData.I_raw.IC_raw = 0U;
 
-            motor->MotorData.IA_Order = motor->MotorDrv.Cal_Ia(motor->MotorData.CurrentData.I_raw.IA_raw, motor->MotorData.IA_offset_raw);
-            motor->MotorData.IB_Order = motor->MotorDrv.Cal_Ib(motor->MotorData.CurrentData.I_raw.IB_raw, motor->MotorData.IB_offset_raw);
-            motor->MotorData.IC_Order = -(motor->MotorData.IA_Order + motor->MotorData.IB_Order);
+            motor->MotorData.IA_NoOrder = motor->MotorDrv.Cal_Ia(motor->MotorData.CurrentData.I_raw.IA_raw, motor->MotorData.IA_offset_raw);
+            motor->MotorData.IB_NoOrder = motor->MotorDrv.Cal_Ib(motor->MotorData.CurrentData.I_raw.IB_raw, motor->MotorData.IB_offset_raw);
+            motor->MotorData.IC_NoOrder = -(motor->MotorData.IA_NoOrder + motor->MotorData.IB_NoOrder);
         }break;
         case 0x101: /* AXC*/
         {
@@ -1047,9 +1047,9 @@ int update_IaIbIc_Data(Motor_HandleTypeDef *motor,int Mode_Sampling)
             motor->MotorData.CurrentData.I_raw.IB_raw = 0U;
             motor->MotorData.CurrentData.I_raw.IC_raw = motor->MotorDrv.Update_Ic_raw();
 
-            motor->MotorData.IA_Order = motor->MotorDrv.Cal_Ia(motor->MotorData.CurrentData.I_raw.IA_raw, motor->MotorData.IA_offset_raw);
-            motor->MotorData.IC_Order = motor->MotorDrv.Cal_Ic(motor->MotorData.CurrentData.I_raw.IC_raw, motor->MotorData.IC_offset_raw);
-            motor->MotorData.IB_Order = -(motor->MotorData.IA_Order + motor->MotorData.IC_Order);
+            motor->MotorData.IA_NoOrder = motor->MotorDrv.Cal_Ia(motor->MotorData.CurrentData.I_raw.IA_raw, motor->MotorData.IA_offset_raw);
+            motor->MotorData.IC_NoOrder = motor->MotorDrv.Cal_Ic(motor->MotorData.CurrentData.I_raw.IC_raw, motor->MotorData.IC_offset_raw);
+            motor->MotorData.IB_NoOrder = -(motor->MotorData.IA_NoOrder + motor->MotorData.IC_NoOrder);
         }break;
         case 0x011: /* XBC*/
         {
@@ -1061,9 +1061,9 @@ int update_IaIbIc_Data(Motor_HandleTypeDef *motor,int Mode_Sampling)
             motor->MotorData.CurrentData.I_raw.IB_raw = motor->MotorDrv.Update_Ib_raw();
             motor->MotorData.CurrentData.I_raw.IC_raw = motor->MotorDrv.Update_Ic_raw();
 
-            motor->MotorData.IB_Order = motor->MotorDrv.Cal_Ib(motor->MotorData.CurrentData.I_raw.IB_raw, motor->MotorData.IB_offset_raw);
-            motor->MotorData.IC_Order = motor->MotorDrv.Cal_Ic(motor->MotorData.CurrentData.I_raw.IC_raw, motor->MotorData.IC_offset_raw);
-            motor->MotorData.IA_Order = -(motor->MotorData.IB_Order + motor->MotorData.IC_Order);
+            motor->MotorData.IB_NoOrder = motor->MotorDrv.Cal_Ib(motor->MotorData.CurrentData.I_raw.IB_raw, motor->MotorData.IB_offset_raw);
+            motor->MotorData.IC_NoOrder = motor->MotorDrv.Cal_Ic(motor->MotorData.CurrentData.I_raw.IC_raw, motor->MotorData.IC_offset_raw);
+            motor->MotorData.IA_NoOrder = -(motor->MotorData.IB_NoOrder + motor->MotorData.IC_NoOrder);
         }break;
         case 0x100: /* AXX */
         {
@@ -1075,9 +1075,9 @@ int update_IaIbIc_Data(Motor_HandleTypeDef *motor,int Mode_Sampling)
             motor->MotorData.CurrentData.I_raw.IB_raw = 0U;
             motor->MotorData.CurrentData.I_raw.IC_raw = 0U;
 
-            motor->MotorData.IA_Order = motor->MotorDrv.Cal_Ia(motor->MotorData.CurrentData.I_raw.IA_raw, motor->MotorData.IA_offset_raw);
-            motor->MotorData.IB_Order = 0.0f;
-            motor->MotorData.IC_Order = 0.0f;
+            motor->MotorData.IA_NoOrder = motor->MotorDrv.Cal_Ia(motor->MotorData.CurrentData.I_raw.IA_raw, motor->MotorData.IA_offset_raw);
+            motor->MotorData.IB_NoOrder = 0.0f;
+            motor->MotorData.IC_NoOrder = 0.0f;
         }break;
         case 0x010: /* XBX*/
         {
@@ -1089,9 +1089,9 @@ int update_IaIbIc_Data(Motor_HandleTypeDef *motor,int Mode_Sampling)
             motor->MotorData.CurrentData.I_raw.IB_raw = motor->MotorDrv.Update_Ib_raw();
             motor->MotorData.CurrentData.I_raw.IC_raw = 0U;
 
-            motor->MotorData.IA_Order = 0.0f;
-            motor->MotorData.IB_Order = motor->MotorDrv.Cal_Ib(motor->MotorData.CurrentData.I_raw.IB_raw, motor->MotorData.IB_offset_raw);
-            motor->MotorData.IC_Order = 0.0f;
+            motor->MotorData.IA_NoOrder = 0.0f;
+            motor->MotorData.IB_NoOrder = motor->MotorDrv.Cal_Ib(motor->MotorData.CurrentData.I_raw.IB_raw, motor->MotorData.IB_offset_raw);
+            motor->MotorData.IC_NoOrder = 0.0f;
         }break;
         case 0x001: /* XXC */
         {
@@ -1103,28 +1103,19 @@ int update_IaIbIc_Data(Motor_HandleTypeDef *motor,int Mode_Sampling)
             motor->MotorData.CurrentData.I_raw.IB_raw = 0U;
             motor->MotorData.CurrentData.I_raw.IC_raw = motor->MotorDrv.Update_Ic_raw();
 
-            motor->MotorData.IA_Order = 0.0f;
-            motor->MotorData.IB_Order = 0.0f;
-            motor->MotorData.IC_Order = motor->MotorDrv.Cal_Ic(motor->MotorData.CurrentData.I_raw.IC_raw, motor->MotorData.IC_offset_raw);
+            motor->MotorData.IA_NoOrder = 0.0f;
+            motor->MotorData.IB_NoOrder = 0.0f;
+            motor->MotorData.IC_NoOrder = motor->MotorDrv.Cal_Ic(motor->MotorData.CurrentData.I_raw.IC_raw, motor->MotorData.IC_offset_raw);
         }break;
         default:
             return 0;
     }
-}
 
-int update_IaIbIc_Order(Motor_HandleTypeDef *motor,int PHASE)
-{
-    float *ph = Calculate_PHASE_float(motor->MotorData.IA_Order, motor->MotorData.IB_Order, motor->MotorData.IC_Order, PHASE);
+    float *ph = Calculate_PHASE_float(motor->MotorData.IA_NoOrder, motor->MotorData.IB_NoOrder, motor->MotorData.IC_NoOrder, PHASE);
     motor->MotorAlg.IA = ph[0];
     motor->MotorAlg.IB = ph[1];
     motor->MotorAlg.IC = ph[2];
     return 1 ;
-}
-
-int update_IaIbIc(Motor_HandleTypeDef *motor)
-{
-    update_IaIbIc_Data(motor,motor->MotorConfig.Mode_Sampling);
-    update_IaIbIc_Order(motor,motor->MotorConfig.PHASE);
 }
 
 float get_Ia(Motor_HandleTypeDef *motor)
