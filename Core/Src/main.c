@@ -153,11 +153,12 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-    if(isoffset_done)
-    {
-      set_pwm(&motor,0.0f,0.0f,0.05f);
-      // set_pwm_nodir(&motor,0.05f,0.0f,0.0f);
-    }
+    
+    // if(isoffset_done)
+    // {
+    //   set_pwm(&motor,0.0f,0.0f,0.05f);
+    //   // set_pwm_nodir(&motor,0.05f,0.0f,0.0f);
+    // }
     
     // 双编码实时读取法兰角度例程
     // {

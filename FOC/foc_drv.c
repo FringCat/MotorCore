@@ -150,24 +150,19 @@ void foc_init(Motor_HandleTypeDef *motor)
     motor->MotorConfig.GR = 10.8f ;          //设置减速箱减速比
     motor->MotorConfig.DIR = 1 ;        // 设置电机转向
     motor->MotorConfig.PHASE = 3;      // 设置电机接线相序
+    motor->MotorConfig.Mode_Sampling = 0X110 ;//AB相双电阻采样
     motor->MotorConfig.IMAX = 20.0f;   // 设置电流限幅
     motor->MotorConfig.UMAX = 24.0f;   // 设置电压限幅
     motor->MotorConfig.Ls = 0.001f;    // 设置定子电感
     motor->MotorConfig.Rs = 0.5f;      // 设置定子电阻
     motor->MotorConfig.angle_zero_gear_A = 5.9647f; // 主齿轮零点
     motor->MotorConfig.angle_zero_gear_B = 6.19536f; // 副齿轮零点
-    // motor->MotorConfig.angle_zero = motor->MotorConfig.angle_zero_gear_A; // 测功机电机
-    // motor->MotorConfig.angle_el_zero = -4.37605f; // 设置角度零点
     motor->MotorConfig.angle_zero = motor->MotorConfig.angle_zero_gear_A; // 涛宇电机
     motor->MotorConfig.angle_el_zero = 3.09982f; // 设置角度零点
-    // motor->MotorConfig.angle_zero = -1.28362f*motor->MotorConfig.GR; // 备用电机
-    // motor->MotorConfig.angle_el_zero = -1.28362f; // 设置电角度零点
-    // motor->MotorConfig.angle_zero = -1.28979f*motor->MotorConfig.GR; // 8115电机
-    // motor->MotorConfig.angle_el_zero = -1.28979f; // 设置电角度零点
     motor->MotorConfig.GT_A = 20.0f; // 主齿轮齿数
     motor->MotorConfig.GT_B = 19.0f; // 副齿轮齿数
     motor->MotorConfig.Kt = 0.806325918;           //设置转矩系数
-    motor->MotorConfig.Mode_Sampling_ShuntRes = 0X110 ;//AB相双电阻采样
+    
     motor->MotorConfig.loopcount_rotor = 0XFFFF;
 
     // 初始化PID参数(要用哪个初始化哪个)
@@ -182,7 +177,7 @@ void foc_init(Motor_HandleTypeDef *motor)
     motor->MotorAlg.position_pid.output_limit = 100.0f;
 
     motor->MotorAlg.velocity_pid.KP = 0.3f;
-    motor->MotorAlg.velocity_pid.KI = 5.8f;
+    motor->MotorAlg.velocity_pid.KI = 0.0f;
     motor->MotorAlg.velocity_pid.KD = 0.0f;
     motor->MotorAlg.velocity_pid.integral_max = 100.0f;
     motor->MotorAlg.velocity_pid.integral_min = -100.0f;
@@ -219,7 +214,9 @@ void foc_init(Motor_HandleTypeDef *motor)
 
     motor->MotorData.Velocity_LPF.last_output = 0.0f;
     motor->MotorData.Velocity_LPF.alpha = 0.5f; // 速度滤波系数
-
+    motor->MotorData.IA_offset_raw = 0XFFFF;
+    motor->MotorData.IB_offset_raw = 0XFFFF;
+    motor->MotorData.IC_offset_raw = 0XFFFF;
     motor->MotorData.angle_all = 0.0f;
 }
 

@@ -1005,18 +1005,9 @@ float* Calculate_PHASE_float(float IA, float IB, float IC, int PHASE)
     return data_;
 }
 
-
-void update_IaIbIcOrder(Motor_HandleTypeDef *motor)
+int update_IaIbIc_Data(Motor_HandleTypeDef *motor,int Mode_Sampling)
 {
-    float *ph = Calculate_PHASE_float(motor->MotorAlg.IA, motor->MotorAlg.IB, motor->MotorAlg.IC, motor->MotorConfig.PHASE);
-    motor->MotorAlg.IA = ph[0];
-    motor->MotorAlg.IB = ph[1];
-    motor->MotorAlg.IC = ph[2];
-} 
-
-int update_IaIbIcData(Motor_HandleTypeDef *motor)
-{
-    switch (motor->MotorConfig.Mode_Sampling_ShuntRes)
+    switch (Mode_Sampling)
     {
         case 0x111: /* ABC*/
         {
@@ -1031,8 +1022,7 @@ int update_IaIbIcData(Motor_HandleTypeDef *motor)
             motor->MotorAlg.IA = motor->MotorDrv.Cal_Ia(motor->MotorData.CurrentData.I_raw.IA_raw, motor->MotorData.IA_offset_raw);
             motor->MotorAlg.IB = motor->MotorDrv.Cal_Ib(motor->MotorData.CurrentData.I_raw.IB_raw, motor->MotorData.IB_offset_raw);
             motor->MotorAlg.IC = motor->MotorDrv.Cal_Ic(motor->MotorData.CurrentData.I_raw.IC_raw, motor->MotorData.IC_offset_raw);
-            return 1;
-        }
+        }break;
         case 0x110: /* ABX */
         {
             if (motor->MotorDrv.Update_Ia_raw == NULL || motor->MotorDrv.Update_Ib_raw == NULL)
@@ -1046,8 +1036,7 @@ int update_IaIbIcData(Motor_HandleTypeDef *motor)
             motor->MotorAlg.IA = motor->MotorDrv.Cal_Ia(motor->MotorData.CurrentData.I_raw.IA_raw, motor->MotorData.IA_offset_raw);
             motor->MotorAlg.IB = motor->MotorDrv.Cal_Ib(motor->MotorData.CurrentData.I_raw.IB_raw, motor->MotorData.IB_offset_raw);
             motor->MotorAlg.IC = -(motor->MotorAlg.IA + motor->MotorAlg.IB);
-            return 1;
-        }
+        }break;
         case 0x101: /* AXC*/
         {
             if (motor->MotorDrv.Update_Ia_raw == NULL || motor->MotorDrv.Update_Ic_raw == NULL || motor->MotorDrv.Cal_Ia == NULL || motor->MotorDrv.Cal_Ic == NULL)
@@ -1061,8 +1050,7 @@ int update_IaIbIcData(Motor_HandleTypeDef *motor)
             motor->MotorAlg.IA = motor->MotorDrv.Cal_Ia(motor->MotorData.CurrentData.I_raw.IA_raw, motor->MotorData.IA_offset_raw);
             motor->MotorAlg.IC = motor->MotorDrv.Cal_Ic(motor->MotorData.CurrentData.I_raw.IC_raw, motor->MotorData.IC_offset_raw);
             motor->MotorAlg.IB = -(motor->MotorAlg.IA + motor->MotorAlg.IC);
-            return 1;
-        }
+        }break;
         case 0x011: /* XBC*/
         {
             if (motor->MotorDrv.Update_Ib_raw == NULL || motor->MotorDrv.Update_Ic_raw == NULL || motor->MotorDrv.Cal_Ib == NULL || motor->MotorDrv.Cal_Ic == NULL)
@@ -1076,8 +1064,7 @@ int update_IaIbIcData(Motor_HandleTypeDef *motor)
             motor->MotorAlg.IB = motor->MotorDrv.Cal_Ib(motor->MotorData.CurrentData.I_raw.IB_raw, motor->MotorData.IB_offset_raw);
             motor->MotorAlg.IC = motor->MotorDrv.Cal_Ic(motor->MotorData.CurrentData.I_raw.IC_raw, motor->MotorData.IC_offset_raw);
             motor->MotorAlg.IA = -(motor->MotorAlg.IB + motor->MotorAlg.IC);
-            return 1;
-        }
+        }break;
         case 0x100: /* AXX */
         {
             if (motor->MotorDrv.Update_Ia_raw == NULL || motor->MotorDrv.Cal_Ia == NULL)
@@ -1091,8 +1078,7 @@ int update_IaIbIcData(Motor_HandleTypeDef *motor)
             motor->MotorAlg.IA = motor->MotorDrv.Cal_Ia(motor->MotorData.CurrentData.I_raw.IA_raw, motor->MotorData.IA_offset_raw);
             motor->MotorAlg.IB = 0.0f;
             motor->MotorAlg.IC = 0.0f;
-            return 1;
-        }
+        }break;
         case 0x010: /* XBX*/
         {
             if (motor->MotorDrv.Update_Ib_raw == NULL || motor->MotorDrv.Cal_Ib == NULL)
@@ -1106,8 +1092,7 @@ int update_IaIbIcData(Motor_HandleTypeDef *motor)
             motor->MotorAlg.IA = 0.0f;
             motor->MotorAlg.IB = motor->MotorDrv.Cal_Ib(motor->MotorData.CurrentData.I_raw.IB_raw, motor->MotorData.IB_offset_raw);
             motor->MotorAlg.IC = 0.0f;
-            return 1;
-        }
+        }break;
         case 0x001: /* XXC */
         {
             if (motor->MotorDrv.Update_Ic_raw == NULL || motor->MotorDrv.Cal_Ic == NULL)
@@ -1121,11 +1106,25 @@ int update_IaIbIcData(Motor_HandleTypeDef *motor)
             motor->MotorAlg.IA = 0.0f;
             motor->MotorAlg.IB = 0.0f;
             motor->MotorAlg.IC = motor->MotorDrv.Cal_Ic(motor->MotorData.CurrentData.I_raw.IC_raw, motor->MotorData.IC_offset_raw);
-            return 1;
-        }
+        }break;
         default:
             return 0;
     }
+}
+
+int update_IaIbIc_Order(Motor_HandleTypeDef *motor,int PHASE)
+{
+    float *ph = Calculate_PHASE_float(motor->MotorAlg.IA, motor->MotorAlg.IB, motor->MotorAlg.IC, PHASE);
+    motor->MotorAlg.IA = ph[0];
+    motor->MotorAlg.IB = ph[1];
+    motor->MotorAlg.IC = ph[2];
+    return 1 ;
+}
+
+int update_IaIbIc(Motor_HandleTypeDef *motor)
+{
+    update_IaIbIc_Data(motor,motor->MotorConfig.Mode_Sampling);
+    update_IaIbIc_Order(motor,motor->MotorConfig.PHASE);
 }
 
 float get_Ia(Motor_HandleTypeDef *motor)
@@ -1143,38 +1142,110 @@ float get_Ic(Motor_HandleTypeDef *motor)
     return motor->MotorAlg.IC;
 }
 
-void update_Ioffset_block(Motor_HandleTypeDef *motor)
+int update_Ioffset_nonblock(Motor_HandleTypeDef *motor)
 {
-    for(int i=0 ; i<1000 ; i++)
-    {
-        motor->MotorData.IA_offset_raw += motor->MotorDrv.Update_Ia_raw();
-        motor->MotorData.IB_offset_raw += motor->MotorDrv.Update_Ib_raw();
-        motor->MotorData.IC_offset_raw += motor->MotorDrv.Update_Ic_raw();
-    }
-    motor->MotorData.IA_offset_raw = motor->MotorData.IA_offset_raw/1000 ;
-    motor->MotorData.IB_offset_raw = motor->MotorData.IB_offset_raw/1000 ;
-    motor->MotorData.IC_offset_raw = motor->MotorData.IC_offset_raw/1000 ;
-}
-
-int update_Ioffset_nonblock(Motor_HandleTypeDef *motor)//目前是双电阻采样形式
-{
-    static int count = 0 ;
+    static uint32_t count = 0 ;
+    static uint32_t IA_offset_raw_all = 0,IB_offset_raw_all = 0,IC_offset_raw_all = 0;
     if(count < 1000)
     {
-        motor->MotorData.IA_offset_raw += motor->MotorDrv.Update_Ia_raw();
-        motor->MotorData.IB_offset_raw += motor->MotorDrv.Update_Ib_raw();
-        // motor->MotorData.IC_offset_raw += motor->MotorDrv.Update_Ib_raw();
+        switch(motor->MotorConfig.Mode_Sampling)
+        {
+            case 0x111: /* ABC*/
+            {
+                if (motor->MotorDrv.Update_Ia_raw == NULL || motor->MotorDrv.Update_Ib_raw == NULL || motor->MotorDrv.Update_Ic_raw == NULL)
+                {
+                    return 0;
+                }
+                IA_offset_raw_all += motor->MotorDrv.Update_Ia_raw();
+                IB_offset_raw_all += motor->MotorDrv.Update_Ib_raw();
+                IC_offset_raw_all += motor->MotorDrv.Update_Ic_raw();
+            }break;
+            case 0x110: /* ABX */
+            {
+                if (motor->MotorDrv.Update_Ia_raw == NULL || motor->MotorDrv.Update_Ib_raw == NULL)
+                {
+                    return 0;
+                }
+                IA_offset_raw_all += motor->MotorDrv.Update_Ia_raw();
+                IB_offset_raw_all += motor->MotorDrv.Update_Ib_raw();
+                IC_offset_raw_all += 0U;
+            }break;
+            case 0x101: /* AXC*/
+            {
+                if (motor->MotorDrv.Update_Ia_raw == NULL || motor->MotorDrv.Update_Ic_raw == NULL || motor->MotorDrv.Cal_Ia == NULL || motor->MotorDrv.Cal_Ic == NULL)
+                {
+                    return 0;
+                }
+                IA_offset_raw_all += motor->MotorDrv.Update_Ia_raw();
+                IB_offset_raw_all += 0U;
+                IC_offset_raw_all += motor->MotorDrv.Update_Ic_raw();
+
+            }break;
+            case 0x011: /* XBC*/
+            {
+                if (motor->MotorDrv.Update_Ib_raw == NULL || motor->MotorDrv.Update_Ic_raw == NULL || motor->MotorDrv.Cal_Ib == NULL || motor->MotorDrv.Cal_Ic == NULL)
+                {
+                    return 0;
+                }
+                IA_offset_raw_all += 0U;
+                IB_offset_raw_all += motor->MotorDrv.Update_Ib_raw();
+                IC_offset_raw_all += motor->MotorDrv.Update_Ic_raw();
+
+            }break;
+            case 0x100: /* AXX */
+            {
+                if (motor->MotorDrv.Update_Ia_raw == NULL || motor->MotorDrv.Cal_Ia == NULL)
+                {
+                    return 0;
+                }
+                IA_offset_raw_all += motor->MotorDrv.Update_Ia_raw();
+                IB_offset_raw_all += 0U;
+                IC_offset_raw_all += 0U;
+            }break;
+            case 0x010: /* XBX*/
+            {
+                if (motor->MotorDrv.Update_Ib_raw == NULL || motor->MotorDrv.Cal_Ib == NULL)
+                {
+                    return 0;
+                }
+                IA_offset_raw_all += 0U;
+                IB_offset_raw_all += motor->MotorDrv.Update_Ib_raw();
+                IC_offset_raw_all += 0U;
+
+            }break;
+            case 0x001: /* XXC */
+            {
+                if (motor->MotorDrv.Update_Ic_raw == NULL || motor->MotorDrv.Cal_Ic == NULL)
+                {
+                    return 0;
+                }
+                IA_offset_raw_all += 0U;
+                IB_offset_raw_all += 0U;
+                IC_offset_raw_all += motor->MotorDrv.Update_Ic_raw();
+            }break;
+            default:
+                return 0;            
+        }
         count++;
         return 0 ;
     }
     else if(count >= 1000)
     {
-        motor->MotorData.IA_offset_raw = motor->MotorData.IA_offset_raw/1000 ;
-        motor->MotorData.IB_offset_raw = motor->MotorData.IB_offset_raw/1000 ;
-        motor->MotorData.IC_offset_raw = motor->MotorData.IB_offset_raw ;
+        motor->MotorData.IA_offset_raw = IA_offset_raw_all/count;
+        motor->MotorData.IB_offset_raw = IB_offset_raw_all/count;
+        motor->MotorData.IC_offset_raw = IB_offset_raw_all/count; //因为IC没有偏置，所以这里直接用IB的平均值
+        IA_offset_raw_all = 0;
+        IB_offset_raw_all = 0;
+        IC_offset_raw_all = 0;
+        count = 0;
         return 1 ;
     }
     return 0 ;
+}
+
+void update_Ioffset_block(Motor_HandleTypeDef *motor)
+{
+    while(!update_Ioffset_nonblock(motor));
 }
 
 float get_Ia_offset(Motor_HandleTypeDef *motor)
@@ -1190,17 +1261,6 @@ float get_Ib_offset(Motor_HandleTypeDef *motor)
 float get_Ic_offset(Motor_HandleTypeDef *motor)
 {
     return motor->MotorData.IC_offset_raw;
-}
-
-void update_IaIbIc_PHASE(Motor_HandleTypeDef *motor)
-{
-    update_IaIbIcData(motor);
-    update_IaIbIcOrder(motor);
-}
-
-void update_IaIbIc_noPHASE(Motor_HandleTypeDef *motor)
-{
-    update_IaIbIcData(motor);
 }
 
 void update_pole_pairs_sensor_block(Motor_HandleTypeDef *motor)

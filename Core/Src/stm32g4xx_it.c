@@ -233,19 +233,9 @@ void ADC1_2_IRQHandler(void)
   }
   else
   {
-    motor.MotorData.CurrentData.I_raw.IA_raw = motor.MotorDrv.Update_Ia_raw();
-    motor.MotorData.CurrentData.I_raw.IB_raw = motor.MotorDrv.Update_Ib_raw();
-
-    // motor.MotorAlg.IC = motor.MotorDrv.Cal_Ia(motor.MotorData.CurrentData.I_raw.IA_raw , motor.MotorData.IA_offset_raw);
-    // motor.MotorAlg.IB = motor.MotorDrv.Cal_Ib(motor.MotorData.CurrentData.I_raw.IB_raw , motor.MotorData.IB_offset_raw);
-    // motor.MotorAlg.IA = -(motor.MotorAlg.IC+motor.MotorAlg.IB);
-
-    motor.MotorAlg.IA = motor.MotorDrv.Cal_Ia(motor.MotorData.CurrentData.I_raw.IA_raw , motor.MotorData.IA_offset_raw);
-    motor.MotorAlg.IB = motor.MotorDrv.Cal_Ib(motor.MotorData.CurrentData.I_raw.IB_raw , motor.MotorData.IB_offset_raw);
-    motor.MotorAlg.IC = -(motor.MotorAlg.IA+motor.MotorAlg.IB);
-
     update_dt(&motor);
     update_angle(&motor);
+    update_IaIbIc(&motor);
     update_Clark(&motor);
     update_Park(&motor);
     update_velocity_LPF(&motor);
@@ -383,18 +373,18 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 
         // 单电流环例程
         // {
-        //   motor.MotorAlg.Uq = Calculate_PID(2.0f, motor.MotorAlg.Iq , motor.time.dt , &motor.MotorAlg.iq_pid);
+        //   motor.MotorAlg.Uq = Calculate_PID(1.0f, motor.MotorAlg.Iq , motor.time.dt , &motor.MotorAlg.iq_pid);
         //   motor.MotorAlg.Ud = Calculate_PID(0.0f, motor.MotorAlg.Id , motor.time.dt , &motor.MotorAlg.id_pid);
         //   update_svpwm(&motor);//输出SVPWM
         // }
 
         // 速度电流环例程
-        // {
-        //   float output = Calculate_PID(20.0f, motor.MotorAlg.Velocity, motor.time.dt , &motor.MotorAlg.velocity_pid);
-        //   motor.MotorAlg.Uq = Calculate_PID(output, motor.MotorAlg.Iq , motor.time.dt , &motor.MotorAlg.iq_pid);
-        //   motor.MotorAlg.Ud = Calculate_PID(0.0f, motor.MotorAlg.Id , motor.time.dt , &motor.MotorAlg.id_pid);
-        //   update_svpwm(&motor);//输出SVPWM
-        // }
+        {
+          float output = Calculate_PID(20.0f, motor.MotorAlg.Velocity, motor.time.dt , &motor.MotorAlg.velocity_pid);
+          motor.MotorAlg.Uq = Calculate_PID(output, motor.MotorAlg.Iq , motor.time.dt , &motor.MotorAlg.iq_pid);
+          motor.MotorAlg.Ud = Calculate_PID(0.0f, motor.MotorAlg.Id , motor.time.dt , &motor.MotorAlg.id_pid);
+          update_svpwm(&motor);//输出SVPWM
+        }
 
         // 位置速度电流环例程
         // {
