@@ -229,7 +229,7 @@ void ADC1_2_IRQHandler(void)
   HAL_GPIO_TogglePin(TEST2_GPIO_Port, TEST2_Pin);
   if(isoffset_done==0)
   {
-    isoffset_done = update_Ioffset_nonblock(&motor);
+    isoffset_done = update_Ioffset_nonblock(&motor,motor.MotorConfig.Mode_Sampling);
   }
   else
   {

@@ -1133,13 +1133,13 @@ float get_Ic(Motor_HandleTypeDef *motor)
     return motor->MotorAlg.IC;
 }
 
-int update_Ioffset_nonblock(Motor_HandleTypeDef *motor)
+int update_Ioffset_nonblock(Motor_HandleTypeDef *motor,int Mode_Sampling)
 {
     static uint32_t count = 0 ;
     static uint32_t IA_offset_raw_all = 0,IB_offset_raw_all = 0,IC_offset_raw_all = 0;
     if(count < 1000)
     {
-        switch(motor->MotorConfig.Mode_Sampling)
+        switch(Mode_Sampling)
         {
             case 0x111: /* ABC*/
             {
@@ -1234,9 +1234,9 @@ int update_Ioffset_nonblock(Motor_HandleTypeDef *motor)
     return 0 ;
 }
 
-void update_Ioffset_block(Motor_HandleTypeDef *motor)
+void update_Ioffset_block(Motor_HandleTypeDef *motor,int Mode_Sampling)
 {
-    while(!update_Ioffset_nonblock(motor));
+    while(!update_Ioffset_nonblock(motor,Mode_Sampling));
 }
 
 float get_Ia_offset(Motor_HandleTypeDef *motor)

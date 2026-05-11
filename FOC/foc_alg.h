@@ -283,8 +283,8 @@ float get_dt(Motor_HandleTypeDef *motor); // 获取当前dt值
 int* Calculate_PHASE_int(float IA ,float IB ,float IC , int PHASE); // 相序重构函数(int)
 float* Calculate_PHASE_float(float IA ,float IB ,float IC , int PHASE); // 相序重构函数(float)
 int update_IaIbIc(Motor_HandleTypeDef *motor,int Mode_Sampling,int PHASE);
-void update_Ioffset_block(Motor_HandleTypeDef *motor);  // 更新电流偏置-阻塞式（静止时多次采样平均）
-int update_Ioffset_nonblock(Motor_HandleTypeDef *motor);// 更新电流偏置-非阻塞式（静止时单次采样累加，需多次调用）
+void update_Ioffset_block(Motor_HandleTypeDef *motor,int Mode_Sampling);  // 更新电流偏置-阻塞式（静止时多次采样平均）
+int update_Ioffset_nonblock(Motor_HandleTypeDef *motor,int Mode_Sampling);// 更新电流偏置-非阻塞式（静止时单次采样累加，需多次调用）
 float get_Ia(Motor_HandleTypeDef *motor);  // 获取IA电流
 float get_Ib(Motor_HandleTypeDef *motor);  // 获取IB电流
 float get_Ic(Motor_HandleTypeDef *motor);  // 获取IC电流
