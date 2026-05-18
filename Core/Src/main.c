@@ -154,18 +154,19 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
     
-    // if(isoffset_done)
-    // {
-    //   // set_pwm(&motor,0.0f,0.0f,0.05f);
-    //   ctrl_motor_openloop_velocity_el_nonblock(&motor,10.0f,0.8f,0.0f);
-    // }
+    if(isoffset_done)
+    {
+      update_PHASE_nonblock(&motor);
+      // set_pwm(&motor,0.0f,0.0f,0.05f);
+      // ctrl_motor_openloop_velocity_el_nonblock(&motor,10.0f,0.8f,0.0f);
+    }
     
     // 双编码实时读取法兰角度例程
     // {
-      // mt6816_update_angle(&mt6816);
-      // update_loopcount_rotor_block(&motor,mt6816.angle);
-      // motor.MotorData.angle_all = (motor.MotorConfig.loopcount_rotor * 2 * PI + Limit_angle_el(motor.MotorAlg.angle-motor.MotorConfig.angle_zero_gear_A) );
-      // motor.MotorAlg.angle_flange = Limit_angle_flange(motor.MotorData.angle_all,motor.MotorConfig.GR);
+    // mt6816_update_angle(&mt6816);
+    // update_loopcount_rotor_block(&motor,mt6816.angle);
+    // motor.MotorData.angle_all = (motor.MotorConfig.loopcount_rotor * 2 * PI + Limit_angle_el(motor.MotorAlg.angle-motor.MotorConfig.angle_zero_gear_A) );
+    // motor.MotorAlg.angle_flange = Limit_angle_flange(motor.MotorData.angle_all,motor.MotorConfig.GR);
     // }
 
     // 各类校准例程

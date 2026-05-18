@@ -122,6 +122,7 @@ typedef struct
     float Ibus;            // 母线电流（注释：可选，用于功率计算与过流保护，单位：A）
     float Ubus;
 
+
     float IA_NoOrder;
     float IB_NoOrder;
     float IC_NoOrder;
@@ -280,8 +281,8 @@ float update_dt(Motor_HandleTypeDef *motor); // 更新dt值
 float get_dt(Motor_HandleTypeDef *motor); // 获取当前dt值
 
 // 数据采样与处理
-int* Calculate_PHASE_int(float IA ,float IB ,float IC , int PHASE); // 相序重构函数(int)
-float* Calculate_PHASE_float(float IA ,float IB ,float IC , int PHASE); // 相序重构函数(float)
+int* Calculate_Order_int(float IA ,float IB ,float IC , int PHASE); // 相序重构函数(int)
+float* Calculate_Order_float(float IA ,float IB ,float IC , int PHASE); // 相序重构函数(float)
 int update_IaIbIc(Motor_HandleTypeDef *motor,int Mode_Sampling,int PHASE);
 void update_Ioffset_block(Motor_HandleTypeDef *motor,int Mode_Sampling);  // 更新电流偏置-阻塞式（静止时多次采样平均）
 int update_Ioffset_nonblock(Motor_HandleTypeDef *motor,int Mode_Sampling);// 更新电流偏置-非阻塞式（静止时单次采样累加，需多次调用）
@@ -293,11 +294,17 @@ float get_Ib_offset(Motor_HandleTypeDef *motor);  // 获取IB电流偏置
 float get_Ic_offset(Motor_HandleTypeDef *motor);  // 获取IC电流偏置
 
 //初始化相关
+int *Calculate_PHASE(float IA, float IB, float IC,float UA, float UB, float UC);
+int update_PHASE_nonblock(Motor_HandleTypeDef *motor);
+int update_PHASE_block(Motor_HandleTypeDef *motor);
+
 void update_pole_pairs_sensor_block(Motor_HandleTypeDef *motor);        // 极对数辨识（有传感器，阻塞式更新）
 void update_pole_pairs_sensor_nonblock(Motor_HandleTypeDef *motor);     // 极对数辨识（有传感器，非阻塞式更新）
 
-void update_2DIR_sensor_block(Motor_HandleTypeDef *motor);              //  相线辨识（基于磁编，阻塞式更新）
-void update_2DIR_sensor_nonblock(Motor_HandleTypeDef *motor);           //  相线辨识（基于磁编，非阻塞式更新）
+void update_2DIR_sensor_block(Motor_HandleTypeDef *motor);              //  传感器方向辨识（基于磁编，阻塞式更新）
+void update_2DIR_sensor_nonblock(Motor_HandleTypeDef *motor);           //  传感器方向辨识（基于磁编，非阻塞式更新)
+
+void update_PHASE_no_sensor_block(Motor_HandleTypeDef *motor);           //  相序辨识（无传感器，阻塞式更新）
 
 void update_angle_el_zero_sensor_block(Motor_HandleTypeDef *motor);     //  电角度零点校准 （有传感器，阻塞式更新）
 void update_angle_el_zero_sensor_nonblock(Motor_HandleTypeDef *motor);  //  电角度零点校准 （有传感器，非阻塞式更新）
@@ -311,6 +318,7 @@ void update_loopcount_rotor_block(Motor_HandleTypeDef *motor,float angle_encoder
 
 void update_NLLUT_and_angle_el_zero_sensor_block(Motor_HandleTypeDef *motor);       //更新插值表跟电角度零点
 
+//控制相关
 void ctrl_motor_openloop_velocity_el_nonblock(Motor_HandleTypeDef *motor,float velocity_el_target,float Uq,float Ud);
 void ctrl_motor_openloop_velocity_nonblock(Motor_HandleTypeDef *motor,float velocity_target,float Uq,float Ud);
 float ctrl_motor_openloop_angle_el_nonblock(Motor_HandleTypeDef *motor,float angle_el_target,float angle_el_start,float velocity_el_target ,float Uq,float Ud);

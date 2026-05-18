@@ -909,7 +909,7 @@ float update_dt(Motor_HandleTypeDef *motor)
     return motor->time.dt;
 }
 
-int* Calculate_PHASE_int(float IA, float IB, float IC, int PHASE)
+int* Calculate_Order_int(float IA, float IB, float IC, int PHASE)
 {
     static int data_[3];
     int a = (int)IA;
@@ -957,7 +957,7 @@ int* Calculate_PHASE_int(float IA, float IB, float IC, int PHASE)
     return data_;
 }
 
-float* Calculate_PHASE_float(float IA, float IB, float IC, int PHASE)
+float* Calculate_Order_float(float IA, float IB, float IC, int PHASE)
 {
     static float data_[3];
     float a = IA;
@@ -1111,7 +1111,7 @@ int update_IaIbIc(Motor_HandleTypeDef *motor,int Mode_Sampling,int PHASE)
             return 0;
     }
 
-    float *ph = Calculate_PHASE_float(motor->MotorData.IA_NoOrder, motor->MotorData.IB_NoOrder, motor->MotorData.IC_NoOrder, PHASE);
+    float *ph = Calculate_Order_float(motor->MotorData.IA_NoOrder, motor->MotorData.IB_NoOrder, motor->MotorData.IC_NoOrder, PHASE);
     motor->MotorAlg.IA = ph[0];
     motor->MotorAlg.IB = ph[1];
     motor->MotorAlg.IC = ph[2];
@@ -1471,6 +1471,160 @@ void update_2DIR_sensor_nonblock(Motor_HandleTypeDef *motor)
     }
     // printf("%f,%d,%f,%f,%f\n",velocity_integral,motor->MotorConfig.DIR,motor->MotorData.Velocity_raw,motor->MotorAlg.angle,motor->time.dt);
 }
+
+int *Calculate_PHASE(float IA, float IB, float IC,float UA, float UB, float UC)//同时兼容直接向三相注入IqId时的工况，也就是在电机运行的情况下进行相序辨识
+{   
+    static int PHASE[3] = {0,0,0};
+    float U[3] = {0,0,0};
+    float I[3] = {0,0,0};
+    
+    U[0] = UA;
+    U[1] = UB;
+    U[2] = UC;
+
+    I[0] = IA;
+    I[1] = IB;
+    I[2] = IC;
+
+    for(int i = 0 ; i<3 ; i++)
+    {
+        for(int j = 0 ; j<3 ; j++)
+        {
+            if( U[i]/I[j] > 0 )
+            {
+                PHASE[i] = j+1; //相序标识最小也为1
+            }
+        }
+    }
+
+    return PHASE;
+}
+int update_PHASE_nonblock(Motor_HandleTypeDef *motor)
+{
+    static float Ts = 1.0f;
+    static float Duty = 0.05f;
+
+    static float time = 0.0f ;//中间变量
+    static int state = 1 ;
+    static int PHASE[3] = {0,0,0};
+    static float IA_Integral , IB_Integral , IC_Integral;
+    static Time_t time_phase;
+
+    time += motor->MotorDrv.Update_dt(&time_phase);
+    if(time>(float)state * Ts)
+    {
+        state ++ ;
+    }
+
+    switch(state)
+    {
+        case 1 :
+        {
+            motor->MotorConfig.PHASE = -1; //先将相序设置为-1，表示正在检测相序
+            set_pwm(motor,0.0f,0.0f,0.0f);
+        }break;
+        case 2 :
+        {
+            IA_Integral = 0.0f;
+            IB_Integral = 0.0f;
+            IC_Integral = 0.0f;
+            set_pwm(motor,Duty,0.0f,0.0f);
+        }break;
+        case 3 :
+        {
+            IA_Integral += motor->MotorData.IA_NoOrder * time_phase.dt;
+            IB_Integral += motor->MotorData.IB_NoOrder * time_phase.dt;
+            IC_Integral += motor->MotorData.IC_NoOrder * time_phase.dt;
+            int *PHASE_ = Calculate_PHASE(IA_Integral , IB_Integral , IC_Integral , motor->MotorConfig.UMAX/2*Duty , 0.0f , 0.0f);
+            PHASE[0] = PHASE_[0];
+        }break;
+        case 4:
+        {
+            IA_Integral = 0.0f;
+            IB_Integral = 0.0f;
+            IC_Integral = 0.0f;
+            set_pwm(motor,0.0f,Duty,0.0f);
+        }break;
+        case 5:
+        {
+            IA_Integral += motor->MotorData.IA_NoOrder * time_phase.dt;
+            IB_Integral += motor->MotorData.IB_NoOrder * time_phase.dt;
+            IC_Integral += motor->MotorData.IC_NoOrder * time_phase.dt;
+            int *PHASE_ = Calculate_PHASE(IA_Integral , IB_Integral , IC_Integral , 0.0f , motor->MotorConfig.UMAX/2*Duty , 0.0f);
+            PHASE[1] = PHASE_[1];            
+        }break;
+        case 6:
+        {
+            IA_Integral = 0.0f;
+            IB_Integral = 0.0f;
+            IC_Integral = 0.0f;
+            set_pwm(motor,0.0f,0.0f,Duty);
+        }break;
+        case 7:
+        {
+            IA_Integral += motor->MotorData.IA_NoOrder * time_phase.dt;
+            IB_Integral += motor->MotorData.IB_NoOrder * time_phase.dt;
+            IC_Integral += motor->MotorData.IC_NoOrder * time_phase.dt;
+            int *PHASE_ = Calculate_PHASE(IA_Integral , IB_Integral , IC_Integral , 0.0f , 0.0f , motor->MotorConfig.UMAX/2*Duty);
+            PHASE[2] = PHASE_[2];   
+        }break;
+        case 8:
+        {
+            if( PHASE[0] == 1 && PHASE[1] == 2 && PHASE[2] == 3 )
+            {
+                motor->MotorConfig.PHASE = 1;
+            }
+            else if ( PHASE[0] == 2 && PHASE[1] == 1 && PHASE[2] == 3 )
+            {
+                motor->MotorConfig.PHASE = 2;
+            }
+            else if ( PHASE[0] == 3 && PHASE[1] == 2 && PHASE[2] == 1 )
+            {
+                motor->MotorConfig.PHASE = 3;
+            }
+            else if ( PHASE[0] == 3 && PHASE[1] == 1 && PHASE[2] == 2 )
+            {
+                motor->MotorConfig.PHASE = 4;
+            }
+            else if ( PHASE[0] == 2 && PHASE[1] == 3 && PHASE[2] == 1 )
+            {
+                motor->MotorConfig.PHASE = 5;
+            }
+            else if ( PHASE[0] == 1 && PHASE[1] == 3 && PHASE[2] == 2 )
+            {
+                motor->MotorConfig.PHASE = 6;
+            }
+            else
+            {
+                motor->MotorConfig.PHASE = -1;
+            }
+        }break;
+        case 9:
+        {
+            set_pwm(motor,0.0f,0.0f,0.0f);
+            IA_Integral = 0.0f;
+            IB_Integral = 0.0f;
+            IC_Integral = 0.0f;
+            time = 0.0f;
+            state = 1 ;
+            return motor->MotorConfig.PHASE ;
+        }break;
+    }
+    return 0 ;
+}
+
+int update_PHASE_block(Motor_HandleTypeDef *motor)
+{
+    update_dt(motor);
+    update_IaIbIc(motor,0x111,1);
+    while(!update_PHASE_nonblock(motor));
+    if(motor->MotorConfig.PHASE == -1)
+    {
+        //打印报错信息
+    }
+    return motor->MotorConfig.PHASE ;
+}
+
 void update_angle_el_zero_no_sensor_block(Motor_HandleTypeDef *motor)
 {
     motor->MotorDrv.Delayms(1000);

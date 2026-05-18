@@ -235,11 +235,11 @@ void ADC1_2_IRQHandler(void)
   {
     update_IaIbIc(&motor,motor.MotorConfig.Mode_Sampling,motor.MotorConfig.PHASE);
   }
-    update_dt(&motor);
-    update_angle(&motor);
-    update_Clark(&motor);
-    update_Park(&motor);
-    update_velocity_LPF(&motor);
+  update_dt(&motor);
+  update_angle(&motor);
+  update_Clark(&motor);
+  update_Park(&motor);
+  update_velocity_LPF(&motor);
 
   HAL_GPIO_TogglePin(TEST2_GPIO_Port, TEST2_Pin);
   /* USER CODE END ADC1_2_IRQn 1 */
@@ -378,12 +378,12 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
         // }
 
         // 速度电流环例程
-        {
-          float output = Calculate_PID(30.0f, motor.MotorAlg.Velocity, motor.time.dt , &motor.MotorAlg.velocity_pid);
-          motor.MotorAlg.Uq = Calculate_PID(output, motor.MotorAlg.Iq , motor.time.dt , &motor.MotorAlg.iq_pid);
-          motor.MotorAlg.Ud = Calculate_PID(0.0f, motor.MotorAlg.Id , motor.time.dt , &motor.MotorAlg.id_pid);
-          update_svpwm(&motor);//输出SVPWM
-        }
+        // {
+        //   float output = Calculate_PID(30.0f, motor.MotorAlg.Velocity, motor.time.dt , &motor.MotorAlg.velocity_pid);
+        //   motor.MotorAlg.Uq = Calculate_PID(output, motor.MotorAlg.Iq , motor.time.dt , &motor.MotorAlg.iq_pid);
+        //   motor.MotorAlg.Ud = Calculate_PID(0.0f, motor.MotorAlg.Id , motor.time.dt , &motor.MotorAlg.id_pid);
+        //   update_svpwm(&motor);//输出SVPWM
+        // }
 
         // 位置速度电流环例程
         // {

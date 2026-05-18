@@ -109,7 +109,7 @@ float stm32_update_dt(Time_t* time)//优化后的dt计算函数
     const float dt = (float)diff * DT_SCALE_FACTOR;
 
     // 5. （可选）零值保护（若需保留原逻辑，简化判断）
-    time->dt = (dt < 1e-9f) ? 0.0001f : dt;
+    time->dt = (dt < 1e-9f) ? 0.000001f : dt;
 
     return time->dt;
 }
