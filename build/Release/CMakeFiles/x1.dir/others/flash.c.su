@@ -1,0 +1,7 @@
+/home/frycat/work/AAA_Projects/projects_me/motorcore/others/flash.c:5:6:flash_erase_address	32	static
+/home/frycat/work/AAA_Projects/projects_me/motorcore/others/flash.c:53:8:flash_write_muli_address	24	static
+/home/frycat/work/AAA_Projects/projects_me/motorcore/others/flash.c:87:6:flash_read	0	static
+/home/frycat/work/AAA_Projects/projects_me/motorcore/others/flash.c:92:10:get_sector	0	static
+/home/frycat/work/AAA_Projects/projects_me/motorcore/others/flash.c:131:10:get_next_flash_address	0	static
+/home/frycat/work/AAA_Projects/projects_me/motorcore/others/flash.c:19:8:flash_write_single_address	32	static
+/home/frycat/work/AAA_Projects/projects_me/motorcore/others/flash.c:165:6:update_flash	16	static

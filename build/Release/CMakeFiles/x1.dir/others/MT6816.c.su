@@ -1,0 +1,4 @@
+/home/frycat/work/AAA_Projects/projects_me/motorcore/others/MT6816.c:3:6:stm32_spi_send_recv	16	static
+/home/frycat/work/AAA_Projects/projects_me/motorcore/others/MT6816.c:8:6:stm32_set_cs	0	static
+/home/frycat/work/AAA_Projects/projects_me/motorcore/others/MT6816.c:20:6:mt6816_init	0	static
+/home/frycat/work/AAA_Projects/projects_me/motorcore/others/MT6816.c:26:7:mt6816_update_angle	16	static

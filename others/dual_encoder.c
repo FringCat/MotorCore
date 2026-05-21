@@ -1,3 +1,4 @@
+#include <math.h>
 #include "dual_encoder.h"
 
 float stm32_update_encoder_A(void)

@@ -35,6 +35,7 @@
 #include "flash.h"
 #include "can_handler.h"
 #include "fsm.h"
+#include "drv_DRV835X.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -154,13 +155,13 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
     
-    if(isoffset_done)
-    {
-      update_PHASE_nonblock(&motor);
-      // set_pwm(&motor,0.0f,0.0f,0.05f);
-      // ctrl_motor_openloop_velocity_el_nonblock(&motor,10.0f,0.8f,0.0f);
-    }
-    
+    // if(isoffset_done)
+    // {
+    //   update_PHASE_nonblock(&motor);
+    //   // set_pwm(&motor,0.0f,0.0f,0.05f);
+    //   // ctrl_motor_openloop_velocity_el_nonblock(&motor,10.0f,0.8f,0.0f);
+    // }
+
     // 双编码实时读取法兰角度例程
     // {
     // mt6816_update_angle(&mt6816);
@@ -209,9 +210,10 @@ int main(void)
     //   };break;
     // }
 
-  /* USER CODE END 3 */
   }
+  /* USER CODE END 3 */
 }
+
 /**
   * @brief System Clock Configuration
   * @retval None

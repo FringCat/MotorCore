@@ -1,0 +1,10 @@
+si 1
+speed 4000
+device STM32G474CE
+connect
+halt
+erase
+loadfile build/Release/x1.hex
+r
+g
+exit
