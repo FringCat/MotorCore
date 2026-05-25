@@ -64,8 +64,8 @@
 /home/frycat/work/AAA_Projects/projects_me/motorcore/FOC/foc_alg.c:1354:6:update_2DIR_sensor_block	32	static
 /home/frycat/work/AAA_Projects/projects_me/motorcore/FOC/foc_alg.c:1401:6:update_2DIR_sensor_nonblock	24	static
 /home/frycat/work/AAA_Projects/projects_me/motorcore/FOC/foc_alg.c:1475:6:Calculate_PHASE	40	static
-/home/frycat/work/AAA_Projects/projects_me/motorcore/FOC/foc_alg.c:1502:5:update_PHASE_nonblock	32	static
-/home/frycat/work/AAA_Projects/projects_me/motorcore/FOC/foc_alg.c:1616:5:update_PHASE_block	8	static
+/home/frycat/work/AAA_Projects/projects_me/motorcore/FOC/foc_alg.c:1502:5:update_PHASE_nonblock	56	static
+/home/frycat/work/AAA_Projects/projects_me/motorcore/FOC/foc_alg.c:1616:5:update_PHASE_block	24	static
 /home/frycat/work/AAA_Projects/projects_me/motorcore/FOC/foc_alg.c:1628:6:update_angle_el_zero_no_sensor_block	16	static
 /home/frycat/work/AAA_Projects/projects_me/motorcore/FOC/foc_alg.c:1808:6:map_samples_to_lut	56	static
 /home/frycat/work/AAA_Projects/projects_me/motorcore/FOC/foc_alg.c:1846:6:update_NLLUT_encoder_sensor_block	64	static
