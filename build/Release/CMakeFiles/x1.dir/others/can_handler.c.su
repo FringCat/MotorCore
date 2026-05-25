@@ -1,5 +1,0 @@
-/home/frycat/work/AAA_Projects/projects_me/motorcore/others/can_handler.c:27:7:can_update_cmd	12	static
-/home/frycat/work/AAA_Projects/projects_me/motorcore/others/can_handler.c:42:7:can_update_data	48	static
-/home/frycat/work/AAA_Projects/projects_me/motorcore/others/can_handler.c:66:7:can_reset_cmd	0	static
-/home/frycat/work/AAA_Projects/projects_me/motorcore/others/can_handler.c:75:7:can_printf_cmd	32	static
-/home/frycat/work/AAA_Projects/projects_me/motorcore/others/can_handler.c:97:6:Can_Handler_Init	40	static

@@ -138,7 +138,7 @@ int main(void)
   SEGGER_RTT_printf(0,"LWJ666 has inited!\n");
 
   __HAL_ADC_ENABLE_IT(&hadc1, ADC_IT_JEOC);         //adc采样中断(PWM通道4触发)
-  __HAL_TIM_ENABLE_IT(&htim1, TIM_IT_UPDATE);       //定时中断(20Khz 兼为PWM定时器)
+  __HAL_TIM_ENABLE_IT(&htim1, TIM_IT_UPDATE);       //定时中断(20Khz 兼为PWM定时器) 
   // __HAL_FDCAN_ENABLE_IT(&hfdcan1, FDCAN_IT_RX_FIFO0_NEW_MESSAGE); //使能CAN中断
   
   // __HAL_FDCAN_DISABLE_IT(&hfdcan1, FDCAN_IT_RX_FIFO0_NEW_MESSAGE); 
@@ -154,12 +154,10 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-    
+
     // if(isoffset_done)
     // {
     //   update_PHASE_nonblock(&motor);
-    //   // set_pwm(&motor,0.0f,0.0f,0.05f);
-    //   // ctrl_motor_openloop_velocity_el_nonblock(&motor,10.0f,0.8f,0.0f);
     // }
 
     // 双编码实时读取法兰角度例程

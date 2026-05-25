@@ -1,5 +1,0 @@
-/home/frycat/work/AAA_Projects/projects_me/motorcore/Core/Src/tim.c:149:6:MX_TIM3_Init	40	static
-/home/frycat/work/AAA_Projects/projects_me/motorcore/Core/Src/tim.c:189:6:HAL_TIM_Base_MspInit	16	static
-/home/frycat/work/AAA_Projects/projects_me/motorcore/Core/Src/tim.c:219:6:HAL_TIM_MspPostInit	32	static
-/home/frycat/work/AAA_Projects/projects_me/motorcore/Core/Src/tim.c:31:6:MX_TIM1_Init	128	static
-/home/frycat/work/AAA_Projects/projects_me/motorcore/Core/Src/tim.c:249:6:HAL_TIM_Base_MspDeInit	0	static

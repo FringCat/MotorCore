@@ -1,8 +1,0 @@
-/home/frycat/work/AAA_Projects/projects_me/motorcore/others/dual_encoder.c:4:7:stm32_update_encoder_A	0	static
-/home/frycat/work/AAA_Projects/projects_me/motorcore/others/dual_encoder.c:20:6:stm32_delay_ms	0	static
-/home/frycat/work/AAA_Projects/projects_me/motorcore/others/dual_encoder.c:12:7:stm32_update_encoder_B	0	static
-/home/frycat/work/AAA_Projects/projects_me/motorcore/others/dual_encoder.c:25:6:dual_encoder_init	0	static
-/home/frycat/work/AAA_Projects/projects_me/motorcore/others/dual_encoder.c:43:7:dual_encoder_limit_angle_rotor	0	static
-/home/frycat/work/AAA_Projects/projects_me/motorcore/others/dual_encoder.c:58:7:dual_encoder_map_angle	32	static
-/home/frycat/work/AAA_Projects/projects_me/motorcore/others/dual_encoder.c:90:7:dual_encoder_limit_angle_flange	0	static
-/home/frycat/work/AAA_Projects/projects_me/motorcore/others/dual_encoder.c:97:7:dual_encoder_update_angle_flange	56	static

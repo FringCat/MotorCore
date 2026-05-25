@@ -207,18 +207,29 @@ typedef struct
 
 // 数学常数（FOC核心计算用）
 #define PI          3.14159265359f      // 圆周率
+#define _2PI         6.28318530718f      // 2π
+#define PI_2     1.57079632679f      // π/2
 #define _3PI_2      4.71238898038f      // 3π/2
 #define SQRT3      1.732050807568877293f  // 根号3
 #define _1_SQRT3    0.57735026919f      // 1/根号3
 #define _2_SQRT3    1.15470053838f      // 2/根号3
-#define _1_3        (1.0f / 3.0f)       //
+#define _1_3        (1.0f / 3.0f)       // 1/3
+#define SIN_C3  (-0.16666502f)
+#define SIN_C5  ( 0.00833026f)
+
 
 // 通用数学工具
-float sgn(float x);                  // 符号函数（返回1/0/-1）
-float myabs(float x);                // 绝对值函数
-float Limit(float x, float max, float min);  // 限幅（将x限制在[min,max]）
-float mymap(float x, float in_min, float in_max, float out_min, float out_max);  // 数值映射（范围转换）
-float round_to_decimal(float x, int n);
+float my_sgn(float x);                  // 符号函数（返回1/0/-1）
+float my_abs(float x);                // 绝对值函数
+float my_Limit(float x, float max, float min);  // 限幅（将x限制在[min,max]）
+float my_map(float x, float in_min, float in_max, float out_min, float out_max);  // 数值映射（范围转换）
+float my_round(float x);  /* 四舍五入，等价 roundf */
+float my_round_to_decimal(float x, int n);
+float my_sin(float x);  // 切比雪夫多项式近似的sin函数（输入x为弧度，输出为sin(x)的近似值）
+float my_cos(float x);  // 切比雪夫多项式近似的cos函数（输入x为弧度，输出为cos(x)的近似值）
+float my_fmodf(float x, float y);
+float my_floor(float x);  /* 向下取整，等价 floorf */
+float my_pow(float base, float exp);  /* 幂运算，等价 powf 常用场景 */
 
 // 数据重置与初始化
 void reset_data_angle(Motor_HandleTypeDef *motor);

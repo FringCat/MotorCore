@@ -1,7 +1,0 @@
-/home/frycat/work/AAA_Projects/projects_me/motorcore/others/drv_DRV835X.c:509:17:read_reg	24	static
-/home/frycat/work/AAA_Projects/projects_me/motorcore/others/drv_DRV835X.c:479:17:write_reg.isra	32	static
-/home/frycat/work/AAA_Projects/projects_me/motorcore/others/drv_DRV835X.c:101:5:check_drv	64	static
-/home/frycat/work/AAA_Projects/projects_me/motorcore/others/drv_DRV835X.c:344:6:DRV835X_updateCfgPara	16	static
-/home/frycat/work/AAA_Projects/projects_me/motorcore/others/drv_DRV835X.c:404:6:DRV835X_Init	8	static
-/home/frycat/work/AAA_Projects/projects_me/motorcore/others/drv_DRV835X.c:427:6:DRV835X_read_FaultStatusReg1	8	static
-/home/frycat/work/AAA_Projects/projects_me/motorcore/others/drv_DRV835X.c:432:6:DRV835X_read_FaultStatusReg2	8	static

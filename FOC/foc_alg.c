@@ -1,11 +1,7 @@
 #include "foc_alg.h"
-#include <stdio.h>
-// #include <math.h>
-#include "arm_math.h"
-#include <stdlib.h>
 #include "SEGGER_RTT.h"
 #include "foc_drv.h"
-float sgn(float x)
+float my_sgn(float x)
 {
 	if(x>0)
 	{
@@ -21,7 +17,7 @@ float sgn(float x)
 	}
 }
 
-float Sat(float e, float r) 
+float my_sat(float e, float r) 
 {
     if (e > r) 
     {
@@ -35,7 +31,7 @@ float Sat(float e, float r)
     }
 }
 
-float myabs(float val)
+float my_abs(float val)
 {
 	if(val>=0)
 	{
@@ -47,28 +43,200 @@ float myabs(float val)
 	}
 }
 
-float round_to_decimal(float x, int n) 
+/** 四舍五入到最近整数（等价 roundf，不依赖 libm） */
+float my_round(float x)
 {
-    if (n < 0) return x;  // 处理无效输入（n不能为负数）
-
-    float scale = pow(10.0f, n);  // 计算10^n（放大倍数）
-    return round(x * scale) / scale;  // 四舍五入后还原
-}
-
-int32_t fast_round(float x) 
-{
-    if (x >= 0) 
+    if (x >= 0.0f)
     {
-        return (int32_t)(x + 0.5f);
-    } else 
-    {
-        return (int32_t)(x - 0.5f);
+        return (float)(int32_t)(x + 0.5f);
     }
+    return (float)(int32_t)(x - 0.5f);
 }
 
-float mymap( float Data ,float formLOW,float formHIGH, float toLOW,float toHIGH)
+int32_t my_fast_round(float x)
+{
+    return (int32_t)my_round(x);
+}
+
+/** 向下取整（等价 floorf，不依赖 libm） */
+float my_floor(float x)
+{
+    const int32_t i = (int32_t)x;
+    if (x < 0.0f && (float)i > x)
+    {
+        return (float)(i - 1);
+    }
+    return (float)i;
+}
+
+static float my_powi_u(float base, uint32_t exp)
+{
+    float result = 1.0f;
+    while (exp != 0u)
+    {
+        if ((exp & 1u) != 0u)
+        {
+            result *= base;
+        }
+        base *= base;
+        exp >>= 1u;
+    }
+    return result;
+}
+
+static float my_powi(float base, int32_t exp)
+{
+    if (exp == 0)
+    {
+        return 1.0f;
+    }
+    if (exp < 0)
+    {
+        return 1.0f / my_powi_u(base, (uint32_t)(-exp));
+    }
+    return my_powi_u(base, (uint32_t)exp);
+}
+
+static float my_ln(float x)
+{
+    if (x <= 0.0f)
+    {
+        return 0.0f;
+    }
+
+    int e = 0;
+    float m = x;
+    while (m >= 2.0f)
+    {
+        m *= 0.5f;
+        e++;
+    }
+    while (m < 1.0f)
+    {
+        m *= 2.0f;
+        e--;
+    }
+
+    const float t = m - 1.0f;
+    const float ln_m =
+        t * (1.0f + t * (-0.5f + t * (0.33333333f + t * (-0.25f))));
+    return ln_m + (float)e * 0.69314718056f;
+}
+
+static float my_exp(float x)
+{
+    if (x <= -80.0f)
+    {
+        return 0.0f;
+    }
+    if (x >= 80.0f)
+    {
+        return 1e38f;
+    }
+
+    const float k_ln2 = 0.69314718056f;
+    const int k = (int)(x / k_ln2 + (x >= 0.0f ? 0.5f : -0.5f));
+    const float r = x - (float)k * k_ln2;
+    const float er =
+        1.0f + r * (1.0f + r * (0.5f + r * (0.16666667f + r * 0.04166667f)));
+
+    if (k >= 0)
+    {
+        return er * my_powi_u(2.0f, (uint32_t)k);
+    }
+    return er / my_powi_u(2.0f, (uint32_t)(-k));
+}
+
+/** 幂运算（等价 powf 常用场景，不依赖 libm） */
+float my_pow(float base, float exp)
+{
+    if (exp == 0.0f)
+    {
+        return 1.0f;
+    }
+    if (base == 0.0f)
+    {
+        return (exp > 0.0f) ? 0.0f : 1.0f;
+    }
+
+    const int32_t ei = (int32_t)exp;
+    if (exp == (float)ei)
+    {
+        return my_powi(base, ei);
+    }
+
+    if (base < 0.0f)
+    {
+        return 0.0f;
+    }
+
+    return my_exp(exp * my_ln(base));
+}
+
+float my_round_to_decimal(float x, int n)
+{
+    if (n < 0)
+    {
+        return x;
+    }
+
+    const float scale = my_pow(10.0f, (float)n);
+    return (float)my_fast_round(x * scale) / scale;
+}
+
+float my_map( float Data ,float formLOW,float formHIGH, float toLOW,float toHIGH)
 {
 	return ((Data-formLOW)*((float)((toHIGH-toLOW)/(float)(formHIGH-formLOW))))+toLOW;
+}
+
+float my_sin(float x)
+{
+    float sign = 1.0f;
+
+    /* 输入应在 [0, 2π)；调用方先用 Limit_angle_el 归一化 */
+    if (x < PI_2)
+    {
+        const float x2 = x * x;
+        return x * (1.0f + x2 * (SIN_C3 + x2 * SIN_C5));
+    }
+    if (x <= PI)
+    {
+        x = PI - x;
+    }
+    else if (x <= _3PI_2)
+    {
+        x -= PI;
+        sign = -1.0f;
+    }
+    else
+    {
+        x = _2PI - x;
+        sign = -1.0f;
+    }
+
+    const float x2 = x * x;
+    return sign * x * (1.0f + x2 * (SIN_C3 + x2 * SIN_C5));
+}
+
+float my_fmodf(float x, float y)
+{
+    if (y == 0.0f)
+    {
+        return 0.0f;
+    }
+
+    int n = (int)(x / y);
+    return x - (float)n * y;
+}
+
+float my_cos(float x)
+{
+    x += PI_2;
+    if (x >= _2PI)
+    {
+        x -= _2PI;
+    }
+    return my_sin(x);
 }
 
 void reset_data_angle(Motor_HandleTypeDef *motor)
@@ -83,7 +251,7 @@ float Limit_angle(float angle, float Low, float High)
     // 异常处理：若上下限差值过小（周期为0），返回NaN标识错误
     const float EPS = 1e-6f;
     float period = High - Low;
-    if (fabs(period) < EPS)
+    if (my_abs(period) < EPS)
     {
         return 0;  
     }
@@ -98,7 +266,7 @@ float Limit_angle(float angle, float Low, float High)
 
     float offset = angle - Low;
 
-    offset = fmod(offset, period);
+    offset = my_fmodf(offset, period);
 
     if (offset < 0.0f)
     {
@@ -137,7 +305,7 @@ float Limit_angle_flange(float angle_all,float GR)
 float update_angle(Motor_HandleTypeDef *motor)//待更新:angle_all的更新是上一个周期的angle_all 不是这次的angle_all
 {
     float error_angle = motor->MotorAlg.angle-motor->MotorAlg.last_angle;
-    if(fabs(error_angle) > (0.8f*2*PI))
+    if(my_abs(error_angle) > (0.8f*2*PI))
     {
         if((error_angle)<0){motor->MotorData.angle_all += (2*PI - motor->MotorAlg.last_angle + motor->MotorAlg.angle) ;}//正转
         else if((error_angle)>=0){motor->MotorData.angle_all += -(2*PI - motor->MotorAlg.angle + motor->MotorAlg.last_angle) ;}//反转
@@ -161,7 +329,7 @@ float update_angle(Motor_HandleTypeDef *motor)//待更新:angle_all的更新是�
 float update_angle_NLLUT(Motor_HandleTypeDef *motor)
 {
     float error_angle = motor->MotorAlg.angle-motor->MotorAlg.last_angle;
-    if(fabs(error_angle) > (0.8f*2*PI))
+    if(my_abs(error_angle) > (0.8f*2*PI))
     {
         if((error_angle)<0){motor->MotorData.angle_all += (2*PI - motor->MotorAlg.last_angle + motor->MotorAlg.angle) ;}//正转
         else if((error_angle)>=0){motor->MotorData.angle_all += -(2*PI - motor->MotorAlg.angle + motor->MotorAlg.last_angle) ;}//反转
@@ -199,7 +367,7 @@ float Calculate_angle_flange(float angle ,float GR,float angle_zero)
 
 float Calculate_angle_NLLUT(float angle ,float* NLLUT_encoder,uint32_t size_NLLUT)
 {
-    uint32_t sector_NLLUT = (uint32_t)fast_round((angle/(2*PI))*(float)size_NLLUT);
+    uint32_t sector_NLLUT = (uint32_t)my_fast_round((angle/(2*PI))*(float)size_NLLUT);
     float angle_1 = ((float)sector_NLLUT * (2*PI))/(float)size_NLLUT;
     float angle_2 = ((float)(sector_NLLUT+1) * (2*PI))/(float)size_NLLUT;
     float error_1 = NLLUT_encoder[sector_NLLUT];
@@ -226,29 +394,18 @@ float update_angle_el(Motor_HandleTypeDef *motor)
     return motor->MotorAlg.angle_el;
 }
 
-float Limit(float value , float high , float low)
+float my_Limit(float value , float high , float low)
 {
     return (value)<(low)?(low):((value)>(high)?(high):(value));//如果目标参数超出最大/最小值的范围，就把这个值锁死在最大/最小值
 }
-
-// float *Calculate_Park_N(float Uq , float Ud , float angle_el)
-// {
-
-// 	static float Upark_N[2];
-	
-// 	Upark_N[0] = Ud*cos(angle_el) - Uq*sin(angle_el); //Park逆变换 ①Ualpha = Ud * cosθ - Uq * sinθ
-//  Upark_N[1] = Uq*cos(angle_el) + Ud*sin(angle_el); //           ②Ubeta  = Uq * cosθ + Ud * sinθ
-// 	return Upark_N;
-	
-// }
 
 float *Calculate_Park_N(float Uq , float Ud , float angle_el)
 {
     static float Upark_N[2];  // 保留原静态数组以兼容接口
     float cos_theta, sin_theta;
 
-    cos_theta = arm_cos_f32(angle_el);
-    sin_theta = arm_sin_f32(angle_el);
+    cos_theta = my_cos(angle_el);
+    sin_theta = my_sin(angle_el);
 
     Upark_N[0] = Ud * cos_theta - Uq * sin_theta;  // Ualpha
     Upark_N[1] = Uq * cos_theta + Ud * sin_theta;  // Ubeta
@@ -311,10 +468,12 @@ float *update_Clark(Motor_HandleTypeDef *motor)
 float *Calculate_Park(float Ialpha ,float Ibeta ,float angle_el_rad)
 {
     static float Ipark[2];
-    
+    float cos_theta = my_cos(angle_el_rad);
+    float sin_theta = my_sin(angle_el_rad);
+
     // Park变换（输入电角度为弧度制）
-    Ipark[0] = Ialpha * arm_cos_f32(angle_el_rad) + Ibeta * arm_sin_f32(angle_el_rad);  // Id
-    Ipark[1] = -Ialpha * arm_sin_f32(angle_el_rad) + Ibeta * arm_cos_f32(angle_el_rad); // Iq
+    Ipark[0] = Ialpha * cos_theta + Ibeta * sin_theta;  // Id
+    Ipark[1] = -Ialpha * sin_theta + Ibeta * cos_theta; // Iq
     
     return Ipark;
 }
@@ -329,11 +488,11 @@ float *update_Park(Motor_HandleTypeDef *motor)
 
 void update_pwm(Motor_HandleTypeDef *motor)
 {
-    float _Ua = Limit(motor->MotorAlg.UA/motor->MotorConfig.UMAX , 1 , 0 );//计算并限制ABC相所需的占空比
-	float _Ub = Limit(motor->MotorAlg.UB/motor->MotorConfig.UMAX , 1 , 0 );
-	float _Uc = Limit(motor->MotorAlg.UC/motor->MotorConfig.UMAX , 1 , 0 );
+    float _Ua = my_Limit(motor->MotorAlg.UA/motor->MotorConfig.UMAX , 1 , 0 );//计算并限制ABC相所需的占空比
+	float _Ub = my_Limit(motor->MotorAlg.UB/motor->MotorConfig.UMAX , 1 , 0 );
+	float _Uc = my_Limit(motor->MotorAlg.UC/motor->MotorConfig.UMAX , 1 , 0 );
 
-    if(motor->MotorDrv.Set_PWM_A!=NULL | motor->MotorDrv.Set_PWM_B!=NULL | motor->MotorDrv.Set_PWM_C!=NULL)
+    if(motor->MotorDrv.Set_PWM_A!=NULL || motor->MotorDrv.Set_PWM_B!=NULL || motor->MotorDrv.Set_PWM_C!=NULL)
     {
         switch (motor->MotorConfig.DIR)
         {
@@ -365,11 +524,11 @@ void update_pwm(Motor_HandleTypeDef *motor)
 
 void set_pwm(Motor_HandleTypeDef *motor,float Ta , float Tb ,float Tc)
 {
-    float _Ua = Limit(Ta , 1 , 0 );//计算并限制ABC相所需的占空比
-	float _Ub = Limit(Tb , 1 , 0 );
-	float _Uc = Limit(Tc , 1 , 0 );
+    float _Ua = my_Limit(Ta , 1 , 0 );//计算并限制ABC相所需的占空比
+	float _Ub = my_Limit(Tb , 1 , 0 );
+	float _Uc = my_Limit(Tc , 1 , 0 );
 
-    if(motor->MotorDrv.Set_PWM_A!=NULL | motor->MotorDrv.Set_PWM_B!=NULL | motor->MotorDrv.Set_PWM_C!=NULL)
+    if(motor->MotorDrv.Set_PWM_A!=NULL ||motor->MotorDrv.Set_PWM_B!=NULL || motor->MotorDrv.Set_PWM_C!=NULL)
     {
         switch (motor->MotorConfig.DIR)
         {
@@ -401,11 +560,11 @@ void set_pwm(Motor_HandleTypeDef *motor,float Ta , float Tb ,float Tc)
 
 void set_pwm_nodir(Motor_HandleTypeDef *motor,float Ta , float Tb ,float Tc)
 {
-    float _Ua = Limit(Ta , 1 , 0 );//计算并限制ABC相所需的占空比
-    float _Ub = Limit(Tb , 1 , 0 );
-    float _Uc = Limit(Tc , 1 , 0 );
+    float _Ua = my_Limit(Ta , 1 , 0 );//计算并限制ABC相所需的占空比
+    float _Ub = my_Limit(Tb , 1 , 0 );
+    float _Uc = my_Limit(Tc , 1 , 0 );
 
-    if(motor->MotorDrv.Set_PWM_A!=NULL | motor->MotorDrv.Set_PWM_B!=NULL | motor->MotorDrv.Set_PWM_C!=NULL)
+    if(motor->MotorDrv.Set_PWM_A!=NULL || motor->MotorDrv.Set_PWM_B!=NULL ||motor->MotorDrv.Set_PWM_C!=NULL)
     {
         motor->MotorDrv.Set_PWM_A(_Ua);
         motor->MotorDrv.Set_PWM_B(_Ub);
@@ -427,10 +586,10 @@ int Calculate_Sector( float Ualpha , float Ubeta )//存在较多边界条件问�
         return (Ubeta >= 0.0f) ? 2 : 5;  // β轴：正→2，负→5
     }
 	if((Ualpha>0.0f) && (Ubeta>0.0f) && (Ubeta/Ualpha < SQRT3)){return 1 ;}
-	else if((Ubeta>0.0f) && (Ubeta/myabs(Ualpha)>SQRT3)){return 2 ;}
+	else if((Ubeta>0.0f) && (Ubeta/my_abs(Ualpha)>SQRT3)){return 2 ;}
 	else if((Ualpha<0.0f) && (Ubeta>0.0f) && (-Ubeta/Ualpha < SQRT3)){return 3 ;}
 	else if((Ualpha<0.0f) && (Ubeta<0.0f) && (Ubeta/Ualpha < SQRT3)){return 4 ;}
-	else if((Ubeta<0.0f) && (-Ubeta/myabs(Ualpha)>SQRT3)){return 5 ;}
+	else if((Ubeta<0.0f) && (-Ubeta/my_abs(Ualpha)>SQRT3)){return 5 ;}
 	else if((Ualpha>0.0f) && (Ubeta<0.0f) && (-Ubeta/Ualpha < SQRT3)){return 6 ;}
 	else {return 0;}
 }
@@ -476,7 +635,7 @@ float Calculate_velocity_raw(float angle, float last_angle, float dt)
 
     float velocity_raw;
     // 计算原始速度
-    if(fabs(angle - last_angle) > (0.8f*2*PI))
+    if(my_abs(angle - last_angle) > (0.8f*2*PI))
     {
         if((angle - last_angle)<0){velocity_raw = (2*PI - last_angle + angle)/dt ;}//正转
         else if((angle - last_angle)>=0){velocity_raw = -(2*PI - angle + last_angle)/dt ;}//反转
@@ -511,7 +670,7 @@ float Calculate_PID(float target, float feedback, float dt ,PID_t* pid)
     
     // 计算积分项
     pid->This_I += pid->error * dt ;
-    pid->This_I = Limit(pid->This_I, pid->integral_max, pid->integral_min); // 限制积分项防止积分饱和
+    pid->This_I = my_Limit(pid->This_I, pid->integral_max, pid->integral_min); // 限制积分项防止积分饱和
 
     // 计算微分项
     float derivative = (pid->error - pid->last_error) / dt;
@@ -519,7 +678,7 @@ float Calculate_PID(float target, float feedback, float dt ,PID_t* pid)
     // 计算PID输出
     pid->Output = pid->KP * pid->error + pid->KI * pid->This_I + pid->KD * derivative;
     // pid->Output = pid->KP * pid->error;
-    pid->Output = Limit(pid->Output, pid->output_max, pid->output_min); // 限制输出范围
+    pid->Output = my_Limit(pid->Output, pid->output_max, pid->output_min); // 限制输出范围
 
     // 更新历史误差
     pid->last_error = pid->error;
@@ -539,11 +698,11 @@ float Calculate_PID_IS(float target, float feedback, float dt, PID_t* pid,float 
     {
         pid->This_I = 0.0f; // 超出范围时，积分项清零
     }
-    pid->This_I = Limit(pid->This_I, pid->integral_max, pid->integral_min);
+    pid->This_I = my_Limit(pid->This_I, pid->integral_max, pid->integral_min);
 
     float derivative = (pid->error - pid->last_error) / dt;
     pid->Output = pid->KP * pid->error + pid->KI * pid->This_I + pid->KD * derivative;
-    pid->Output = Limit(pid->Output, pid->output_max, pid->output_min);
+    pid->Output = my_Limit(pid->Output, pid->output_max, pid->output_min);
 
     pid->last_error = pid->error;
     return pid->Output;
@@ -554,11 +713,11 @@ float Calculate_PID_IS_AIS(float target, float feedback, float dt, PID_t* pid,fl
     float r = pid->KP;
     float D = target;
 
-    float sum = r*D * ((1.0f-pow((1.0f-r),n))/r);
+    float sum = r * D * ((1.0f - my_pow((1.0f - r), n)) / r);
 
     pid->error = target - feedback;
 
-    if (fabs(pid->error) <= fabs(target-sum))
+    if (my_abs(pid->error) <= my_abs(target-sum))
     {
         pid->This_I += pid->error * dt;
     }
@@ -566,11 +725,11 @@ float Calculate_PID_IS_AIS(float target, float feedback, float dt, PID_t* pid,fl
     {
         pid->This_I = 0.0f; // 超出范围时，积分项清零
     }
-    pid->This_I = Limit(pid->This_I, pid->integral_max, pid->integral_min);
+    pid->This_I = my_Limit(pid->This_I, pid->integral_max, pid->integral_min);
 
     float derivative = (pid->error - pid->last_error) / dt;
     pid->Output = pid->KP * pid->error + pid->KI * pid->This_I + pid->KD * derivative;
-    pid->Output = Limit(pid->Output, pid->output_max, pid->output_min);
+    pid->Output = my_Limit(pid->Output, pid->output_max, pid->output_min);
 
     pid->last_error = pid->error;
     return pid->Output;
@@ -661,9 +820,9 @@ void update_svpwm(Motor_HandleTypeDef *motor)
 			break;
 	}
 
-	float a = mymap(Ta,-1,1,0,1);
-	float b = mymap(Tb,-1,1,0,1);
-	float c = mymap(Tc,-1,1,0,1);
+	float a = my_map(Ta,-1,1,0,1);
+	float b = my_map(Tb,-1,1,0,1);
+	float c = my_map(Tc,-1,1,0,1);
 
     set_pwm(motor,a,b,c);
 }
@@ -757,9 +916,9 @@ void set_svpwm(Motor_HandleTypeDef *motor, float Uq , float Ud ,float angle_el)
 			break;
 	}
 
-	float a = mymap(Ta,-1,1,0,1);
-	float b = mymap(Tb,-1,1,0,1);
-	float c = mymap(Tc,-1,1,0,1);
+	float a = my_map(Ta,-1,1,0,1);
+	float b = my_map(Tb,-1,1,0,1);
+	float c = my_map(Tc,-1,1,0,1);
     set_pwm_nodir(motor,a,b,c);
 }
 
@@ -859,9 +1018,9 @@ void set_svpwm_dir(Motor_HandleTypeDef *motor, float Uq , float Ud ,float angle_
     motor->MotorAlg.UB = Tb*motor->MotorConfig.UMAX - motor->MotorConfig.UMAX/2;
     motor->MotorAlg.UC = Tc*motor->MotorConfig.UMAX - motor->MotorConfig.UMAX/2;
 
-	float a = mymap(Ta,-1,1,0,1);
-	float b = mymap(Tb,-1,1,0,1);
-	float c = mymap(Tc,-1,1,0,1);
+	float a = my_map(Ta,-1,1,0,1);
+	float b = my_map(Tb,-1,1,0,1);
+	float c = my_map(Tc,-1,1,0,1);
     set_pwm(motor,a,b,c);
 }
 
@@ -870,9 +1029,9 @@ void update_spwm(Motor_HandleTypeDef *motor)
     update_Park_N(motor);
     update_Clark_N(motor);
 
-    float TA = mymap(motor->MotorAlg.UA,-motor->MotorConfig.UMAX/2,motor->MotorConfig.UMAX/2,0.0f,1.0f);
-    float TB = mymap(motor->MotorAlg.UB,-motor->MotorConfig.UMAX/2,motor->MotorConfig.UMAX/2,0.0f,1.0f);
-    float TC = mymap(motor->MotorAlg.UC,-motor->MotorConfig.UMAX/2,motor->MotorConfig.UMAX/2,0.0f,1.0f);
+    float TA = my_map(motor->MotorAlg.UA,-motor->MotorConfig.UMAX/2,motor->MotorConfig.UMAX/2,0.0f,1.0f);
+    float TB = my_map(motor->MotorAlg.UB,-motor->MotorConfig.UMAX/2,motor->MotorConfig.UMAX/2,0.0f,1.0f);
+    float TC = my_map(motor->MotorAlg.UC,-motor->MotorConfig.UMAX/2,motor->MotorConfig.UMAX/2,0.0f,1.0f);
     
     set_pwm(motor,TA, TB, TC);
 }
@@ -890,9 +1049,9 @@ void set_spwm(Motor_HandleTypeDef *motor,float Uq, float Ud ,float angle_el)
     motor->MotorAlg.UB = Uclark[1];
     motor->MotorAlg.UC = Uclark[2];
     
-    float TA = mymap(Uclark[0],-motor->MotorConfig.UMAX/2,motor->MotorConfig.UMAX/2,0.0f,1.0f);
-    float TB = mymap(Uclark[1],-motor->MotorConfig.UMAX/2,motor->MotorConfig.UMAX/2,0.0f,1.0f);
-    float TC = mymap(Uclark[2],-motor->MotorConfig.UMAX/2,motor->MotorConfig.UMAX/2,0.0f,1.0f);
+    float TA = my_map(Uclark[0],-motor->MotorConfig.UMAX/2,motor->MotorConfig.UMAX/2,0.0f,1.0f);
+    float TB = my_map(Uclark[1],-motor->MotorConfig.UMAX/2,motor->MotorConfig.UMAX/2,0.0f,1.0f);
+    float TC = my_map(Uclark[2],-motor->MotorConfig.UMAX/2,motor->MotorConfig.UMAX/2,0.0f,1.0f);
 
     set_pwm(motor,TA, TB, TC);
     // set_pwm_nodir(motor,TA, TB, TC);
@@ -1278,7 +1437,7 @@ void update_pole_pairs_sensor_block(Motor_HandleTypeDef *motor)
     }
     motor->MotorDrv.Delayms(2000);
 
-    motor->MotorConfig.Pole_pairs = (uint32_t)round(myabs((float)(1000*0.01f)/(velocity_integral)));
+    motor->MotorConfig.Pole_pairs = (uint32_t)my_round(my_abs((float)(1000*0.01f)/(velocity_integral)));
     // printf("%d,%f\n",motor->MotorConfig.Pole_pairs,(myabs((float)(1000*0.01f)/(velocity_integral))));
     // printf("%f,%f,%f,%f\n",(angle_end - angle_start),velocity_integral,motor->MotorData.Velocity_raw,motor->MotorAlg.angle);
     set_svpwm(motor,0.0f, 0.0f , 0.0f); 
@@ -1336,7 +1495,7 @@ void update_pole_pairs_sensor_nonblock(Motor_HandleTypeDef *motor)
             }break;
             case 3:
             {
-                motor->MotorConfig.Pole_pairs = (uint32_t)round(myabs((float)velocity_target*(total_time-time_init-time_prep)/(velocity_integral)));
+                motor->MotorConfig.Pole_pairs = (uint32_t)my_round(my_abs((float)velocity_target*(total_time-time_init-time_prep)/(velocity_integral)));
                 set_svpwm(motor,0.0f, 0.0f , 0.0f);
                 // total_time = 0.0f;
                 // velocity_integral = 0.0f;
@@ -1668,8 +1827,8 @@ void update_angle_el_zero_sensor_block(Motor_HandleTypeDef *motor)
         update_angle(motor);
         angle_now = ctrl_motor_openloop_angle_nonblock(motor,2*PI,0.0f,0.6,0.0f,motor->MotorConfig.UMAX*0.05f);
         // angle_error = angle_now - motor->MotorData.angle_all;
-        uint32_t i =(uint32_t)round((angle_now/(2*PI))*(float)sample_total);
-        int32_t i_int = (int32_t)round((angle_now/(2*PI))*(float)sample_total);
+        uint32_t i =(uint32_t)my_round((angle_now/(2*PI))*(float)sample_total);
+        int32_t i_int = (int32_t)my_round((angle_now/(2*PI))*(float)sample_total);
         if(i>=sample_total|| i_int<0)
         {
             ctrl_motor_openloop_angle_nonblock(motor,0.0f,0.0f,1000.0f,0.0f,0.0f);//注销掉这个函数的angle_now，防止用到下一次开环执行程序中
@@ -1687,8 +1846,8 @@ void update_angle_el_zero_sensor_block(Motor_HandleTypeDef *motor)
         update_angle(motor);
         angle_now = ctrl_motor_openloop_angle_nonblock(motor,0.0f,2*PI,-0.6,0.0f,motor->MotorConfig.UMAX*0.05f);
         // angle_error = angle_now - motor->MotorData.angle_all;
-        uint32_t i =(uint32_t)round((angle_now/(2*PI))*(float)sample_total);
-        int32_t i_int = (int32_t)round((angle_now/(2*PI))*(float)sample_total);
+        uint32_t i =(uint32_t)my_round((angle_now/(2*PI))*(float)sample_total);
+        int32_t i_int = (int32_t)my_round((angle_now/(2*PI))*(float)sample_total);
         if(i>=sample_total || i_int<0)
         {
             ctrl_motor_openloop_angle_nonblock(motor,0.0f,0.0f,1000.0f,0.0f,0.0f);//注销掉这个函数的angle_now，防止用到下一次开环执行程序中
@@ -1741,7 +1900,8 @@ void update_angle_el_zero_sensor_nonblock(Motor_HandleTypeDef *motor)
             if(angle_el_zero == NULL)
             {   
                 //打印报错信息
-                printf("Heap_Size is not enough!");
+                // printf("Heap_Size is not enough!");
+                SEGGER_RTT_printf(0, "Heap_Size is not enough!\n");
                 free((void*)angle_el_zero);
                 return;
             }
@@ -1755,7 +1915,7 @@ void update_angle_el_zero_sensor_nonblock(Motor_HandleTypeDef *motor)
         case 2:
         {
             angle_now = ctrl_motor_openloop_angle_nonblock(motor,2*PI,0.0f,0.3,motor->MotorConfig.UMAX*0.5f, 0.0f);
-            uint32_t i =(uint32_t)round((angle_now/(2*PI))*(float)sample_total);
+            uint32_t i =(uint32_t)my_round((angle_now/(2*PI))*(float)sample_total);
             // printf("%f\n",angle_el_zero[i]);
 
             if(i>=sample_total|| !angle_now)
@@ -1769,8 +1929,8 @@ void update_angle_el_zero_sensor_nonblock(Motor_HandleTypeDef *motor)
         case 3:
         {
             angle_now = ctrl_motor_openloop_angle_nonblock(motor,0.0f,2*PI,-0.3,motor->MotorConfig.UMAX*0.5f, 0.0f);
-            uint32_t i =(uint32_t)round((angle_now/(2*PI))*(float)sample_total);
-            int32_t i_int =(int32_t)round((angle_now/(2*PI))*(float)sample_total);
+            uint32_t i =(uint32_t)my_round((angle_now/(2*PI))*(float)sample_total);
+            int32_t i_int =(int32_t)my_round((angle_now/(2*PI))*(float)sample_total);
             // printf("%f\n",angle_el_zero[i]);
             if(i>=sample_total)
             {
@@ -1813,7 +1973,7 @@ void map_samples_to_lut(float *error_arr, int N_SAMPLES, float *lut_arr, int N_L
         float lut_angle = (2 * PI * j) / (float)N_LUT;
 
         // 步骤 2：定位对应的左采样点 i
-        int i = (int)floor( (j * N_SAMPLES) / (float)N_LUT );
+        int i = (int)my_floor((j * N_SAMPLES) / (float)N_LUT);
         // 处理边界：i 不能超过 N_SAMPLES-1
         i = (i >= N_SAMPLES) ? N_SAMPLES - 1 : i;
         // 右采样点（周期闭环）
@@ -2071,8 +2231,8 @@ void update_loopcount_rotor_block(Motor_HandleTypeDef *motor,float angle_encoder
 
     for(int i = -8 ; i<9 ;i++)
     {
-      angle_B_ = Limit_angle_el( fmodf( ((angle_A+(float)i*2*PI)*(motor->MotorConfig.GT_A/motor->MotorConfig.GT_B)) , (2*PI) ) ) ;
-      if(fabs(angle_B_-angle_B)<0.05)
+      angle_B_ = Limit_angle_el( my_fmodf( ((angle_A+(float)i*2*PI)*(motor->MotorConfig.GT_A/motor->MotorConfig.GT_B)) , (2*PI) ) ) ;
+      if(my_abs(angle_B_-angle_B)<0.05)
       {
         motor->MotorConfig.loopcount_rotor = i ;
         break;
@@ -2111,10 +2271,10 @@ void update_NLLUT_and_angle_el_zero_sensor_block(Motor_HandleTypeDef *motor)
         update_dt(motor);
         update_angle(motor);
         angle_now = ctrl_motor_openloop_angle_nonblock(motor,2*PI,0.0f,0.6,0.0f,motor->MotorConfig.UMAX*0.05f);
-        uint32_t i = (uint32_t)round((angle_now/(2*PI))*(float)sample_total) ;
-        uint32_t j = (uint32_t)round((angle_now/(2*PI))*(float)sample_total_NLLUT);
-        int32_t i_int = (int32_t)round((angle_now/(2*PI))*(float)sample_total);
-        int32_t j_int = (int32_t)round((angle_now/(2*PI))*(float)sample_total_NLLUT);
+        uint32_t i = (uint32_t)my_round((angle_now/(2*PI))*(float)sample_total) ;
+        uint32_t j = (uint32_t)my_round((angle_now/(2*PI))*(float)sample_total_NLLUT);
+        int32_t i_int = (int32_t)my_round((angle_now/(2*PI))*(float)sample_total);
+        int32_t j_int = (int32_t)my_round((angle_now/(2*PI))*(float)sample_total_NLLUT);
         if((i>=sample_total|| i_int<0)&&(j>=sample_total_NLLUT || j_int<0))
         {
             ctrl_motor_openloop_angle_nonblock(motor,0.0f,0.0f,1000.0f,0.0f,0.0f);//注销掉这个函数的angle_now，防止用到下一次开环执行程序中
@@ -2130,10 +2290,10 @@ void update_NLLUT_and_angle_el_zero_sensor_block(Motor_HandleTypeDef *motor)
         update_dt(motor);
         update_angle(motor);
         angle_now = ctrl_motor_openloop_angle_nonblock(motor,0.0f,2*PI,-0.6,0.0f,motor->MotorConfig.UMAX*0.05f);
-        uint32_t i = (uint32_t)round((angle_now/(2*PI))*(float)sample_total);
-        uint32_t j = (uint32_t)round((angle_now/(2*PI))*(float)sample_total_NLLUT);
-        int32_t i_int = (int32_t)round((angle_now/(2*PI))*(float)sample_total);
-        int32_t j_int = (int32_t)round((angle_now/(2*PI))*(float)sample_total_NLLUT);
+        uint32_t i = (uint32_t)my_round((angle_now/(2*PI))*(float)sample_total);
+        uint32_t j = (uint32_t)my_round((angle_now/(2*PI))*(float)sample_total_NLLUT);
+        int32_t i_int = (int32_t)my_round((angle_now/(2*PI))*(float)sample_total);
+        int32_t j_int = (int32_t)my_round((angle_now/(2*PI))*(float)sample_total_NLLUT);
         if((i>=sample_total|| i_int<0)&&(j>=sample_total_NLLUT || j_int<0))
         {
             ctrl_motor_openloop_angle_nonblock(motor,0.0f,0.0f,1000.0f,0.0f,0.0f);//注销掉这个函数的angle_now，防止用到下一次开环执行程序中
@@ -2185,9 +2345,9 @@ void update_NLLUT_and_angle_el_zero_sensor_block(Motor_HandleTypeDef *motor)
 //         float fmod_result = fmodf(X, 2 * PI);
 //         Kb = (X - fmod_result) / (2 * PI);
 //         angle_B_ = Limit_angle_el(fmod_result);
-//         if(fabs(angle_B_-angle_B)<0.05)
+//         if(my_abs(angle_B_-angle_B)<0.05)
 //         {
-//             // if(fabs(valid_Kb) - fabs(i) < 17)
+//             // if(my_abs(valid_Kb) - my_abs(i) < 17)
 //             // {
 //                 angle_B__ = angle_B_;
 //                 motor->MotorConfig.loopcount_rotor = i ;
@@ -2219,7 +2379,7 @@ float ctrl_motor_openloop_angle_el_nonblock(Motor_HandleTypeDef *motor,float ang
     static float velocity_integral = 0 ;
     velocity_integral += angle_el_target*motor->time.dt;
     angle_el_now = angle_el_start + velocity_integral;
-    if(myabs(velocity_integral) < myabs(angle_el_target - angle_el_start))
+    if(my_abs(velocity_integral) < my_abs(angle_el_target - angle_el_start))
     {
         set_svpwm_dir(motor,Uq,Ud,Limit_angle_el(velocity_integral));
         return angle_el_now ;
@@ -2249,7 +2409,7 @@ float ctrl_motor_openloop_angle_nonblock(Motor_HandleTypeDef *motor,float angle_
     velocity_integral += velocity_target*motor->time.dt;
     angle_now = angle_start + velocity_integral;
     angle = Limit_angle_el(velocity_integral*(float)motor->MotorConfig.Pole_pairs);
-    if( fabs(velocity_integral) < fabs(angle_target-angle_start))
+    if( my_abs(velocity_integral) < my_abs(angle_target-angle_start))
     {
         set_svpwm_dir(motor,Uq,Ud,angle);
         return angle_now ;
@@ -2272,8 +2432,8 @@ void Calculate_IdIq(float IA, float IB, float IC, float angle_el, float *IdIq_ou
     float Ibeta = (SQRT3 * (IB - IC)) / 3.0f;
 
     // --- 第二步: Park 变换 (2相静止 -> 2相同步旋转) ---
-    float cos_theta = cosf(angle_el);
-    float sin_theta = sinf(angle_el);
+    float cos_theta = my_cos(angle_el);
+    float sin_theta = my_sin(angle_el);
 
     // Id = Ialpha * cosθ + Ibeta * sinθ
     IdIq_out[0] = Ialpha * cos_theta + Ibeta * sin_theta;
