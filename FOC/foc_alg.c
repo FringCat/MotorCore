@@ -1499,7 +1499,7 @@ int *Calculate_PHASE(float IA, float IB, float IC,float UA, float UB, float UC)/
 
     return PHASE;
 }
-int update_PHASE_nonblock(Motor_HandleTypeDef *motor)
+int update_PHASE_nonblock(Motor_HandleTypeDef *motor,float IA_NoOrder, float IB_NoOrder, float IC_NoOrder)
 {
     static float Ts = 1.0f;
     static float Duty = 0.05f;
@@ -1532,9 +1532,9 @@ int update_PHASE_nonblock(Motor_HandleTypeDef *motor)
         }break;
         case 3 :
         {
-            IA_Integral += motor->MotorData.IA_NoOrder * time_phase.dt;
-            IB_Integral += motor->MotorData.IB_NoOrder * time_phase.dt;
-            IC_Integral += motor->MotorData.IC_NoOrder * time_phase.dt;
+            IA_Integral += IA_NoOrder * time_phase.dt;
+            IB_Integral += IB_NoOrder * time_phase.dt;
+            IC_Integral += IC_NoOrder * time_phase.dt;
             int *PHASE_ = Calculate_PHASE(IA_Integral , IB_Integral , IC_Integral , motor->MotorConfig.UMAX/2*Duty , 0.0f , 0.0f);
             PHASE[0] = PHASE_[0];
         }break;
@@ -1547,9 +1547,9 @@ int update_PHASE_nonblock(Motor_HandleTypeDef *motor)
         }break;
         case 5:
         {
-            IA_Integral += motor->MotorData.IA_NoOrder * time_phase.dt;
-            IB_Integral += motor->MotorData.IB_NoOrder * time_phase.dt;
-            IC_Integral += motor->MotorData.IC_NoOrder * time_phase.dt;
+            IA_Integral += IA_NoOrder * time_phase.dt;
+            IB_Integral += IB_NoOrder * time_phase.dt;
+            IC_Integral += IC_NoOrder * time_phase.dt;
             int *PHASE_ = Calculate_PHASE(IA_Integral , IB_Integral , IC_Integral , 0.0f , motor->MotorConfig.UMAX/2*Duty , 0.0f);
             PHASE[1] = PHASE_[1];            
         }break;
@@ -1562,9 +1562,9 @@ int update_PHASE_nonblock(Motor_HandleTypeDef *motor)
         }break;
         case 7:
         {
-            IA_Integral += motor->MotorData.IA_NoOrder * time_phase.dt;
-            IB_Integral += motor->MotorData.IB_NoOrder * time_phase.dt;
-            IC_Integral += motor->MotorData.IC_NoOrder * time_phase.dt;
+            IA_Integral += IA_NoOrder * time_phase.dt;
+            IB_Integral += IB_NoOrder * time_phase.dt;
+            IC_Integral += IC_NoOrder * time_phase.dt;
             int *PHASE_ = Calculate_PHASE(IA_Integral , IB_Integral , IC_Integral , 0.0f , 0.0f , motor->MotorConfig.UMAX/2*Duty);
             PHASE[2] = PHASE_[2];   
         }break;
@@ -1617,7 +1617,7 @@ int update_PHASE_block(Motor_HandleTypeDef *motor)
 {
     update_dt(motor);
     update_IaIbIc(motor,0x111,1);
-    while(!update_PHASE_nonblock(motor));
+    while(!update_PHASE_nonblock(motor,motor->MotorData.IA_NoOrder, motor->MotorData.IB_NoOrder, motor->MotorData.IC_NoOrder));
     if(motor->MotorConfig.PHASE == -1)
     {
         //打印报错信息

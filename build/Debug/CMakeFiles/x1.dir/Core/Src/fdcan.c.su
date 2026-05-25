@@ -1,0 +1,3 @@
+/home/frycat/work/AAA_Projects/projects_me/motorcore/Core/Src/fdcan.c:31:6:MX_FDCAN1_Init	8	static
+/home/frycat/work/AAA_Projects/projects_me/motorcore/Core/Src/fdcan.c:85:6:HAL_FDCAN_MspInit	128	static
+/home/frycat/work/AAA_Projects/projects_me/motorcore/Core/Src/fdcan.c:129:6:HAL_FDCAN_MspDeInit	16	static

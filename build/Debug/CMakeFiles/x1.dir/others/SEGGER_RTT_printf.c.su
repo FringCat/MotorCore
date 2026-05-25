@@ -1,0 +1,6 @@
+/home/frycat/work/AAA_Projects/projects_me/motorcore/others/SEGGER_RTT_printf.c:112:13:_StoreChar	24	static
+/home/frycat/work/AAA_Projects/projects_me/motorcore/others/SEGGER_RTT_printf.c:137:13:_PrintUnsigned	48	static
+/home/frycat/work/AAA_Projects/projects_me/motorcore/others/SEGGER_RTT_printf.c:227:13:_PrintInt	40	static
+/home/frycat/work/AAA_Projects/projects_me/motorcore/others/SEGGER_RTT_printf.c:323:13:_PrintFloat	128	static
+/home/frycat/work/AAA_Projects/projects_me/motorcore/others/SEGGER_RTT_printf.c:402:5:SEGGER_RTT_vprintf	160	static
+/home/frycat/work/AAA_Projects/projects_me/motorcore/others/SEGGER_RTT_printf.c:566:5:SEGGER_RTT_printf	28	static

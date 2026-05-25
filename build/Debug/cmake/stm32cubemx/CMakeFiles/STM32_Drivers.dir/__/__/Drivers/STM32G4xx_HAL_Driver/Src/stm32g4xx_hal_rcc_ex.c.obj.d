@@ -1,0 +1,37 @@
+cmake/stm32cubemx/CMakeFiles/STM32_Drivers.dir/__/__/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_rcc_ex.c.obj: \
+ /home/frycat/work/AAA_Projects/projects_me/motorcore/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_rcc_ex.c \
+ /home/frycat/work/AAA_Projects/projects_me/motorcore/cmake/stm32cubemx/../../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_hal.h \
+ /home/frycat/work/AAA_Projects/projects_me/motorcore/cmake/stm32cubemx/../../Core/Inc/stm32g4xx_hal_conf.h \
+ /home/frycat/work/AAA_Projects/projects_me/motorcore/cmake/stm32cubemx/../../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_hal_rcc.h \
+ /home/frycat/work/AAA_Projects/projects_me/motorcore/cmake/stm32cubemx/../../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_hal_def.h \
+ /home/frycat/work/AAA_Projects/projects_me/motorcore/cmake/stm32cubemx/../../Drivers/CMSIS/Device/ST/STM32G4xx/Include/stm32g4xx.h \
+ /home/frycat/work/AAA_Projects/projects_me/motorcore/cmake/stm32cubemx/../../Drivers/CMSIS/Device/ST/STM32G4xx/Include/stm32g474xx.h \
+ /home/frycat/work/AAA_Projects/projects_me/motorcore/cmake/stm32cubemx/../../Drivers/CMSIS/Include/core_cm4.h \
+ /usr/lib/gcc/arm-none-eabi/14.2.1/include/stdint.h \
+ /home/frycat/work/AAA_Projects/projects_me/motorcore/cmake/stm32cubemx/../../Drivers/CMSIS/Include/cmsis_version.h \
+ /home/frycat/work/AAA_Projects/projects_me/motorcore/cmake/stm32cubemx/../../Drivers/CMSIS/Include/cmsis_compiler.h \
+ /home/frycat/work/AAA_Projects/projects_me/motorcore/cmake/stm32cubemx/../../Drivers/CMSIS/Include/cmsis_gcc.h \
+ /home/frycat/work/AAA_Projects/projects_me/motorcore/cmake/stm32cubemx/../../Drivers/CMSIS/Include/mpu_armv7.h \
+ /home/frycat/work/AAA_Projects/projects_me/motorcore/cmake/stm32cubemx/../../Drivers/CMSIS/Device/ST/STM32G4xx/Include/system_stm32g4xx.h \
+ /home/frycat/work/AAA_Projects/projects_me/motorcore/cmake/stm32cubemx/../../Drivers/STM32G4xx_HAL_Driver/Inc/Legacy/stm32_hal_legacy.h \
+ /usr/lib/gcc/arm-none-eabi/14.2.1/include/stddef.h \
+ /home/frycat/work/AAA_Projects/projects_me/motorcore/cmake/stm32cubemx/../../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_hal_rcc_ex.h \
+ /home/frycat/work/AAA_Projects/projects_me/motorcore/cmake/stm32cubemx/../../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_hal_gpio.h \
+ /home/frycat/work/AAA_Projects/projects_me/motorcore/cmake/stm32cubemx/../../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_hal_gpio_ex.h \
+ /home/frycat/work/AAA_Projects/projects_me/motorcore/cmake/stm32cubemx/../../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_hal_dma.h \
+ /home/frycat/work/AAA_Projects/projects_me/motorcore/cmake/stm32cubemx/../../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_hal_dma_ex.h \
+ /home/frycat/work/AAA_Projects/projects_me/motorcore/cmake/stm32cubemx/../../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_hal_cortex.h \
+ /home/frycat/work/AAA_Projects/projects_me/motorcore/cmake/stm32cubemx/../../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_hal_adc.h \
+ /home/frycat/work/AAA_Projects/projects_me/motorcore/cmake/stm32cubemx/../../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_ll_adc.h \
+ /home/frycat/work/AAA_Projects/projects_me/motorcore/cmake/stm32cubemx/../../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_hal_adc_ex.h \
+ /home/frycat/work/AAA_Projects/projects_me/motorcore/cmake/stm32cubemx/../../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_hal_exti.h \
+ /home/frycat/work/AAA_Projects/projects_me/motorcore/cmake/stm32cubemx/../../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_hal_fdcan.h \
+ /home/frycat/work/AAA_Projects/projects_me/motorcore/cmake/stm32cubemx/../../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_hal_flash.h \
+ /home/frycat/work/AAA_Projects/projects_me/motorcore/cmake/stm32cubemx/../../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_hal_flash_ex.h \
+ /home/frycat/work/AAA_Projects/projects_me/motorcore/cmake/stm32cubemx/../../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_hal_flash_ramfunc.h \
+ /home/frycat/work/AAA_Projects/projects_me/motorcore/cmake/stm32cubemx/../../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_hal_pwr.h \
+ /home/frycat/work/AAA_Projects/projects_me/motorcore/cmake/stm32cubemx/../../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_hal_pwr_ex.h \
+ /home/frycat/work/AAA_Projects/projects_me/motorcore/cmake/stm32cubemx/../../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_hal_spi.h \
+ /home/frycat/work/AAA_Projects/projects_me/motorcore/cmake/stm32cubemx/../../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_hal_spi_ex.h \
+ /home/frycat/work/AAA_Projects/projects_me/motorcore/cmake/stm32cubemx/../../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_hal_tim.h \
+ /home/frycat/work/AAA_Projects/projects_me/motorcore/cmake/stm32cubemx/../../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_hal_tim_ex.h

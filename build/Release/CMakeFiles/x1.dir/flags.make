@@ -13,5 +13,5 @@ C_DEFINES = -DSTM32G474xx -DUSE_HAL_DRIVER
 
 C_INCLUDES = -I/home/frycat/work/AAA_Projects/projects_me/motorcore/FOC -I/home/frycat/work/AAA_Projects/projects_me/motorcore/others -I/home/frycat/work/AAA_Projects/projects_me/motorcore/Drivers/CMSIS/DSP/Include -I/home/frycat/work/AAA_Projects/projects_me/motorcore/cmake/stm32cubemx/../../Core/Inc -I/home/frycat/work/AAA_Projects/projects_me/motorcore/cmake/stm32cubemx/../../Drivers/STM32G4xx_HAL_Driver/Inc -I/home/frycat/work/AAA_Projects/projects_me/motorcore/cmake/stm32cubemx/../../Drivers/STM32G4xx_HAL_Driver/Inc/Legacy -I/home/frycat/work/AAA_Projects/projects_me/motorcore/cmake/stm32cubemx/../../Drivers/CMSIS/Device/ST/STM32G4xx/Include -I/home/frycat/work/AAA_Projects/projects_me/motorcore/cmake/stm32cubemx/../../Drivers/CMSIS/Include
 
-C_FLAGS =  -mcpu=cortex-m4 -mfpu=fpv4-sp-d16 -mfloat-abi=hard  -Wall -fdata-sections -ffunction-sections -fstack-usage -Os -g0 -std=gnu11
+C_FLAGS =  -mcpu=cortex-m4 -mfpu=fpv4-sp-d16 -mfloat-abi=hard  -Wall -fdata-sections -ffunction-sections -fstack-usage -Os -g2 -std=gnu11
 

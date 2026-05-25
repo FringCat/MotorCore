@@ -1,0 +1,5 @@
+/home/frycat/work/AAA_Projects/projects_me/motorcore/others/mt6835_stm32_spi_port.c:24:13:mt6835_cs_control	16	static
+/home/frycat/work/AAA_Projects/projects_me/motorcore/others/mt6835_stm32_spi_port.c:32:13:mt6835_spi_send	24	static
+/home/frycat/work/AAA_Projects/projects_me/motorcore/others/mt6835_stm32_spi_port.c:41:13:mt6835_spi_recv	24	static
+/home/frycat/work/AAA_Projects/projects_me/motorcore/others/mt6835_stm32_spi_port.c:50:13:mt6835_spi_send_recv	40	static
+/home/frycat/work/AAA_Projects/projects_me/motorcore/others/mt6835_stm32_spi_port.c:80:12:mt6835_stm32_spi_port_init	16	static

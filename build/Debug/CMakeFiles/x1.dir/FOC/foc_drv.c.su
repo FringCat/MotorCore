@@ -1,0 +1,14 @@
+/home/frycat/work/AAA_Projects/projects_me/motorcore/FOC/foc_drv.c:14:6:stm32_set_pwm_A	16	static
+/home/frycat/work/AAA_Projects/projects_me/motorcore/FOC/foc_drv.c:19:6:stm32_set_pwm_B	16	static
+/home/frycat/work/AAA_Projects/projects_me/motorcore/FOC/foc_drv.c:24:6:stm32_set_pwm_C	16	static
+/home/frycat/work/AAA_Projects/projects_me/motorcore/FOC/foc_drv.c:29:10:stm32_update_Ia_raw	8	static
+/home/frycat/work/AAA_Projects/projects_me/motorcore/FOC/foc_drv.c:34:10:stm32_update_Ib_raw	8	static
+/home/frycat/work/AAA_Projects/projects_me/motorcore/FOC/foc_drv.c:39:10:stm32_update_Ic_raw	8	static
+/home/frycat/work/AAA_Projects/projects_me/motorcore/FOC/foc_drv.c:44:7:stm32_cal_Ia	16	static
+/home/frycat/work/AAA_Projects/projects_me/motorcore/FOC/foc_drv.c:49:7:stm32_cal_Ib	16	static
+/home/frycat/work/AAA_Projects/projects_me/motorcore/FOC/foc_drv.c:54:7:stm32_cal_Ic	16	static
+/home/frycat/work/AAA_Projects/projects_me/motorcore/FOC/foc_drv.c:59:10:stm32_update_angle_raw	8	static
+/home/frycat/work/AAA_Projects/projects_me/motorcore/FOC/foc_drv.c:64:7:stm32_cal_angle	16	static
+/home/frycat/work/AAA_Projects/projects_me/motorcore/FOC/foc_drv.c:69:6:stm32_delayms	16	static
+/home/frycat/work/AAA_Projects/projects_me/motorcore/FOC/foc_drv.c:97:7:stm32_update_dt	32	static
+/home/frycat/work/AAA_Projects/projects_me/motorcore/FOC/foc_drv.c:117:6:foc_init	16	static

@@ -295,8 +295,8 @@ float get_Ic_offset(Motor_HandleTypeDef *motor);  // 获取IC电流偏置
 
 //初始化相关
 int *Calculate_PHASE(float IA, float IB, float IC,float UA, float UB, float UC);
-int update_PHASE_nonblock(Motor_HandleTypeDef *motor);
-int update_PHASE_block(Motor_HandleTypeDef *motor);
+int update_PHASE_nonblock(Motor_HandleTypeDef *motor,float IA_NoOrder, float IB_NoOrder, float IC_NoOrder); // 更新相序-非阻塞式
+int update_PHASE_block(Motor_HandleTypeDef *motor); // 更新相序-阻塞式
 
 void update_pole_pairs_sensor_block(Motor_HandleTypeDef *motor);        // 极对数辨识（有传感器，阻塞式更新）
 void update_pole_pairs_sensor_nonblock(Motor_HandleTypeDef *motor);     // 极对数辨识（有传感器，非阻塞式更新）

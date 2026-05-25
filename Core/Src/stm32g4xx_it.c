@@ -27,7 +27,6 @@
 #include "fdcan.h"
 #include "arm_math.h"  
 #include "fsm.h"
-
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
