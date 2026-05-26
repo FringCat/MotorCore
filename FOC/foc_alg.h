@@ -307,6 +307,9 @@ float get_Ib_offset(Motor_HandleTypeDef *motor);  // 获取IB电流偏置
 float get_Ic_offset(Motor_HandleTypeDef *motor);  // 获取IC电流偏置
 
 //初始化相关
+void update_2DIR_sensor_block(Motor_HandleTypeDef *motor);              //  传感器方向辨识（基于磁编，阻塞式更新）
+void update_2DIR_sensor_nonblock(Motor_HandleTypeDef *motor);           //  传感器方向辨识（基于磁编，非阻塞式更新)
+
 int *Calculate_PHASE(float IA, float IB, float IC,float UA, float UB, float UC);
 int update_PHASE_nonblock(Motor_HandleTypeDef *motor,float IA_NoOrder, float IB_NoOrder, float IC_NoOrder); // 更新相序-非阻塞式
 int update_PHASE_block(Motor_HandleTypeDef *motor); // 更新相序-阻塞式
@@ -314,22 +317,9 @@ int update_PHASE_block(Motor_HandleTypeDef *motor); // 更新相序-阻塞式
 void update_pole_pairs_sensor_block(Motor_HandleTypeDef *motor);        // 极对数辨识（有传感器，阻塞式更新）
 void update_pole_pairs_sensor_nonblock(Motor_HandleTypeDef *motor);     // 极对数辨识（有传感器，非阻塞式更新）
 
-void update_2DIR_sensor_block(Motor_HandleTypeDef *motor);              //  传感器方向辨识（基于磁编，阻塞式更新）
-void update_2DIR_sensor_nonblock(Motor_HandleTypeDef *motor);           //  传感器方向辨识（基于磁编，非阻塞式更新)
-
-void update_PHASE_no_sensor_block(Motor_HandleTypeDef *motor);           //  相序辨识（无传感器，阻塞式更新）
-
 void update_angle_el_zero_sensor_block(Motor_HandleTypeDef *motor);     //  电角度零点校准 （有传感器，阻塞式更新）
 void update_angle_el_zero_sensor_nonblock(Motor_HandleTypeDef *motor);  //  电角度零点校准 （有传感器，非阻塞式更新）
 void update_angle_el_zero_no_sensor_block(Motor_HandleTypeDef *motor);  //  电角度零点校准 （无传感器，阻塞式更新）
-
-void map_samples_to_lut(float *error_arr, int N_SAMPLES, float *lut_arr, int N_LUT); // 将采样的磁编误差数组映射成非线性插值表数组(NLLUT)
-void update_NLLUT_encoder_sensor_block(Motor_HandleTypeDef *motor);                  // 更新磁编的非线性插值表 （阻塞式更新）
-void update_NLLUT_encoder_sensor_nonblock(Motor_HandleTypeDef *motor);               // 更新磁编的非线性插值表 （非阻塞式更新）
-
-void update_loopcount_rotor_block(Motor_HandleTypeDef *motor,float angle_encoder_B); //阻塞式转子圈数估计
-
-void update_NLLUT_and_angle_el_zero_sensor_block(Motor_HandleTypeDef *motor);       //更新插值表跟电角度零点
 
 //控制相关
 void ctrl_motor_openloop_velocity_el_nonblock(Motor_HandleTypeDef *motor,float velocity_el_target,float Uq,float Ud);
