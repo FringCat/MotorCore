@@ -293,15 +293,6 @@ float Limit_angle_el(float angle_el)
     return angle_el;
 }
 
-float Limit_angle_flange(float angle_all,float GR)
-{
-    float flange_angle = angle_all / GR;
-    flange_angle = Limit_angle(flange_angle,-PI,PI);
-    // flange_angle = Limit_angle(flange_angle,-12.5f,12.5f);
-    // flange_angle = Limit_angle_el(flange_angle);
-    return flange_angle;
-}
-
 float update_angle(Motor_HandleTypeDef *motor)//待更新:angle_all的更新是上一个周期的angle_all 不是这次的angle_all
 {
     float error_angle = motor->MotorAlg.angle-motor->MotorAlg.last_angle;
@@ -326,30 +317,6 @@ float update_angle(Motor_HandleTypeDef *motor)//待更新:angle_all的更新是�
     return motor->MotorAlg.angle;
 }
 
-float update_angle_NLLUT(Motor_HandleTypeDef *motor)
-{
-    float error_angle = motor->MotorAlg.angle-motor->MotorAlg.last_angle;
-    if(my_abs(error_angle) > (0.8f*2*PI))
-    {
-        if((error_angle)<0){motor->MotorData.angle_all += (2*PI - motor->MotorAlg.last_angle + motor->MotorAlg.angle) ;}//正转
-        else if((error_angle)>=0){motor->MotorData.angle_all += -(2*PI - motor->MotorAlg.angle + motor->MotorAlg.last_angle) ;}//反转
-    }
-    else 
-    {
-        motor->MotorData.angle_all += error_angle ;
-    }
-
-    motor->MotorAlg.last_angle = motor->MotorAlg.angle;
-
-    motor->MotorData.AngleData.Angle_raw = motor->MotorDrv.Update_Angle_raw();
-    motor->MotorAlg.angle = Calculate_angle_NLLUT(motor->MotorDrv.Cal_Angle(motor->MotorData.AngleData.Angle_raw),motor->MotorConfig.NLLUT_encoder,128);
-    // motor->MotorAlg.angle_flange = Calculate_angle_flange(motor->MotorData.angle_all,motor->MotorConfig.GR,motor->MotorConfig.angle_zero);
-
-    motor->MotorAlg.angle_el = Calculate_angle_el(motor->MotorConfig.Pole_pairs,motor->MotorAlg.angle, motor->MotorConfig.angle_el_zero);
-
-    return motor->MotorAlg.angle;
-}
-
 float Get_angle_el(Motor_HandleTypeDef *motor) 
 {
     return motor->MotorAlg.angle_el;
@@ -358,26 +325,6 @@ float Get_angle_el(Motor_HandleTypeDef *motor)
 float Calculate_angle_el(float Pole_pairs,float angle,float angle_el_zero) 
 {
     return Limit_angle_el(angle * Pole_pairs + angle_el_zero);
-}
-
-float Calculate_angle_flange(float angle ,float GR,float angle_zero)
-{
-    return Limit_angle_el(angle* (1/GR) + angle_zero);
-}
-
-float Calculate_angle_NLLUT(float angle ,float* NLLUT_encoder,uint32_t size_NLLUT)
-{
-    uint32_t sector_NLLUT = (uint32_t)my_fast_round((angle/(2*PI))*(float)size_NLLUT);
-    float angle_1 = ((float)sector_NLLUT * (2*PI))/(float)size_NLLUT;
-    float angle_2 = ((float)(sector_NLLUT+1) * (2*PI))/(float)size_NLLUT;
-    float error_1 = NLLUT_encoder[sector_NLLUT];
-    float error_2 = NLLUT_encoder[sector_NLLUT+1];
-    if(sector_NLLUT >= (size_NLLUT-1))
-    {
-        return angle;
-    }
-
-    return angle+error_1+((error_2-error_1)*(angle-angle_1))/(angle_2-angle_1);
 }
 
 float update_angle_flange(Motor_HandleTypeDef *motor)//引出一个新问题：数据更新需要一个同步机制，同一个周期内只能有一次获取数据更新的操作，不能让其他函数重复发起数据更新的操作

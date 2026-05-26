@@ -65,15 +65,8 @@ typedef struct
     float Kt;             // 转矩系数
     float angle_zero;       // 机械角度零点（编码器零位校准值，用于位置控制基准）
     float angle_el_zero;    // 电角度零点（FOC磁链定向基准，由机械零点×极对数计算）     
-    float NLLUT_encoder[128];  //编码器非线性误差查找表
-    float GR;
-    float angle_zero_gear_A;
-    float angle_zero_gear_B;
-    float GT_A;
-    float GT_B;
     int loopcount_rotor ;
     int Mode_Sampling;     //电流采样模式：0x100: AXX, 0x010: XBX , 0x001: XXC, 0x110: ABX, 0x101: AXC, 0x011: XBC, 0x111: ABC
-    // int Mode_Sampling_Position ;     //电流采样位置：0：相线采样，  1：上桥臂采样, 2: 下桥臂采样 
 } Motor_ConfigTypeDef;
 
 
@@ -244,9 +237,6 @@ float Get_angle_el(Motor_HandleTypeDef *motor);                                 
 float update_angle_el(Motor_HandleTypeDef *motor);                                  // 更新电角度（机械角→电角度）
 float Calculate_angle_el(float Pole_pairs,float angle,float angle_el_zero);         // 计算电角度（含极对数和零点）
 float update_angle(Motor_HandleTypeDef *motor);
-float update_angle_NLLUT(Motor_HandleTypeDef *motor);
-float Calculate_angle_flange(float angle ,float GR,float angle_zero);
-float Calculate_angle_NLLUT(float angle ,float* NLLUT_encoder,uint32_t size_NLLUT);
 
 // FOC坐标变换
 float *Calculate_Park_N(float Uq , float Ud , float angle_el);                      // Park逆变换（dq→αβ电压）
