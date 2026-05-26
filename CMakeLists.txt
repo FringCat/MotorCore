@@ -97,15 +97,9 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     others/MT6816.c
     others/can_handler.c
     others/drv_DRV835X.c
-    others/dual_encoder.c
     others/flash.c
-    others/fsm.c
     others/SEGGER_RTT.c
     others/SEGGER_RTT_printf.c
-    # --- CMSIS-DSP：提供 arm_sin_f32 / arm_cos_f32（Keil 用 .lib，GCC 常编源码）---
-    Drivers/CMSIS/DSP/Source/FastMathFunctions/arm_sin_f32.c
-    Drivers/CMSIS/DSP/Source/FastMathFunctions/arm_cos_f32.c
-    Drivers/CMSIS/DSP/Source/CommonTables/CommonTables.c
     test/test.c
 )
 

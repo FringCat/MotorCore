@@ -327,13 +327,6 @@ float Calculate_angle_el(float Pole_pairs,float angle,float angle_el_zero)
     return Limit_angle_el(angle * Pole_pairs + angle_el_zero);
 }
 
-float update_angle_flange(Motor_HandleTypeDef *motor)//引出一个新问题：数据更新需要一个同步机制，同一个周期内只能有一次获取数据更新的操作，不能让其他函数重复发起数据更新的操作
-{
-    motor->MotorAlg.angle = motor->MotorDrv.Cal_Angle(motor->MotorDrv.Update_Angle_raw());
-    motor->MotorAlg.angle_flange = Calculate_angle_flange(motor->MotorData.angle_all,motor->MotorConfig.GR,motor->MotorConfig.angle_zero);
-    return motor->MotorAlg.angle_flange;
-}
-
 float update_angle_el(Motor_HandleTypeDef *motor) 
 {
     motor->MotorAlg.angle = motor->MotorDrv.Cal_Angle(motor->MotorDrv.Update_Angle_raw());

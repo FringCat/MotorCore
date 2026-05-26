@@ -146,7 +146,6 @@ void foc_init(Motor_HandleTypeDef *motor)
 
     //初始化电机配置
     motor->MotorConfig.Pole_pairs = 14; // 设置电机极对数
-    motor->MotorConfig.GR = 10.8f ;          //设置减速箱减速比
     motor->MotorConfig.DIR = 1 ;        // 设置电机转向
     motor->MotorConfig.PHASE = 3;      // 设置电机接线相序
     motor->MotorConfig.Mode_Sampling = 0X110 ;//AB相双电阻采样
@@ -154,14 +153,8 @@ void foc_init(Motor_HandleTypeDef *motor)
     motor->MotorConfig.UMAX = 24.0f;   // 设置电压限幅
     motor->MotorConfig.Ls = 0.001f;    // 设置定子电感
     motor->MotorConfig.Rs = 0.5f;      // 设置定子电阻
-    motor->MotorConfig.angle_zero_gear_A = 5.9647f; // 主齿轮零点
-    motor->MotorConfig.angle_zero_gear_B = 6.19536f; // 副齿轮零点
-    motor->MotorConfig.angle_zero = motor->MotorConfig.angle_zero_gear_A; // 涛宇电机
     motor->MotorConfig.angle_el_zero = 3.09982f; // 设置角度零点
-    motor->MotorConfig.GT_A = 20.0f; // 主齿轮齿数
-    motor->MotorConfig.GT_B = 19.0f; // 副齿轮齿数
     motor->MotorConfig.Kt = 0.806325918;           //设置转矩系数
-    
     motor->MotorConfig.loopcount_rotor = 0XFFFF;
 
     // 初始化PID参数(要用哪个初始化哪个)

@@ -31,12 +31,11 @@
 #include "mt6835.h"
 #include "MT6816.h"
 #include "SEGGER_RTT.h"
-#include "arm_math.h"
 #include "flash.h"
 #include "can_handler.h"
 #include "fsm.h"
 #include "drv_DRV835X.h"
-#include "test.h"
+// #include "test.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -119,7 +118,7 @@ int main(void)
   SEGGER_RTT_Init();                                //JLINK RTT 初始化
   SEGGER_RTT_SetTerminal(0);
   
-  fsm_init(&fsm_motor);                             //状态机初始化
+  // fsm_init(&fsm_motor);                             //状态机初始化
   foc_init(&motor);                                 //foc初始化
   mt6816_init(&mt6816);                             //副磁编初始化
   mt6835 = mt6835_stm32_spi_port_init();            //主磁编初始化
