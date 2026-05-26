@@ -106,6 +106,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     Drivers/CMSIS/DSP/Source/FastMathFunctions/arm_sin_f32.c
     Drivers/CMSIS/DSP/Source/FastMathFunctions/arm_cos_f32.c
     Drivers/CMSIS/DSP/Source/CommonTables/CommonTables.c
+    test/test.c
 )
 
 # target_include_directories：头文件搜索路径（等价 gcc -I）
@@ -114,6 +115,7 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     FOC
     others
     Drivers/CMSIS/DSP/Include
+    test
 )
 
 # target_compile_definitions：预处理器宏（等价 gcc -D）

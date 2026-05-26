@@ -195,8 +195,8 @@ typedef struct
  */
 typedef struct
 {
-    uint32_t motor_number;         // 电机编号（多电机控制时用于区分不同电机，如关节1/关节2）
-    Time_t time;                   // 时间管理实例（绑定当前电机的计时逻辑）    
+    uint32_t motor_number;              // 电机编号（多电机控制时用于区分不同电机，如关节1/关节2）
+    Time_t time;                        // 时间管理实例（绑定当前电机的计时逻辑）    
     Motor_ConfigTypeDef MotorConfig;    // 电机硬件配置实例（存储当前电机的固有参数）
     Motor_DrvTypeDef MotorDrv;          // 电机驱动接口实例（绑定当前电机的硬件操作函数）
     Motor_AlgTypeDef MotorAlg;          // 电机算法层实例（存储当前电机的控制中间变量与PID）
@@ -205,82 +205,84 @@ typedef struct
 
 
 
-// 数学常数（FOC核心计算用）
-#define PI          3.14159265359f      // 圆周率
-#define _2PI         6.28318530718f      // 2π
-#define PI_2     1.57079632679f      // π/2
-#define _3PI_2      4.71238898038f      // 3π/2
-#define SQRT3      1.732050807568877293f  // 根号3
-#define _1_SQRT3    0.57735026919f      // 1/根号3
-#define _2_SQRT3    1.15470053838f      // 2/根号3
-#define _1_3        (1.0f / 3.0f)       // 1/3
-#define SIN_C3  (-0.16666502f)
-#define SIN_C5  ( 0.00833026f)
+// 数学常数
+#define PI          3.14159265359f          // 圆周率
+#define _2PI        6.28318530718f          // 2π
+#define PI_2        1.57079632679f          // π/2
+#define _3PI_2      4.71238898038f          // 3π/2
+#define SQRT3       1.732050807568877293f   // 根号3
+#define _1_SQRT3    0.57735026919f          // 1/根号3
+#define _2_SQRT3    1.15470053838f          // 2/根号3
+#define _1_3        (1.0f / 3.0f)           // 1/3
+#define SIN_C3      (-0.16666502f)
+#define SIN_C5      ( 0.00833026f)
 
 
 // 通用数学工具
-float my_sgn(float x);                  // 符号函数（返回1/0/-1）
-float my_abs(float x);                // 绝对值函数
-float my_Limit(float x, float max, float min);  // 限幅（将x限制在[min,max]）
-float my_map(float x, float in_min, float in_max, float out_min, float out_max);  // 数值映射（范围转换）
-float my_round(float x);  /* 四舍五入，等价 roundf */
+float my_sgn(float x);                                                              // 符号函数（返回1/0/-1）
+float my_abs(float x);                                                              // 绝对值函数
+float my_Limit(float x, float max, float min);                                      // 限幅（将x限制在[min,max]）
+float my_map(float x, float in_min, float in_max, float out_min, float out_max);    // 数值映射（范围转换）
+float my_round(float x);                                                            /* 四舍五入，等价 roundf */
 float my_round_to_decimal(float x, int n);
-float my_sin(float x);  // 切比雪夫多项式近似的sin函数（输入x为弧度，输出为sin(x)的近似值）
-float my_cos(float x);  // 切比雪夫多项式近似的cos函数（输入x为弧度，输出为cos(x)的近似值）
+float my_sin(float x);                                                              // 切比雪夫多项式近似的sin函数（输入x为弧度，输出为sin(x)的近似值）
+float my_cos(float x);                                                              // 切比雪夫多项式近似的cos函数（输入x为弧度，输出为cos(x)的近似值）
 float my_fmodf(float x, float y);
-float my_floor(float x);  /* 向下取整，等价 floorf */
-float my_pow(float base, float exp);  /* 幂运算，等价 powf 常用场景 */
+float my_floor(float x);                                                            /* 向下取整，等价 floorf */
+float my_pow(float base, float exp);                                                /* 幂运算，等价 powf 常用场景 */
+float my_sat(float e, float r);
+int32_t my_fast_round(float x);
 
 // 数据重置与初始化
 void reset_data_angle(Motor_HandleTypeDef *motor);
 
 // 电角度处理
 float Limit_angle(float angle, float Low, float High);
-float Limit_angle_el(float angle_el);  // 电角度限幅（约束在0~2π）
+float Limit_angle_el(float angle_el);                                               // 电角度限幅（约束在0~2π）
 float Limit_angle_flange(float angle_all,float GR);
-float Get_angle_el(Motor_HandleTypeDef *motor);  // 获取当前电角度
-float update_angle_el(Motor_HandleTypeDef *motor);  // 更新电角度（机械角→电角度）
-float Calculate_angle_el(float Pole_pairs,float angle,float angle_el_zero);  // 计算电角度（含极对数和零点）
+float Get_angle_el(Motor_HandleTypeDef *motor);                                     // 获取当前电角度
+float update_angle_el(Motor_HandleTypeDef *motor);                                  // 更新电角度（机械角→电角度）
+float Calculate_angle_el(float Pole_pairs,float angle,float angle_el_zero);         // 计算电角度（含极对数和零点）
 float update_angle(Motor_HandleTypeDef *motor);
 float update_angle_NLLUT(Motor_HandleTypeDef *motor);
 float Calculate_angle_flange(float angle ,float GR,float angle_zero);
 float Calculate_angle_NLLUT(float angle ,float* NLLUT_encoder,uint32_t size_NLLUT);
 
 // FOC坐标变换
-float *Calculate_Park_N(float Uq , float Ud , float angle_el);  // Park逆变换（dq→αβ电压）
-float *update_Park_N(Motor_HandleTypeDef *motor);  // 更新Park逆变换结果到算法层
-float *Calculate_Clark_N(float Ualpha ,float Ubeta,float Upower);  // Clark逆变换（αβ→三相电压）
-float *update_Clark_N(Motor_HandleTypeDef *motor);  // 更新Clark逆变换结果到算法层
-float *Calculate_Clark(float IA ,float IB ,float IC);  // Clark变换（三相电流→αβ电流）
-float *update_Clark(Motor_HandleTypeDef *motor);  // 更新Clark变换结果到算法层
-float *Calculate_Park(float Ialpha ,float Ibeta ,float angle_el);  // Park变换（αβ电流→dq电流）
-float *update_Park(Motor_HandleTypeDef *motor);  // 更新Park变换结果到算法层
+float *Calculate_Park_N(float Uq , float Ud , float angle_el);                      // Park逆变换（dq→αβ电压）
+float *update_Park_N(Motor_HandleTypeDef *motor);                                   // 更新Park逆变换结果到算法层
+float *Calculate_Clark_N(float Ualpha ,float Ubeta,float Upower);                   // Clark逆变换（αβ→三相电压）
+float *update_Clark_N(Motor_HandleTypeDef *motor);                                  // 更新Clark逆变换结果到算法层
+float *Calculate_Clark(float IA ,float IB ,float IC);                               // Clark变换（三相电流→αβ电流）
+float *update_Clark(Motor_HandleTypeDef *motor);                                    // 更新Clark变换结果到算法层
+float *Calculate_Park(float Ialpha ,float Ibeta ,float angle_el);                   // Park变换（αβ电流→dq电流）
+float *update_Park(Motor_HandleTypeDef *motor);                                     // 更新Park变换结果到算法层
 
 // PWM输出控制
-void update_pwm(Motor_HandleTypeDef *motor);  // 更新PWM（用算法层三相电压输出）
-void set_pwm(Motor_HandleTypeDef *motor,float Ta , float Tb ,float Tc);  // 设置三相PWM（考虑转向）
-void set_pwm_nodir(Motor_HandleTypeDef *motor,float Ta , float Tb ,float Tc);  // 设置三相PWM（不考虑转向）
+void update_pwm(Motor_HandleTypeDef *motor);                                        // 更新PWM（用算法层三相电压输出）
+void set_pwm(Motor_HandleTypeDef *motor,float Ta , float Tb ,float Tc);             // 设置三相PWM（考虑转向）
+void set_pwm_nodir(Motor_HandleTypeDef *motor,float Ta , float Tb ,float Tc);       // 设置三相PWM（不考虑转向）
 
 // SPWM相关
-void update_spwm(Motor_HandleTypeDef *motor);  // 更新SPWM（用算法层三相电压输出）
-void set_spwm(Motor_HandleTypeDef *motor,float Uq, float Ud ,float angle_el);  // 设置SPWM（考虑转向）
+void update_spwm(Motor_HandleTypeDef *motor);                                       // 更新SPWM（用算法层三相电压输出）
+void set_spwm(Motor_HandleTypeDef *motor,float Uq, float Ud ,float angle_el);       // 设置SPWM（考虑转向）
 void set_svpwm_dir(Motor_HandleTypeDef *motor, float Uq , float Ud ,float angle_el);
 
 // SVPWM相关
-int Calculate_Sector( float Ualpha , float Ubeta );  // 计算电压矢量所在扇区（1~6）
-int update_Sector(Motor_HandleTypeDef *motor);  // 更新扇区到算法层
-int get_Sector(Motor_HandleTypeDef *motor);  // 获取当前扇区
-void update_svpwm(Motor_HandleTypeDef *motor);  // 更新SVPWM（自动计算并输出PWM）
-void set_svpwm(Motor_HandleTypeDef *motor, float Uq , float Ud ,float angle_el);  // 手动设置SVPWM参数
+int Calculate_Sector( float Ualpha , float Ubeta );                                 // 计算电压矢量所在扇区（1~6）
+int update_Sector(Motor_HandleTypeDef *motor);                                      // 更新扇区到算法层
+int get_Sector(Motor_HandleTypeDef *motor);                                         // 获取当前扇区
+void update_svpwm(Motor_HandleTypeDef *motor);                                      // 更新SVPWM（自动计算并输出PWM）
+void set_svpwm(Motor_HandleTypeDef *motor, float Uq , float Ud ,float angle_el);    // 手动设置SVPWM参数
 
 // 速度计算与滤波
-float Calculate_LPF(float input, float last_output, float alpha);  // 一阶低通滤波
-float update_velocity_LPF(Motor_HandleTypeDef *motor); // 更新滤波后转速
-float update_velocity_raw(Motor_HandleTypeDef *motor); // 更新原始转速
-float get_velocity(Motor_HandleTypeDef *motor);  // 获取当前转速
-float get_velocity_raw(Motor_HandleTypeDef *motor);  // 获取当前原始转速
+float Calculate_LPF(float input, float last_output, float alpha);                   // 一阶低通滤波
+float update_velocity_LPF(Motor_HandleTypeDef *motor);                              // 更新滤波后转速
+float update_velocity_raw(Motor_HandleTypeDef *motor);                              // 更新原始转速
+float get_velocity(Motor_HandleTypeDef *motor);                                     // 获取当前转速
+float get_velocity_raw(Motor_HandleTypeDef *motor);                                 // 获取当前原始转速
 float Calculate_velocity_LPF(float angle, float last_angle, float dt, float last_velocity, float alpha);  // 计算转速（含滤波）
-float Calculate_velocity_raw(float angle, float last_angle, float dt);  // 计算转速（不含滤波）
+float Calculate_velocity_raw(float angle, float last_angle, float dt);              // 计算转速（不含滤波）
 
 // PID控制
 float Calculate_PID(float target, float feedback, float dt ,PID_t* pid);  // PID计算（位置式+，支持积分处理）

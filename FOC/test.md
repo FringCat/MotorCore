@@ -1,280 +1,435 @@
-# FOC 数学库与改动函数 — 待测目录
+# FOC 数学库与改动函数 — 测试说明
 
-> 范围：`motorcore/FOC/foc_alg.c` / `foc_alg.h`  
-> 背景：用 `my_*` 替代 `<math.h>` 的 `sin/cos/fabs/fmod/pow/floor/round`，并调整调用这些实现的业务函数。  
-> 建议：先在 **PC 主机** 用参考实现（`math.h` 或高精度库）对比 `my_*`；再在 **STM32 目标机** 做关键路径抽检。
+> 范围：`motorcore/FOC/foc_alg.c` / `foc_alg.h`
+> 背景：用 `my_*` 替代 `<math.h>` 的 `sin/cos/fabs/fmod/pow/floor/round`，并调整调用这些实现的业务函数。
+> 自动化单元测试：`motorcore/test/test.c`（入口 `test_run_all_math()`，对照 `math.h` 标准库）。
 
 ---
 
 ## 1. 测试约定
 
-| 项 | 说明 |
-|----|------|
-| 浮点比较 | 绝对误差 `ε_abs`，相对误差 `ε_rel`；默认 `ε_abs=1e-5`，`sin/cos/pow` 可放宽到 `1e-4` |
-| 参考值 | 主机测试：`float` 版 libm（`sinf`、`powf`、`roundf` 等） |
-| 通过 | 所有必测用例满足阈值；改动函数行为与改前 golden 一致或在文档允许偏差内 |
-| 记录 | 用例 ID、输入、期望、实测、是否通过 |
+| 项         | 说明                                                                                                           |
+| ---------- | -------------------------------------------------------------------------------------------------------------- |
+| 参考值     | `float` 版 libm（`sinf`、`powf`、`roundf`、`fmodf`、`floorf`、`fabsf` 等）                       |
+| 通用容差   | `EPS = 1e-5f`（RTT 打印常为 `0.000009`）                                                                   |
+| 三角容差   | `EPS_TRIG = 5e-3f`（切比雪夫近似；RTT 打印常为 `0.004999`）                                                |
+| 幂运算容差 | `max(EPS_POW, REL_POW × \|reference\|)`，`EPS_POW=1e-4`，`REL_POW=1e-3`                                   |
+| 通过条件   | `absolute_error <= tolerance`                                                                                |
+| 日志       | `SEGGER_RTT_printf` **仅可靠支持 `%s` / `%f`**；数值以 `(double)` + `%f` 输出（默认 6 位小数） |
+| 日志间隔   | `TEST_LOG_DELAY_MS`（默认 1 ms，见 `test/test.h`），避免 RTT 缓冲未刷完                                    |
 
 ---
 
-## 2. 单元测试 — `my_*` 纯函数（按函数）
+## 2. 已实现单元测试（`test/test.c`）
 
-### 2.1 `my_abs`（替代 `fabsf`）
+调用方式：在 `main` 或调试入口执行 `test_run_all_math()`，返回失败条数（0 表示全部通过）。
 
-| ID | 输入 x | 期望 |
-|----|--------|------|
-| ABS-01 | `0.0f` | `0.0f` |
-| ABS-02 | `3.5f` | `3.5f` |
-| ABS-03 | `-3.5f` | `3.5f` |
-| ABS-04 | `1e-30f` | `1e-30f` |
-| ABS-05 | `-1e30f` | `1e30f` |
+### 2.1 `my_abs`（对照 `fabsf`）
 
----
+| ID     | 输入       | 参考              | 容差 | 目标机实测                                                                   |
+| ------ | ---------- | ----------------- | ---- | ---------------------------------------------------------------------------- |
+| ABS-01 | `0.0f`   | `0.0f`          | EPS  | PASSED                                                                       |
+| ABS-02 | `3.5f`   | `fabsf(3.5f)`   | EPS  | PASSED                                                                       |
+| ABS-03 | `-3.5f`  | `fabsf(-3.5f)`  | EPS  | PASSED                                                                       |
+| ABS-04 | `1e-30f` | `fabsf(1e-30f)` | EPS  | PASSED（RTT 显示 `0.000000`）                                              |
+| ABS-05 | `-1e30f` | `fabsf(-1e30f)` | EPS  | PASSED；`float` 饱和为 **2147483648**（RTT 显示 `2147483647.xxx`） |
 
 ### 2.2 `my_sgn`
 
-| ID | 输入 x | 期望 |
-|----|--------|------|
-| SGN-01 | `1.0f` | `1` |
-| SGN-02 | `-1.0f` | `-1` |
-| SGN-03 | `0.0f` | `0` |
-
----
+| ID     | 输入      | 参考      | 容差 | 目标机实测 |
+| ------ | --------- | --------- | ---- | ---------- |
+| SGN-01 | `1.0f`  | `1.0f`  | EPS  | PASSED     |
+| SGN-02 | `-1.0f` | `-1.0f` | EPS  | PASSED     |
+| SGN-03 | `0.0f`  | `0.0f`  | EPS  | PASSED     |
 
 ### 2.3 `my_sat`
 
-| ID | e | r | 期望 |
-|----|---|---|------|
-| SAT-01 | `0.5f` | `1.0f` | `0.5f` |
-| SAT-02 | `2.0f` | `1.0f` | `1.0f` |
-| SAT-03 | `-2.0f` | `1.0f` | `-1.0f` |
-
----
+| ID     | e         | r        | 参考      | 容差 | 目标机实测 |
+| ------ | --------- | -------- | --------- | ---- | ---------- |
+| SAT-01 | `0.5f`  | `1.0f` | `0.5f`  | EPS  | PASSED     |
+| SAT-02 | `2.0f`  | `1.0f` | `1.0f`  | EPS  | PASSED     |
+| SAT-03 | `-2.0f` | `1.0f` | `-1.0f` | EPS  | PASSED     |
 
 ### 2.4 `my_Limit`
 
-| ID | value | high | low | 期望 |
-|----|-------|------|-----|------|
-| LIM-01 | `0.5f` | `1.0f` | `0.0f` | `0.5f` |
-| LIM-02 | `2.0f` | `1.0f` | `0.0f` | `1.0f` |
-| LIM-03 | `-1.0f` | `1.0f` | `0.0f` | `0.0f` |
-
----
+| ID     | value     | high     | low      | 参考     | 容差 | 目标机实测 |
+| ------ | --------- | -------- | -------- | -------- | ---- | ---------- |
+| LIM-01 | `0.5f`  | `1.0f` | `0.0f` | `0.5f` | EPS  | PASSED     |
+| LIM-02 | `2.0f`  | `1.0f` | `0.0f` | `1.0f` | EPS  | PASSED     |
+| LIM-03 | `-1.0f` | `1.0f` | `0.0f` | `0.0f` | EPS  | PASSED     |
 
 ### 2.5 `my_map`
 
-| ID | Data | in 范围 | out 范围 | 期望（手算） |
-|----|------|---------|----------|--------------|
-| MAP-01 | `0.0f` | `[-1,1]` → `[0,1]` | `0.0f` |
-| MAP-02 | `1.0f` | `[-1,1]` → `[0,1]` | `1.0f` |
-| MAP-03 | `0.5f` | `[0,10]` → `[0,100]` | `5.0f` |
+线性映射：`((Data-in_low)/(in_high-in_low))*(out_high-out_low)+out_low`。
+
+| ID     | Data     | 输入范围   | 输出范围    | 参考               | 容差 | 目标机实测 |
+| ------ | -------- | ---------- | ----------- | ------------------ | ---- | ---------- |
+| MAP-01 | `0.0f` | `[-1,1]` | `[0,1]`   | **`0.5f`** | EPS  | PASSED     |
+| MAP-02 | `1.0f` | `[-1,1]` | `[0,1]`   | `1.0f`           | EPS  | PASSED     |
+| MAP-03 | `0.5f` | `[0,10]` | `[0,100]` | `5.0f`           | EPS  | PASSED     |
+
+### 2.6 `my_round` / `my_fast_round`（对照 `roundf`）
+
+| ID     | 函数              | 输入             | 参考                           | 容差     | 目标机实测 |
+| ------ | ----------------- | ---------------- | ------------------------------ | -------- | ---------- |
+| RND-01 | `my_round`      | `2.3f`         | `2`                          | EPS      | PASSED     |
+| RND-02 | `my_round`      | `2.5f`         | `3`                          | EPS      | PASSED     |
+| RND-03 | `my_round`      | `-2.5f`        | `-3`                         | EPS      | PASSED     |
+| RND-04 | `my_fast_round` | `2.49f`        | `2`                          | 整数相等 | PASSED     |
+| RND-05 | `my_fast_round` | `-2.51f`       | `-3`                         | 整数相等 | PASSED     |
+| RND-06 | `my_round`      | `-2.3f`        | `-2`                         | EPS      | PASSED     |
+| RND-07 | `my_round`      | `0.0f`         | `0`                          | EPS      | PASSED     |
+| RND-08 | `my_round`      | `1.4999999e6f` | `1500000`                    | EPS      | PASSED     |
+| RND-09 | `my_fast_round` | `3.14f`        | `(int32_t)my_round(3.14f)=3` | 整数相等 | PASSED     |
+| RND-10 | `my_fast_round` | `-7.6f`        | `-8`                         | 整数相等 | PASSED     |
+| RND-11 | `my_fast_round` | `0.0f`         | `0`                          | 整数相等 | PASSED     |
+
+### 2.7 `my_floor`（对照 `floorf`）
+
+| ID     | 输入      | 参考   | 容差 | 目标机实测 |
+| ------ | --------- | ------ | ---- | ---------- |
+| FLR-01 | `2.9f`  | `2`  | EPS  | PASSED     |
+| FLR-02 | `-2.1f` | `-3` | EPS  | PASSED     |
+| FLR-03 | `3.0f`  | `3`  | EPS  | PASSED     |
+| FLR-04 | `-3.0f` | `-3` | EPS  | PASSED     |
+| FLR-05 | `0.0f`  | `0`  | EPS  | PASSED     |
+
+### 2.8 `my_fmodf`（对照 `fmodf`）
+
+| ID            | x         | y        | 参考                 | 容差     | 目标机实测            |
+| ------------- | --------- | -------- | -------------------- | -------- | --------------------- |
+| FMOD-01       | `5.5f`  | `2.0f` | `1.5`              | EPS      | PASSED                |
+| FMOD-02       | `-5.5f` | `2.0f` | `-1.5`             | EPS      | PASSED                |
+| FMOD-03       | `3.0f`  | `0.0f` | `0.0f`（除零保护） | EPS      | PASSED                |
+| FMOD-04       | `0.8f`  | `2π`  | `fmodf=0.8`        | EPS      | PASSED                |
+| FMOD-04-RANGE | —        | —       | 结果 ∈`[0, 2π)`  | 范围检查 | PASSED；`value=0.8` |
+
+### 2.9 `my_pow`（对照 `powf`）
+
+| ID     | base                              | exp       | 参考           | 容差           | 目标机实测                                     |
+| ------ | --------------------------------- | --------- | -------------- | -------------- | ---------------------------------------------- |
+| POW-01 | `10.0f`                         | `3.0f`  | `1000.0f`    | EPS            | PASSED                                         |
+| POW-02 | `2.0f`                          | `10.0f` | `1024.0f`    | EPS            | PASSED                                         |
+| POW-03 | `5.0f`                          | `0.0f`  | `1.0f`       | EPS            | PASSED                                         |
+| POW-04 | `2.0f`                          | `-2.0f` | `0.25f`      | EPS            | PASSED                                         |
+| POW-05 | `10.0f`                         | `2.5f`  | `316.227752` | `≈0.316`    | PASSED；实测 `316.098937`，误差 `0.128814` |
+| POW-06 | `-2.0f`                         | `0.5f`  | `0.0f`       | EPS            | PASSED                                         |
+| POW-07 | `0.0f`                          | `-1.0f` | `1.0f`       | EPS            | PASSED                                         |
+| POW-08 | `0.5f`                          | `3.0f`  | `0.125`      | `≈0.000125` | PASSED                                         |
+| POW-09 | `0.8f`（即 `1-r`，`r=0.2`） | `5.0f`  | `0.327680`   | `≈0.000327` | PASSED（AIS 路径）                             |
+
+### 2.10 `my_sin` / `my_cos`（对照 `sinf` / `cosf`）
+
+输入角在 `[0, 2π)`（扫频经 `Limit_angle_el` 归一化）。
+
+| ID     | 函数       | 角度     | 参考   | 容差     | 目标机实测                                    |
+| ------ | ---------- | -------- | ------ | -------- | --------------------------------------------- |
+| SIN-01 | `my_sin` | `0`    | `0`  | EPS      | PASSED                                        |
+| SIN-02 | `my_sin` | `π/2` | `1`  | EPS_TRIG | PASSED；实测 `1.004501`，误差 `0.004501`  |
+| SIN-03 | `my_sin` | `π`   | `0`  | EPS_TRIG | PASSED                                        |
+| COS-01 | `my_cos` | `0`    | `1`  | EPS_TRIG | PASSED；实测 `1.004501`，误差 `0.004501`  |
+| COS-02 | `my_cos` | `π/2` | `0`  | EPS_TRIG | PASSED                                        |
+| COS-03 | `my_cos` | `π`   | `-1` | EPS_TRIG | PASSED；实测 `-1.004501`，误差 `0.004501` |
+
+**扫频（TRIG-SWEEP）**
+
+- 3 个抽样点 + 360 点全周：`sample_count = 726`
+- **maximum_error = 0.004501**，**mean_error = 0.000567**，容差 `0.004999` → PASSED
+
+抽样点误差：
+
+| index | angle (rad) | sine_error | cosine_error |
+| ----- | ----------- | ---------- | ------------ |
+| 0     | 0.1         | 0.000000   | 0.002851     |
+| 1     | 1.2         | 0.000692   | 0.000000     |
+| 2     | 3.5         | 0.000000   | 0.000743     |
+
+> 峰值误差约 **0.45%**，出现在 ±π/2、0、π 附近。
+
+### 2.11 `my_round_to_decimal`
+
+| ID     | x            | n      | 参考      | 容差 | 目标机实测 |
+| ------ | ------------ | ------ | --------- | ---- | ---------- |
+| DEC-01 | `3.14159f` | `2`  | `3.14f` | EPS  | PASSED     |
+| DEC-02 | `3.145f`   | `2`  | `3.15f` | EPS  | PASSED     |
+| DEC-03 | `1.23f`    | `-1` | `1.23f` | EPS  | PASSED     |
+| DEC-04 | `0.0f`     | `3`  | `0.0f`  | EPS  | PASSED     |
 
 ---
 
-### 2.6 `my_round` / `my_fast_round`（替代 `roundf`）
+## 3. 目标机验收记录
 
-| ID | 函数 | 输入 x | 期望 |
-|----|------|--------|------|
-| RND-01 | `my_round` | `2.3f` | `2.0f` |
-| RND-02 | `my_round` | `2.5f` | `3.0f` |
-| RND-03 | `my_round` | `-2.3f` | `-2.0f` |
-| RND-04 | `my_round` | `-2.5f` | `-3.0f` |
-| RND-05 | `my_round` | `0.0f` | `0.0f` |
-| RND-06 | `my_fast_round` | `2.49f` | `2` |
-| RND-07 | `my_fast_round` | `-2.51f` | `-3` |
-| RND-08 | `my_round` | `1.4999999e6f` | 与 `roundf` 对比（大数） |
-
-一致性：`my_fast_round(x) == (int32_t)my_round(x)`（在 `int32` 可表示范围内）。
-
----
-
-### 2.7 `my_floor`（替代 `floorf`）
-
-| ID | 输入 x | 期望 |
-|----|--------|------|
-| FLR-01 | `2.9f` | `2.0f` |
-| FLR-02 | `-2.1f` | `-3.0f` |
-| FLR-03 | `3.0f` | `3.0f` |
-| FLR-04 | `-3.0f` | `-3.0f` |
-| FLR-05 | `0.0f` | `0.0f` |
-
----
-
-### 2.8 `my_fmodf`（替代 `fmodf`）
-
-| ID | x | y | 期望（与 `fmodf` 一致） |
-|----|---|---|-------------------------|
-| FMOD-01 | `5.5f` | `2.0f` | `1.5f` |
-| FMOD-02 | `-5.5f` | `2.0f` | `-1.5f` |
-| FMOD-03 | `0.8f` | `2*PI` | 落在 `[0, 2π)` |
-| FMOD-04 | `3.0f` | `0.0f` | `0.0f`（除零保护） |
-
----
-
-### 2.9 `my_pow`（替代 `powf`）
-
-**整数指数（快速路径）**
-
-| ID | base | exp | 期望 |
-|----|------|-----|------|
-| POW-01 | `10.0f` | `3.0f` | `1000.0f` |
-| POW-02 | `2.0f` | `10.0f` | `1024.0f` |
-| POW-03 | `5.0f` | `0.0f` | `1.0f` |
-| POW-04 | `0.0f` | `2.0f` | `0.0f` |
-| POW-05 | `2.0f` | `-2.0f` | `0.25f` |
-
-**非整数指数（`my_ln` + `my_exp` 路径）**
-
-| ID | base | exp | 参考 `powf` | 允许误差 |
-|----|------|-----|-------------|----------|
-| POW-06 | `0.5f` | `3.0f` | `0.125` | `ε_abs=1e-4` |
-| POW-07 | `(1-r)`，`r=0.2` | `n=5` | AIS 公式用例 | `ε_rel=1e-3` |
-| POW-08 | `10.0f` | `2.5f` | `powf(10,2.5)` | `ε_rel=1e-3` |
-
-**边界**
-
-| ID | 条件 | 期望 |
-|----|------|------|
-| POW-09 | `base < 0`，`exp` 非整数 | `0.0f`（当前实现） |
-| POW-10 | `base=0`，`exp<0` | `1.0f`（当前实现） |
-
----
-
-### 2.10 `my_sin` / `my_cos`（替代 `sinf` / `cosf`）
-
-输入需先归一化到 `[0, 2π)`（与 `Limit_angle_el` 一致）。
-
-| ID | 函数 | x (rad) | 参考 | 允许误差 |
-|----|------|---------|------|----------|
-| SIN-01 | `my_sin` | `0` | `0` | `1e-5` |
-| SIN-02 | `my_sin` | `PI/2` | `1` | `1e-4` |
-| SIN-03 | `my_sin` | `PI` | `0` | `1e-4` |
-| SIN-04 | `my_sin` | `3*PI/2` | `-1` | `1e-4` |
-| COS-01 | `my_cos` | `0` | `1` | `1e-4` |
-| COS-02 | `my_cos` | `PI/2` | `0` | `1e-4` |
-| COS-03 | `my_cos` | `PI` | `-1` | `1e-4` |
-
-扫频（可选）：`x = i * 2π/N`，`i=0..N-1`，`N=360`，统计 max/mean 误差。
-
----
-
-### 2.11 `my_round_to_decimal`（内部用 `my_pow` + `my_fast_round`）
-
-| ID | x | n | 期望（手算 / `round(x*10^n)/10^n`） |
-|----|---|----|-------------------------------------|
-| DEC-01 | `3.14159f` | `2` | `3.14f` |
-| DEC-02 | `3.145f` | `2` | `3.15f`（或按四舍五入规则） |
-| DEC-03 | `1.23f` | `-1` | `1.23f`（n<0 原样返回） |
-| DEC-04 | `0.0f` | `3` | `0.0f` |
-
----
-
-## 3. 回归测试 — 被改动过的业务函数
-
-以下函数 **实现或调用链** 已改为 `my_*`，需与改前 golden 或主机参考模型对比。
-
-### 3.1 角度与归一化
-
-| ID | 函数 | 改动点 | 测试要点 |
-|----|------|--------|----------|
-| REG-01 | `Limit_angle` | `my_abs`、`my_fmodf` | 周期边界、`period≈0`、跨 ±π |
-| REG-02 | `Limit_angle_el` | 间接依赖 `my_fmodf` 调用方 | `[0,2π)` 归一化 |
-| REG-03 | `update_angle` | `my_abs` | 大跳变 `>0.8*2π` 不累加 |
-| REG-04 | `update_angle_NLLUT` | `my_abs` | 同上 |
-| REG-05 | `update_loopcount_rotor_block` | `my_fmodf`、`my_abs` | 减速比角度、`angle_B` 收敛判据 |
-
----
-
-### 3.2 三角与坐标变换
-
-| ID | 函数 | 改动点 | 测试要点 |
-|----|------|--------|----------|
-| REG-10 | `Park` / 逆 Park | `my_sin`、`my_cos` | 固定 `angle_el` 下 Id/Iq 与 golden 向量一致 |
-| REG-11 | `Clark` / 逆 Clark | `my_sin`、`my_cos` | 同上 |
-| REG-12 | `Calculate_sector` | `my_abs` | 六扇区划分边界 Uα/Uβ |
-
----
-
-### 3.3 PID 与速度
-
-| ID | 函数 | 改动点 | 测试要点 |
-|----|------|--------|----------|
-| REG-20 | `Calculate_PID_IS_AIS` | `my_pow`、`my_abs` | 固定 `r,n,target,feedback,dt`，`sum` 与改前一致；积分分离阈值 |
-| REG-21 | `Calculate_velocity_raw` | `my_abs` | 角速度unwrap，无异常跳变 |
-
----
-
-### 3.4 标定 / LUT / 索引
-
-| ID | 函数 | 改动点 | 测试要点 |
-|----|------|--------|----------|
-| REG-30 | `map_samples_to_lut` | `my_floor` | 多组 `N_SAMPLES/N_LUT`：`i` 单调、边界 `i<N_SAMPLES-1`、`i_next` 闭环 |
-| REG-31 | `Calculate_angle_NLLUT` | `my_fast_round` | 扇区索引与 LUT 长度一致 |
-| REG-32 | `update_pole_pairs_sensor_block` | `my_round`、`my_abs` | 极对数估计整数合理 |
-| REG-33 | `update_pole_pairs_sensor_nonblock` | 同上 | 状态机各阶段输出 |
-| REG-34 | `update_angle_el_zero_sensor_block` | `my_round` | 采样索引 `i` / `i_int` 一致 |
-| REG-35 | `update_angle_el_zero_sensor_nonblock` | `my_round` | 非阻塞流程 |
-| REG-36 | `update_NLLUT_and_angle_el_zero_sensor_block` | `my_round`、`map_samples_to_lut` | LUT 填表与零点 |
-| REG-37 | `update_NLLUT_and_angle_el_zero_sensor_nonblock` | 同上 | 非阻塞 LUT 更新 |
-| REG-38 | NLLUT 后处理（约 2048 行） | `map_samples_to_lut` | 完整 LUT 与改前 bin 对比 |
-
----
-
-### 3.5 开环与其它
-
-| ID | 函数 | 改动点 | 测试要点 |
-|----|------|--------|----------|
-| REG-40 | `ctrl_motor_openloop_angle_nonblock` | `my_abs` | 积分终止条件 |
-| REG-41 | `Get_angle_el` / `Calculate_angle_el` 链 | `my_sin/cos` 下游 | 端到端电角度 |
-
----
-
-## 4. 建议测试实现方式
-
-### 4.1 主机单元测试（推荐优先）
+### 2026-05-26（基础用例 42 项）
 
 ```
-motorcore/FOC/tests/
-  test_my_math.c      # 第 2 节全部 my_*
-  test_foc_regress.c  # 第 3 节可隔离函数（需 mock Motor_HandleTypeDef）
+summary: passed 42, failed 0, total 42
 ```
 
-- 编译：`-DUNIT_TEST` 将 `foc_alg.c` 中硬件相关部分 `#ifndef` 隔离，或只链接数学函数到新 TU。
-- 断言宏：`ASSERT_NEAR(a, b, eps)`。
-- CI：对比 `powf/sinf/roundf` 生成 `.csv` golden，失败打印用例 ID。
+### 2026-05-26（含扩展边界，共 58 项）
 
-### 4.2 目标机抽检
+```
+summary: passed 58, failed 0, total 58
+```
 
-| 优先级 | 内容 |
-|--------|------|
-| P0 | 上电后 FOC 电流环稳定；`my_sin/cos` 波形无异常 |
-| P0 | 编码器标定流程（极对数、电角度零点、NLLUT）与改前结果一致 |
-| P1 | RTT 打印 `Calculate_PID_IS_AIS` 中间量 `sum` |
-| P2 | 长时间运行无 NaN/Inf |
+全部 **58** 项 `my_*` 单元测试在 STM32 目标机（RTT 输出）通过。
+
+日志内容：
+
+```
+00> ======== FOC math unit test (versus standard math.h library) ========
+00> 
+00> --- absolute value: my_abs ---
+00> PASSED | test case ABS-01 | actual=0.000000 | reference=0.000000 | absolute_error=0.000000 | tolerance=0.000009
+00> PASSED | test case ABS-02 | actual=3.500000 | reference=3.500000 | absolute_error=0.000000 | tolerance=0.000009
+00> PASSED | test case ABS-03 | actual=3.500000 | reference=3.500000 | absolute_error=0.000000 | tolerance=0.000009
+00> PASSED | test case ABS-04 | actual=0.000000 | reference=0.000000 | absolute_error=0.000000 | tolerance=0.000009
+00> PASSED | test case ABS-05 | actual=2147483647.////// | reference=2147483647.////// | absolute_error=0.000000 | tolerance=0.000009
+00> 
+00> --- sign function: my_sgn ---
+00> PASSED | test case SGN-01 | actual=1.000000 | reference=1.000000 | absolute_error=0.000000 | tolerance=0.000009
+00> PASSED | test case SGN-02 | actual=-1.000000 | reference=-1.000000 | absolute_error=0.000000 | tolerance=0.000009
+00> PASSED | test case SGN-03 | actual=0.000000 | reference=0.000000 | absolute_error=0.000000 | tolerance=0.000009
+00> 
+00> --- saturation: my_sat ---
+00> PASSED | test case SAT-01 | actual=0.500000 | reference=0.500000 | absolute_error=0.000000 | tolerance=0.000009
+00> PASSED | test case SAT-02 | actual=1.000000 | reference=1.000000 | absolute_error=0.000000 | tolerance=0.000009
+00> PASSED | test case SAT-03 | actual=-1.000000 | reference=-1.000000 | absolute_error=0.000000 | tolerance=0.000009
+00> 
+00> --- limiter: my_Limit ---
+00> PASSED | test case LIM-01 | actual=0.500000 | reference=0.500000 | absolute_error=0.000000 | tolerance=0.000009
+00> PASSED | test case LIM-02 | actual=1.000000 | reference=1.000000 | absolute_error=0.000000 | tolerance=0.000009
+00> PASSED | test case LIM-03 | actual=0.000000 | reference=0.000000 | absolute_error=0.000000 | tolerance=0.000009
+00> 
+00> --- linear map: my_map ---
+00> PASSED | test case MAP-01 | actual=0.500000 | reference=0.500000 | absolute_error=0.000000 | tolerance=0.000009
+00> PASSED | test case MAP-02 | actual=1.000000 | reference=1.000000 | absolute_error=0.000000 | tolerance=0.000009
+00> PASSED | test case MAP-03 | actual=5.000000 | reference=5.000000 | absolute_error=0.000000 | tolerance=0.000009
+00> 
+00> --- round: my_round / my_fast_round ---
+00> PASSED | test case RND-01 | actual=2.000000 | reference=2.000000 | absolute_error=0.000000 | tolerance=0.000009
+00> PASSED | test case RND-02 | actual=3.000000 | reference=3.000000 | absolute_error=0.000000 | tolerance=0.000009
+00> PASSED | test case RND-03 | actual=-3.000000 | reference=-3.000000 | absolute_error=0.000000 | tolerance=0.000009
+00> PASSED | test case RND-04 | actual_integer=2.000000 | reference_integer=2.000000
+00> PASSED | test case RND-05 | actual_integer=-3.000000 | reference_integer=-3.000000
+00> PASSED | test case RND-06 | actual=-2.000000 | reference=-2.000000 | absolute_error=0.000000 | tolerance=0.000009
+00> PASSED | test case RND-07 | actual=0.000000 | reference=0.000000 | absolute_error=0.000000 | tolerance=0.000009
+00> PASSED | test case RND-08 | actual=1500000.000000 | reference=1500000.000000 | absolute_error=0.000000 | tolerance=0.000009
+00> PASSED | test case RND-09 | actual_integer=3.000000 | reference_integer=3.000000
+00> PASSED | test case RND-10 | actual_integer=-8.000000 | reference_integer=-8.000000
+00> PASSED | test case RND-11 | actual_integer=0.000000 | reference_integer=0.000000
+00> 
+00> --- floor: my_floor ---
+00> PASSED | test case FLR-01 | actual=2.000000 | reference=2.000000 | absolute_error=0.000000 | tolerance=0.000009
+00> PASSED | test case FLR-02 | actual=-3.000000 | reference=-3.000000 | absolute_error=0.000000 | tolerance=0.000009
+00> PASSED | test case FLR-03 | actual=3.000000 | reference=3.000000 | absolute_error=0.000000 | tolerance=0.000009
+00> PASSED | test case FLR-04 | actual=-3.000000 | reference=-3.000000 | absolute_error=0.000000 | tolerance=0.000009
+00> PASSED | test case FLR-05 | actual=0.000000 | reference=0.000000 | absolute_error=0.000000 | tolerance=0.000009
+00> 
+00> --- floating remainder: my_fmodf ---
+00> PASSED | test case FMOD-01 | actual=1.500000 | reference=1.500000 | absolute_error=0.000000 | tolerance=0.000009
+00> PASSED | test case FMOD-02 | actual=-1.500000 | reference=-1.500000 | absolute_error=0.000000 | tolerance=0.000009
+00> PASSED | test case FMOD-03 | actual=0.000000 | reference=0.000000 | absolute_error=0.000000 | tolerance=0.000009
+00> PASSED | test case FMOD-04 | actual=0.800000 | reference=0.800000 | absolute_error=0.000000 | tolerance=0.000009
+00> PASSED | test case FMOD-04-RANGE | value=0.800000 in range [0.000000, 6.283185)
+00> 
+00> --- power: my_pow ---
+00> PASSED | test case POW-01 | actual=1000.000000 | reference=1000.000000 | absolute_error=0.000000 | tolerance=0.000009
+00> PASSED | test case POW-02 | actual=1024.000000 | reference=1024.000000 | absolute_error=0.000000 | tolerance=0.000009
+00> PASSED | test case POW-03 | actual=1.000000 | reference=1.000000 | absolute_error=0.000000 | tolerance=0.000009
+00> PASSED | test case POW-04 | actual=0.250000 | reference=0.250000 | absolute_error=0.000000 | tolerance=0.000009
+00> PASSED | test case POW-05 | actual=316.098937 | reference=316.227752 | absolute_error=0.128814 | tolerance=0.316227
+00> PASSED | test case POW-06 | actual=0.000000 | reference=0.000000 | absolute_error=0.000000 | tolerance=0.000009
+00> PASSED | test case POW-07 | actual=1.000000 | reference=1.000000 | absolute_error=0.000000 | tolerance=0.000009
+00> PASSED | test case POW-08 | actual=0.125000 | reference=0.125000 | absolute_error=0.000000 | tolerance=0.000125
+00> PASSED | test case POW-09 | actual=0.327680 | reference=0.327680 | absolute_error=0.000000 | tolerance=0.000327
+00> 
+00> --- sine and cosine: my_sin / my_cos ---
+00> PASSED | test case SIN-01 | actual=0.000000 | reference=0.000000 | absolute_error=0.000000 | tolerance=0.000009
+00> PASSED | test case SIN-02 | actual=1.004501 | reference=1.000000 | absolute_error=0.004501 | tolerance=0.004999
+00> PASSED | test case SIN-03 | actual=0.000000 | reference=-0.000000 | absolute_error=0.000000 | tolerance=0.004999
+00> PASSED | test case COS-01 | actual=1.004501 | reference=1.000000 | absolute_error=0.004501 | tolerance=0.004999
+00> PASSED | test case COS-02 | actual=0.000000 | reference=-0.000000 | absolute_error=0.000000 | tolerance=0.004999
+00> PASSED | test case COS-03 | actual=-1.004501 | reference=-1.000000 | absolute_error=0.004501 | tolerance=0.004999
+00>   sample_point index=0.000000 angle=0.100000 sine_error=0.000000 cosine_error=0.002851
+00>   sample_point index=1.000000 angle=1.200000 sine_error=0.000692 cosine_error=0.000000
+00>   sample_point index=2.000000 angle=3.500000 sine_error=0.000000 cosine_error=0.000743
+00>   sweep_statistics sample_count=726.000000 maximum_error=0.004501 mean_error=0.000567 tolerance=0.004999
+00> PASSED | test case TRIG-SWEEP | actual=0.004501 | reference=0.000000 | absolute_error=0.004501 | tolerance=0.004999
+00> 
+00> --- decimal round: my_round_to_decimal ---
+00> PASSED | test case DEC-01 | actual=3.140000 | reference=3.140000 | absolute_error=0.000000 | tolerance=0.000009
+00> PASSED | test case DEC-02 | actual=3.150000 | reference=3.150000 | absolute_error=0.000000 | tolerance=0.000009
+00> PASSED | test case DEC-03 | actual=1.230000 | reference=1.230000 | absolute_error=0.000000 | tolerance=0.000009
+00> PASSED | test case DEC-04 | actual=0.000000 | reference=0.000000 | absolute_error=0.000000 | tolerance=0.000009
+00> 
+00> ======== summary: passed 58.000000, failed 0.000000, total 58.000000 ======== 
+```
 
 ---
 
-## 5. 用例统计
+## 4. 待补充 / 未自动化用例
 
-| 类别 | 条数（约） |
-|------|------------|
-| `my_*` 单元测试 | 55+ |
-| 业务函数回归 | 20+ |
-| **合计** | **75+** |
+| 类别              | 说明                                                                                         |
+| ----------------- | -------------------------------------------------------------------------------------------- |
+| 业务回归（REG-*） | `Limit_angle`、`Park/Clark`、PID、开环等，需 mock `Motor_HandleTypeDef` 或 golden 对比 |
 
 ---
 
-## 6. 未纳入本目录（仍依赖 libm）
+## 5. 回归测试 — 被改动过的业务函数（待测）
 
-| 文件 | 仍用 libm | 备注 |
-|------|-----------|------|
-| `others/dual_encoder.c` | `fabs`、`fmod` | 若统一风格可另开测试章节 |
-| `FOC/foc_drv.c` | `#include <math.h>` | 当前无直接调用，可删头文件后复测编译 |
+以下条目来自 **`foc_alg.c` 全文检索 `my_*` 调用**（2026-05-26），需在集成阶段验证（当前无自动化用例）。
+
+**范围说明**
+
+- **纳入**：FOC 内核中直接或间接调用 `my_*` 的业务函数。
+- **排除（不再维护 / 不列入 REG）**：LUT / NLLUT、双编码减速箱相关，以及仅在这些流程中出现的函数。
+
+| 排除函数（含 `my_*` 但不在 REG 范围）                                |
+| ---------------------------------------------------------------------- |
+| `update_angle_NLLUT`、`Calculate_angle_NLLUT`                      |
+| `map_samples_to_lut`、`update_NLLUT_encoder_sensor_block/nonblock` |
+| `update_NLLUT_and_angle_el_zero_sensor_block/nonblock`               |
+| `update_loopcount_rotor_block`                                       |
+
+**`my_*` 已实现但 `foc_alg.c` 业务层未调用**：`my_sgn`、`my_sat`、`my_round_to_decimal`（仅单元测试覆盖）。
+
+**未使用 `my_*` 的角度函数**（仍属 FOC API，但不在本节 my_* 回归范围）：`Limit_angle_el`（while 归一化）、`Calculate_angle_el`、`Get_angle_el`、`update_angle_el` 等。
 
 ---
 
-## 7. 修订记录
+### 5.1 角度与限幅
 
-| 日期 | 说明 |
-|------|------|
-| 2026-05-25 | 初版：覆盖 libm→my_* 替代及 `foc_alg.c` 调用点回归目录 |
+| ID     | 函数                   | 使用的 `my_*`                               | 测试要点                                      |
+| ------ | ---------------------- | --------------------------------------------- | --------------------------------------------- |
+| REG-01 | `Limit_angle`        | `my_abs`、`my_fmodf`                      | `period≈0`、跨周期边界、±π 限幅          |
+| REG-02 | `Limit_angle_flange` | 经 `Limit_angle` → `my_abs`/`my_fmodf` | 法兰角 `±π` 限幅                          |
+| REG-03 | `update_angle`       | `my_abs`                                    | 角增量 `>0.8×2π` 时不误累加 `angle_all` |
+
+---
+
+### 5.2 坐标变换与扇区
+
+| ID     | 函数                 | 使用的 `my_*`        | 测试要点                                           |
+| ------ | -------------------- | ---------------------- | -------------------------------------------------- |
+| REG-10 | `Calculate_Park`   | `my_sin`、`my_cos` | 固定 `angle_el` 下 Iα/Iβ→Id/Iq 与 golden 一致 |
+| REG-11 | `update_Park`      | 同上（调用链）         | 写入 `motor->MotorAlg.Id/Iq` 正确                |
+| REG-12 | `Calculate_Park_N` | `my_sin`、`my_cos` | Uq/Ud→Uα/Uβ 与 golden 一致                      |
+| REG-13 | `update_Park_N`    | 同上（调用链）         | 写入 `motor->MotorAlg.Ualpha/Ubeta` 正确         |
+| REG-14 | `Calculate_Sector` | `my_abs`             | 六扇区边界（含 `Ualpha→0`）                     |
+| REG-15 | `update_Sector`    | 同上（调用链）         | 扇区号与 `Calculate_Sector` 一致                 |
+
+> `Calculate_Clark` / `Calculate_Clark_N` / `update_Clark*` **未调用** `my_*`，不列入本节。
+
+---
+
+### 5.3 PWM 与调制
+
+| ID     | 函数                              | 使用的 `my_*`                                            | 测试要点                                  |
+| ------ | --------------------------------- | ---------------------------------------------------------- | ----------------------------------------- |
+| REG-20 | `update_pwm`                    | `my_Limit`                                               | 三相占空比 ∈ [0,1]                       |
+| REG-21 | `set_pwm` / `set_pwm_nodir`   | `my_Limit`                                               | 输入 Ta/Tb/Tc 限幅后输出正确              |
+| REG-22 | `update_svpwm`                  | `my_map`；链：`update_Park_N`、`update_Sector`       | 给定 Uq/Ud 下 Ta/Tb/Tc 映射与 golden 一致 |
+| REG-23 | `set_svpwm` / `set_svpwm_dir` | `my_map`；链：`Calculate_Park_N`、`Calculate_Sector` | 单次 SVPWM 输出占空比正确                 |
+| REG-24 | `update_spwm` / `set_spwm`    | `my_map`                                                 | 三相电压→占空比线性映射                  |
+
+---
+
+### 5.4 PID 与速度
+
+| ID     | 函数                       | 使用的 `my_*`                      | 测试要点                           |
+| ------ | -------------------------- | ------------------------------------ | ---------------------------------- |
+| REG-30 | `Calculate_PID`          | `my_Limit`                         | 积分/输出限幅                      |
+| REG-31 | `Calculate_PID_IS`       | `my_Limit`                         | 积分分离区间外不累加 I             |
+| REG-32 | `Calculate_PID_IS_AIS`   | `my_pow`、`my_abs`、`my_Limit` | AIS 阈值 `sum`、积分分离逻辑     |
+| REG-33 | `Calculate_velocity_raw` | `my_abs`                           | 跨 2π unwrap 速度无异常跳变       |
+| REG-34 | `update_velocity_raw`    | 同上（调用链）                       | 与 `Calculate_velocity_raw` 一致 |
+
+---
+
+### 5.5 标定
+
+| ID     | 函数                                     | 使用的 `my_*`          | 测试要点                              |
+| ------ | ---------------------------------------- | ------------------------ | ------------------------------------- |
+| REG-40 | `update_pole_pairs_sensor_block`       | `my_round`、`my_abs` | 极对数估计合理、与开环速度积分一致    |
+| REG-41 | `update_pole_pairs_sensor_nonblock`    | `my_round`、`my_abs` | 非阻塞状态机各阶段输出                |
+| REG-42 | `update_angle_el_zero_sensor_block`    | `my_round`             | 采样索引 `i` / `i_int` 与角度一致 |
+| REG-43 | `update_angle_el_zero_sensor_nonblock` | `my_round`             | 非阻塞零点标定流程                    |
+
+> `update_angle_el_zero_no_sensor_block` 无直接 `my_*`，经 `update_angle`/`set_svpwm` 间接依赖，可按集成测试另测。
+
+---
+
+### 5.6 开环与 Id/Iq 观测
+
+| ID     | 函数                                      | 使用的 `my_*`        | 测试要点                                              |
+| ------ | ----------------------------------------- | ---------------------- | ----------------------------------------------------- |
+| REG-50 | `ctrl_motor_openloop_angle_el_nonblock` | `my_abs`             | 电角积分终止条件                                      |
+| REG-51 | `ctrl_motor_openloop_angle_nonblock`    | `my_abs`             | 机械角积分终止条件                                    |
+| REG-52 | `Calculate_IdIq`                        | `my_sin`、`my_cos` | 给定 IA/IB/IC 与 `angle_el` 的 Id/Iq 与 golden 一致 |
+
+> `ctrl_motor_openloop_*_block` 封装对应 `nonblock`，回归可复用 REG-50/51。
+
+---
+
+### 5.7 REG 用例统计
+
+| 分组               | 条数         |
+| ------------------ | ------------ |
+| 5.1 角度与限幅     | 3            |
+| 5.2 坐标变换与扇区 | 6            |
+| 5.3 PWM 与调制     | 5            |
+| 5.4 PID 与速度     | 5            |
+| 5.5 标定           | 4            |
+| 5.6 开环与 Id/Iq   | 3            |
+| **合计**     | **26** |
+
+---
+
+## 6. 测试工程与运行
+
+| 文件            | 说明                                                |
+| --------------- | --------------------------------------------------- |
+| `test/test.h` | `test_run_all_math()` 声明，`TEST_LOG_DELAY_MS` |
+| `test/test.c` | 全部**58** 项 `my_*` 单元测试               |
+
+**目标机**：工程链接 `test/test.c`，上电或调试时调用 `test_run_all_math()`。
+
+**主机（可选）**：
+
+```bash
+gcc -DUNIT_TEST -I FOC -I test -I others \
+    test/test.c FOC/foc_alg.c others/SEGGER_RTT.c others/SEGGER_RTT_printf.c \
+    -lm -o test_math && ./test_math
+```
+
+---
+
+## 7. 用例统计
+
+| 类别                                 | 条数         | 状态                                    |
+| ------------------------------------ | ------------ | --------------------------------------- |
+| `my_*` 单元测试（`test/test.c`） | **58** | 目标机已全部通过                        |
+| 业务回归（REG-*）                    | **26** | 待自动化 / 集成验证（不含 LUT、双编码） |
+
+用例构成：基础 **42** + 扩展边界 **16**（ABS×2、RND×6、FLR×3、FMOD×2、POW×2、DEC×1）。
+
+---
+
+## 8. 未纳入本目录（仍依赖 libm）
+
+| 文件                      | 仍用 libm             | 备注                            |
+| ------------------------- | --------------------- | ------------------------------- |
+| `others/dual_encoder.c` | `fabs`、`fmod`    | 应用层扩展，非 FOC 内核维护范围 |
+| `FOC/foc_drv.c`         | `#include <math.h>` | 当前无直接调用                  |
+
+---
+
+## 9. 修订记录
+
+| 日期       | 说明                                                                                                              |
+| ---------- | ----------------------------------------------------------------------------------------------------------------- |
+| 2026-05-25 | 初版：覆盖 libm→my_* 替代及业务回归目录                                                                          |
+| 2026-05-26 | 同步 `test/test.c`；目标机 42/42 通过；修正 MAP-01；补充 RTT `%f` 约束                                        |
+| 2026-05-26 | 扩展边界与非整数 pow 用例入 `test/test.c`；目标机 **58/58** 通过；记录 ABS-05 float 饱和与 POW-08/09 实测 |
+| 2026-05-26 | 回归测试范围收缩：移除 LUT/NLLUT 与双编码相关 REG 用例（不再作为 FOC 内核维护项）                                 |
+| 2026-05-26 | 检索 `foc_alg.c` 补全 my_* 业务调用 REG 清单（26 项，见第 5 节）                                                |

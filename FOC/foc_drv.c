@@ -2,7 +2,6 @@
 #include "spi.h"
 #include "tim.h"
 #include "gpio.h"
-#include <math.h>
 #include <stdio.h>
 #include <string.h>
 #include "foc_alg.h"
