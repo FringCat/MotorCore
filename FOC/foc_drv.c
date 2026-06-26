@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2026 FryingCat
+ * SPDX-FileCopyrightText: 2026 FryingCat <3551901875@qq.com>
  * SPDX-License-Identifier: MIT
  */
 

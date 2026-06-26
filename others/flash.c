@@ -1,8 +1,3 @@
-/*
- * SPDX-FileCopyrightText: 2026 FryingCat
- * SPDX-License-Identifier: MIT
- */
-
 #include "flash.h"
 #include "main.h"
 #include "string.h"

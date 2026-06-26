@@ -1,8 +1,3 @@
-/*
- * SPDX-FileCopyrightText: 2026 FryingCat
- * SPDX-License-Identifier: MIT
- */
-
 #include "fsm.h"
 
 void fsm_init(fsm_HandleTypeDef *fsm)

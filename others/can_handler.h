@@ -1,8 +1,3 @@
-/*
- * SPDX-FileCopyrightText: 2026 FryingCat
- * SPDX-License-Identifier: MIT
- */
-
 #ifndef CAN_HANDLER_H_
 #define CAN_HANDLER_H_
 

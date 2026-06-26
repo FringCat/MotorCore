@@ -205,7 +205,8 @@ MDK-ARM/       # Keil µVision 工程
 
 ## 开源与许可
 
-- **MotorCore 自研代码**（`FOC/`、`others/` 中原创部分）：[MIT License](LICENSE)
+- **MotorCore 自研代码**（`FOC/`）：[MIT License](LICENSE)
+- **`others/`** 等目录：引用或移植的第三方/参考代码，遵循各自原有许可
 - **STM32 HAL / Cube 生成代码**（`Core/`、`Drivers/STM32G4xx_HAL_Driver/`）：遵循 ST 组件许可，见 `Drivers/STM32G4xx_HAL_Driver/LICENSE.txt`
 - **CMSIS / CMSIS-DSP**：Apache-2.0，见 `Drivers/CMSIS/LICENSE.txt`
 - **SEGGER RTT** 等第三方：保留各自原有许可声明，汇总见 [NOTICE](NOTICE)

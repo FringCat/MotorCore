@@ -1,8 +1,3 @@
-/*
- * SPDX-FileCopyrightText: 2026 FryingCat
- * SPDX-License-Identifier: MIT
- */
-
 /*******************************************************************************
 * @file           : mt6835_stm32_spi_port.c
 * @author         : Hotakus (hotakus@foxmail.com)
