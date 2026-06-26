@@ -1,3 +1,8 @@
+/*
+ * SPDX-FileCopyrightText: 2026 FryingCat
+ * SPDX-License-Identifier: MIT
+ */
+
 #include "MT6816.h"
 
 void stm32_spi_send_recv(uint8_t* tx_buf, uint8_t* rx_buf, uint16_t size)

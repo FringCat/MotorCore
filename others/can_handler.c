@@ -1,3 +1,8 @@
+/*
+ * SPDX-FileCopyrightText: 2026 FryingCat
+ * SPDX-License-Identifier: MIT
+ */
+
 #include "can_handler.h"
 #include "fdcan.h"
 #include "SEGGER_RTT.h"

@@ -1,3 +1,8 @@
+/*
+ * SPDX-FileCopyrightText: 2026 FryingCat
+ * SPDX-License-Identifier: MIT
+ */
+
 #ifndef MT6816_H
 #define MT6816_H
 

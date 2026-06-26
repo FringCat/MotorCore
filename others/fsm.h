@@ -1,3 +1,8 @@
+/*
+ * SPDX-FileCopyrightText: 2026 FryingCat
+ * SPDX-License-Identifier: MIT
+ */
+
 #ifndef FSM_H_
 #define FSM_H_
 #include "main.h"

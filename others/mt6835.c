@@ -1,3 +1,8 @@
+/*
+ * SPDX-FileCopyrightText: 2026 FryingCat
+ * SPDX-License-Identifier: MIT
+ */
+
 /*******************************************************************************
 * @file           : mt6835.c
 * @author         : Hotakus (hotakus@foxmail.com)

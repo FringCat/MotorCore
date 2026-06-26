@@ -1,5 +1,7 @@
 # MotorCore
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 面向 STM32（当前工程为 **STM32G4**）的 **磁场定向控制（FOC）** 算法与驱动参考实现。核心控制逻辑集中在 `FOC/` 目录，通过句柄与函数指针与具体硬件解耦，便于移植到其他 MCU 或外设组合。
 
 ## 功能概览
@@ -203,7 +205,10 @@ MDK-ARM/       # Keil µVision 工程
 
 ## 开源与许可
 
-仓库若作为开源库发布，建议为 **MotorCore 自研部分** 明确许可证（如 MIT/GPL）；**STMicroelectronics HAL/Cube 生成代码** 遵循 ST 组件许可。第三方文件（如 SEGGER RTT、ARM DSP）请保留其原有声明。
+- **MotorCore 自研代码**（`FOC/`、`others/` 中原创部分）：[MIT License](LICENSE)
+- **STM32 HAL / Cube 生成代码**（`Core/`、`Drivers/STM32G4xx_HAL_Driver/`）：遵循 ST 组件许可，见 `Drivers/STM32G4xx_HAL_Driver/LICENSE.txt`
+- **CMSIS / CMSIS-DSP**：Apache-2.0，见 `Drivers/CMSIS/LICENSE.txt`
+- **SEGGER RTT** 等第三方：保留各自原有许可声明，汇总见 [NOTICE](NOTICE)
 
 ## 说明
 
