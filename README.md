@@ -1,5 +1,7 @@
 # MotorCore
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 面向 STM32（当前工程为 **STM32G4**）的 **磁场定向控制（FOC）** 算法与驱动参考实现。核心控制逻辑集中在 `FOC/` 目录，通过句柄与函数指针与具体硬件解耦，便于移植到其他 MCU 或外设组合。
 
 ## 功能概览
