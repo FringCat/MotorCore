@@ -1,3 +1,8 @@
+/*
+ * SPDX-FileCopyrightText: 2026 FryingCat <3551901875@qq.com>
+ * SPDX-License-Identifier: MIT
+ */
+
 #ifndef __FOC_ALG_H
 #define __FOC_ALG_H
 

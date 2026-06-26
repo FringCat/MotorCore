@@ -1,0 +1,20 @@
+MotorCore
+Copyright (c) 2026 FryingCat <3551901875@qq.com>
+
+This project includes third-party software components. Each component is
+governed by its own license; the MIT License in LICENSE applies only to
+`FOC/` (see README).
+
+Third-party components:
+
+- `others/` (CAN、编码器驱动、状态机等参考/移植代码)
+  License: see original sources and vendor headers
+
+- STM32 HAL Driver and STM32Cube-generated code
+  License: ST SLA0044 (see Drivers/STM32G4xx_HAL_Driver/LICENSE.txt)
+
+- CMSIS / CMSIS-DSP
+  License: Apache-2.0 (see Drivers/CMSIS/LICENSE.txt)
+
+- SEGGER RTT (others/SEGGER_RTT*.c, others/SEGGER_RTT*.h)
+  License: SEGGER Microcontroller GmbH (see vendor headers in those files)

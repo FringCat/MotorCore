@@ -1,3 +1,8 @@
+/*
+ * SPDX-FileCopyrightText: 2026 FryingCat <3551901875@qq.com>
+ * SPDX-License-Identifier: MIT
+ */
+
 #include "foc_alg.h"
 #include "SEGGER_RTT.h"
 #include "foc_drv.h"
