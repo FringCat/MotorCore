@@ -173,7 +173,24 @@ summary: passed 58, failed 0, total 58
 
 全部 **58** 项 `my_*` 单元测试在 STM32 目标机（RTT 输出）通过。
 
-日志内容：
+### 2026-07-13（校准函数手动回归）
+
+在目标机对 `foc_alg.h`「初始化相关」全部标定 API 进行阻塞 / 非阻塞回归，**同一次上电内重复调用非阻塞版本**，验证 static 累加量在完成态 case 中已正确清理。
+
+| CAL ID | 函数 | block / nonblock | 结果 | 备注 |
+| ------ | ---- | ---------------- | ---- | ---- |
+| CAL-01 | `update_Ioffset_*` | both | **PASSED** | 1000 次采样平均后 `count` / 累加和归零 |
+| CAL-02 | `update_2DIR_sensor_*` | both | **PASSED** | `MotorConfig.DIR` 与速度积分符号一致 |
+| CAL-03 | `update_PHASE_*` | both | **PASSED** | `MotorConfig.PHASE` ∈ {1…6}，case 9 状态复位 |
+| CAL-04 | `update_pole_pairs_sensor_*` | both | **PASSED** | `MotorConfig.Pole_pairs` 与实测一致 |
+| CAL-05 | `update_angle_el_zero_sensor_*` | both | **PASSED** | `angle_el_zero` 写入合理，重复标定无累加 |
+| CAL-06 | `update_angle_el_zero_no_sensor_block` | block | **PASSED** | 无传感器单点零点标定 |
+
+```
+summary: calibration passed 11, failed 0, total 11
+```
+
+日志内容（2026-05-26 数学单元测试）：
 
 ```
 00> ======== FOC math unit test (versus standard math.h library) ========
@@ -272,12 +289,13 @@ summary: passed 58, failed 0, total 58
 | 类别              | 说明                                                                                         |
 | ----------------- | -------------------------------------------------------------------------------------------- |
 | 业务回归（REG-*） | `Limit_angle`、`Park/Clark`、PID、开环等，需 mock `Motor_HandleTypeDef` 或 golden 对比 |
+| 校准回归（CAL-*） | 初始化标定函数已在目标机手动回归（见 §3.3、§5.5），尚无自动化用例                          |
 
 ---
 
-## 5. 回归测试 — 被改动过的业务函数（待测）
+## 5. 回归测试 — 被改动过的业务函数
 
-以下条目来自 **`foc_alg.c` 全文检索 `my_*` 调用**（2026-05-26），需在集成阶段验证（当前无自动化用例）。
+以下条目来自 **`foc_alg.c` 全文检索 `my_*` 调用**（2026-05-26）。**§5.5 校准类**已在目标机手动回归通过（2026-07-13）；其余分组仍待自动化 / 集成验证。
 
 **范围说明**
 
@@ -346,16 +364,23 @@ summary: passed 58, failed 0, total 58
 
 ---
 
-### 5.5 标定
+### 5.5 标定（目标机已回归，2026-07-13）
 
-| ID     | 函数                                     | 使用的 `my_*`          | 测试要点                              |
-| ------ | ---------------------------------------- | ------------------------ | ------------------------------------- |
-| REG-40 | `update_pole_pairs_sensor_block`       | `my_round`、`my_abs` | 极对数估计合理、与开环速度积分一致    |
-| REG-41 | `update_pole_pairs_sensor_nonblock`    | `my_round`、`my_abs` | 非阻塞状态机各阶段输出                |
-| REG-42 | `update_angle_el_zero_sensor_block`    | `my_round`             | 采样索引 `i` / `i_int` 与角度一致 |
-| REG-43 | `update_angle_el_zero_sensor_nonblock` | `my_round`             | 非阻塞零点标定流程                    |
+| ID     | 函数                                     | 使用的 `my_*`          | 测试要点                              | 状态 |
+| ------ | ---------------------------------------- | ------------------------ | ------------------------------------- | ---- |
+| REG-40 | `update_pole_pairs_sensor_block`       | `my_round`、`my_abs` | 极对数估计合理、与开环速度积分一致    | **PASSED** |
+| REG-41 | `update_pole_pairs_sensor_nonblock`    | `my_round`、`my_abs` | 完成态清理 `total_time` / `velocity_integral`；重复标定结果一致 | **PASSED** |
+| REG-42 | `update_angle_el_zero_sensor_block`    | `my_round`             | 采样索引 `i` / `i_int` 与角度一致 | **PASSED** |
+| REG-43 | `update_angle_el_zero_sensor_nonblock` | `my_round`             | case 4 清理 `angle_el_zero_all` 等；重复标定无累加 | **PASSED** |
+| REG-44 | `update_2DIR_sensor_block`           | —（链：`my_abs` 经速度计算） | `MotorConfig.DIR` 与转动方向一致 | **PASSED** |
+| REG-45 | `update_2DIR_sensor_nonblock`        | —                        | 完成态清理 `total_time` / `velocity_integral` | **PASSED** |
+| REG-46 | `update_PHASE_block`                 | —                        | 阻塞封装与 `update_PHASE_nonblock` 结果一致 | **PASSED** |
+| REG-47 | `update_PHASE_nonblock`              | —                        | case 9 复位 `time` / `state` / 电流积分 | **PASSED** |
+| REG-48 | `update_angle_el_zero_no_sensor_block` | —（链：`update_angle`） | 无传感器单点 `angle_el_zero` 合理 | **PASSED** |
+| REG-49 | `update_Ioffset_block`               | —                        | 三相偏置均值写入 `IA/IB/IC_offset_raw` | **PASSED** |
+| REG-50 | `update_Ioffset_nonblock`            | —                        | 1000 次累加后清零 `count` 与累加和 | **PASSED** |
 
-> `update_angle_el_zero_no_sensor_block` 无直接 `my_*`，经 `update_angle`/`set_svpwm` 间接依赖，可按集成测试另测。
+> 上表 **11** 项与 §3.3 CAL-01…CAL-06 对应；非阻塞重复调用场景已纳入验收。
 
 ---
 
@@ -363,25 +388,25 @@ summary: passed 58, failed 0, total 58
 
 | ID     | 函数                                      | 使用的 `my_*`        | 测试要点                                              |
 | ------ | ----------------------------------------- | ---------------------- | ----------------------------------------------------- |
-| REG-50 | `ctrl_motor_openloop_angle_el_nonblock` | `my_abs`             | 电角积分终止条件                                      |
-| REG-51 | `ctrl_motor_openloop_angle_nonblock`    | `my_abs`             | 机械角积分终止条件                                    |
-| REG-52 | `Calculate_IdIq`                        | `my_sin`、`my_cos` | 给定 IA/IB/IC 与 `angle_el` 的 Id/Iq 与 golden 一致 |
+| REG-55 | `ctrl_motor_openloop_angle_el_nonblock` | `my_abs`             | 电角积分终止条件                                      |
+| REG-56 | `ctrl_motor_openloop_angle_nonblock`    | `my_abs`             | 机械角积分终止条件                                    |
+| REG-57 | `Calculate_IdIq`                        | `my_sin`、`my_cos` | 给定 IA/IB/IC 与 `angle_el` 的 Id/Iq 与 golden 一致 |
 
-> `ctrl_motor_openloop_*_block` 封装对应 `nonblock`，回归可复用 REG-50/51。
+> `ctrl_motor_openloop_*_block` 封装对应 `nonblock`，回归可复用 REG-55/56。
 
 ---
 
 ### 5.7 REG 用例统计
 
-| 分组               | 条数         |
-| ------------------ | ------------ |
-| 5.1 角度与限幅     | 3            |
-| 5.2 坐标变换与扇区 | 6            |
-| 5.3 PWM 与调制     | 5            |
-| 5.4 PID 与速度     | 5            |
-| 5.5 标定           | 4            |
-| 5.6 开环与 Id/Iq   | 3            |
-| **合计**     | **26** |
+| 分组               | 条数         | 状态 |
+| ------------------ | ------------ | ---- |
+| 5.1 角度与限幅     | 3            | 待测 |
+| 5.2 坐标变换与扇区 | 6            | 待测 |
+| 5.3 PWM 与调制     | 5            | 待测 |
+| 5.4 PID 与速度     | 5            | 待测 |
+| 5.5 标定           | 11           | **已通过（目标机 2026-07-13）** |
+| 5.6 开环与 Id/Iq   | 3            | 待测 |
+| **合计**     | **33** | **11 / 33 已通过** |
 
 ---
 
@@ -409,7 +434,8 @@ gcc -DUNIT_TEST -I FOC -I test -I others \
 | 类别                                 | 条数         | 状态                                    |
 | ------------------------------------ | ------------ | --------------------------------------- |
 | `my_*` 单元测试（`test/test.c`） | **58** | 目标机已全部通过                        |
-| 业务回归（REG-*）                    | **26** | 待自动化 / 集成验证（不含 LUT、双编码） |
+| 业务回归（REG-*）                    | **33** | **11 已通过**（§5.5 标定）；其余待自动化 / 集成验证 |
+| 校准手动回归（CAL-*）                | **6**  | 目标机已全部通过（2026-07-13）          |
 
 用例构成：基础 **42** + 扩展边界 **16**（ABS×2、RND×6、FLR×3、FMOD×2、POW×2、DEC×1）。
 
@@ -433,3 +459,4 @@ gcc -DUNIT_TEST -I FOC -I test -I others \
 | 2026-05-26 | 扩展边界与非整数 pow 用例入 `test/test.c`；目标机 **58/58** 通过；记录 ABS-05 float 饱和与 POW-08/09 实测 |
 | 2026-05-26 | 回归测试范围收缩：移除 LUT/NLLUT 与双编码相关 REG 用例（不再作为 FOC 内核维护项）                                 |
 | 2026-05-26 | 检索 `foc_alg.c` 补全 my_* 业务调用 REG 清单（26 项，见第 5 节）                                                |
+| 2026-07-13 | 全部校准函数（11 API / 6 CAL 组）目标机手动回归通过；§5.5 扩至 11 项并标记 PASSED；REG 合计 33 项（11 已通过） |

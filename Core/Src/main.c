@@ -148,8 +148,9 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 
-    // update_2DIR_sensor_block(&motor); // 双编码实时读取法兰角度例程
-    update_2DIR_sensor_nonblock(&motor); // 双编码实时读取法兰角度例程
+    // update_2DIR_sensor_block(&motor); 
+    // update_2DIR_sensor_nonblock(&motor); 
+    // update_pole_pairs_sensor_nonblock(&motor);
 
     // 双编码实时读取法兰角度例程
     // {

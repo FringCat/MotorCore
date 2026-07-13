@@ -1388,7 +1388,6 @@ void update_pole_pairs_sensor_block(Motor_HandleTypeDef *motor)
 
 void update_pole_pairs_sensor_nonblock(Motor_HandleTypeDef *motor)
 {
-    static int flag = 0;
     float velocity_target = 3.0f; 
     float time_init = 0.5f;
     float time_prep = 1.0f;
@@ -1398,59 +1397,56 @@ void update_pole_pairs_sensor_nonblock(Motor_HandleTypeDef *motor)
     static float total_time = 0 ;
     static float velocity_integral = 0.0f;
 
-    if(flag == 0)
+    total_time += update_dt(motor);
+    update_angle(motor);
+    update_velocity_raw(motor);
+    if(total_time < time_init)
     {
-        total_time += update_dt(motor);
-        update_angle(motor);
-        update_velocity_raw(motor);
-        if(total_time < time_init)
+        state = 0;
+    }
+    else if(total_time >= time_init && total_time < (time_init+time_prep))
+    {
+        state = 1;
+    }
+    else if(total_time >= (time_init+time_prep) && total_time < (time_init+time_prep+time_process))
+    {
+        state = 2;
+    }
+    else if(total_time >= (time_init+time_prep+time_process))
+    {
+        state = 3;
+    }
+    
+    switch (state)
+    {
+        case 0:
         {
+            set_svpwm(motor,0.0f, 0.0f , 0.0f);
+        }break;
+        case 1:
+        {
+            set_svpwm(motor, motor->MotorConfig.UMAX*0.05f,0.0f,0.0f);
+        }break;
+        case 2:
+        {
+            velocity_integral += motor->MotorData.Velocity_raw*motor->time.dt;
+            set_svpwm(motor,motor->MotorConfig.UMAX*0.05f,0.0f, Limit_angle_el((float)velocity_target*(total_time-time_init-time_prep)));
+            // motor->MotorDrv.Delayms(1);
+        }break;
+        case 3:
+        {
+            motor->MotorConfig.Pole_pairs = (uint32_t)my_round(my_abs((float)velocity_target*(total_time-time_init-time_prep)/(velocity_integral)));
+            set_svpwm(motor,0.0f, 0.0f , 0.0f);
+            total_time = 0.0f;
+            velocity_integral = 0.0f;
             state = 0;
         }
-        else if(total_time >= time_init && total_time < (time_init+time_prep))
+        default:
         {
-            state = 1;
-        }
-        else if(total_time >= (time_init+time_prep) && total_time < (time_init+time_prep+time_process))
-        {
-            state = 2;
-        }
-        else if(total_time >= (time_init+time_prep+time_process))
-        {
-            state = 3;
-        }
-        
-        switch (state)
-        {
-            case 0:
-            {
-                set_svpwm(motor,0.0f, 0.0f , 0.0f);
-            }break;
-            case 1:
-            {
-                set_svpwm(motor, motor->MotorConfig.UMAX*0.5f,0.0f,0.0f);
-            }break;
-            case 2:
-            {
-                velocity_integral += motor->MotorData.Velocity_raw*motor->time.dt;
-                set_svpwm(motor,motor->MotorConfig.UMAX*0.5f,0.0f, Limit_angle_el((float)velocity_target*(total_time-time_init-time_prep)));
-                // motor->MotorDrv.Delayms(1);
-            }break;
-            case 3:
-            {
-                motor->MotorConfig.Pole_pairs = (uint32_t)my_round(my_abs((float)velocity_target*(total_time-time_init-time_prep)/(velocity_integral)));
-                set_svpwm(motor,0.0f, 0.0f , 0.0f);
-                // total_time = 0.0f;
-                // velocity_integral = 0.0f;
-                flag = 1;
-                // printf("%d\n",motor->MotorConfig.Pole_pairs);
-            }
-            default:
-            {
-                /* 打印报错信息 */
-            }break;
-        }
+            /* 打印报错信息 */
+        }break;
     }
+    
 }
 
 void update_2DIR_sensor_block(Motor_HandleTypeDef *motor)
@@ -1717,7 +1713,6 @@ int update_PHASE_nonblock(Motor_HandleTypeDef *motor,float IA_NoOrder, float IB_
 
 int update_PHASE_block(Motor_HandleTypeDef *motor)
 {
-    update_dt(motor);
     update_IaIbIc(motor,0x111,1);
     while(!update_PHASE_nonblock(motor,motor->MotorData.IA_NoOrder, motor->MotorData.IB_NoOrder, motor->MotorData.IC_NoOrder));
     if(motor->MotorConfig.PHASE == -1)
@@ -1845,6 +1840,11 @@ void update_angle_el_zero_sensor_nonblock(Motor_HandleTypeDef *motor)
                 //打印报错信息
                 // printf("Heap_Size is not enough!");
                 SEGGER_RTT_printf(0, "Heap_Size is not enough!\n");
+                total_time = 0.0f;
+                angle_now = 0.0f;
+                angle_el_zero_all = 0.0f;
+                motor->MotorData.angle_all = angle_all_temp;
+                angle_all_temp = 0.0f;
                 free((void*)angle_el_zero);
                 return;
             }
