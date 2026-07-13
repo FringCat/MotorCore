@@ -158,7 +158,7 @@ void foc_init(Motor_HandleTypeDef *motor)
     motor->MotorConfig.UMAX = 24.0f;   // 设置电压限幅
     motor->MotorConfig.Ls = 0.001f;    // 设置定子电感
     motor->MotorConfig.Rs = 0.5f;      // 设置定子电阻
-    motor->MotorConfig.angle_el_zero = 3.09982f; // 设置角度零点
+    motor->MotorConfig.angle_el_zero = 3.13263f; // 设置角度零点
     motor->MotorConfig.Kt = 0.806325918;           //设置转矩系数
     motor->MotorConfig.loopcount_rotor = 0XFFFF;
 

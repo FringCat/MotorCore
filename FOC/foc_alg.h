@@ -120,7 +120,6 @@ typedef struct
     float Ibus;            // 母线电流（注释：可选，用于功率计算与过流保护，单位：A）
     float Ubus;
 
-
     float IA_NoOrder;
     float IB_NoOrder;
     float IC_NoOrder;

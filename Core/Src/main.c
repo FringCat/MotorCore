@@ -118,7 +118,7 @@ int main(void)
   SEGGER_RTT_Init();                                //JLINK RTT 初始化
   SEGGER_RTT_SetTerminal(0);
   
-  // fsm_init(&fsm_motor);                             //状态机初始化
+  // fsm_init(&fsm_motor);                             //状态机初始化 
   foc_init(&motor);                                 //foc初始化
   mt6816_init(&mt6816);                             //副磁编初始化
   mt6835 = mt6835_stm32_spi_port_init();            //主磁编初始化
@@ -130,8 +130,8 @@ int main(void)
   flash_read(ADDR_FLASH_SECTOR_0,(uint32_t*)&motorconfig,sizeof(motor.MotorConfig)/4);
   SEGGER_RTT_printf(0,"LWJ666 has inited!\n");
 
-  __HAL_ADC_ENABLE_IT(&hadc1, ADC_IT_JEOC);         //adc采样中断(PWM通道4触发)
-  __HAL_TIM_ENABLE_IT(&htim1, TIM_IT_UPDATE);       //定时中断(20Khz 兼为PWM定时器) 
+  // __HAL_ADC_ENABLE_IT(&hadc1, ADC_IT_JEOC);         //adc采样中断(PWM通道4触发)
+  // __HAL_TIM_ENABLE_IT(&htim1, TIM_IT_UPDATE);       //定时中断(20Khz 兼为PWM定时器) 
   // __HAL_FDCAN_ENABLE_IT(&hfdcan1, FDCAN_IT_RX_FIFO0_NEW_MESSAGE); //使能CAN中断
   
   // __HAL_FDCAN_DISABLE_IT(&hfdcan1, FDCAN_IT_RX_FIFO0_NEW_MESSAGE); 
@@ -148,11 +148,8 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 
-
-    // if(isoffset_done)
-    // {
-    //   update_PHASE_nonblock(&motor);
-    // }
+    // update_2DIR_sensor_block(&motor); // 双编码实时读取法兰角度例程
+    update_2DIR_sensor_nonblock(&motor); // 双编码实时读取法兰角度例程
 
     // 双编码实时读取法兰角度例程
     // {

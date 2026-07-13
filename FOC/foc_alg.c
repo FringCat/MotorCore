@@ -1376,15 +1376,13 @@ void update_pole_pairs_sensor_block(Motor_HandleTypeDef *motor)
         update_angle(motor);
         update_velocity_raw(motor);
         velocity_integral += motor->MotorData.Velocity_raw*motor->time.dt;
-        // printf("%f,%f,%f,%f\n",(angle_end - angle_start),velocity_integral,motor->MotorData.Velocity_raw,motor->MotorAlg.angle);
+
         set_svpwm(motor,motor->MotorConfig.UMAX*0.05f,0.0f,Limit_angle_el((float)i*0.01f));
         motor->MotorDrv.Delayms(1);
     }
     motor->MotorDrv.Delayms(2000);
-
     motor->MotorConfig.Pole_pairs = (uint32_t)my_round(my_abs((float)(1000*0.01f)/(velocity_integral)));
-    // printf("%d,%f\n",motor->MotorConfig.Pole_pairs,(myabs((float)(1000*0.01f)/(velocity_integral))));
-    // printf("%f,%f,%f,%f\n",(angle_end - angle_start),velocity_integral,motor->MotorData.Velocity_raw,motor->MotorAlg.angle);
+
     set_svpwm(motor,0.0f, 0.0f , 0.0f); 
 }
 
@@ -1492,7 +1490,7 @@ void update_2DIR_sensor_block(Motor_HandleTypeDef *motor)
     }
     else if(velocity_integral<0)
     {
-        motor->MotorConfig.DIR = 2;
+        motor->MotorConfig.DIR = -1;
         velocity_integral = 0.0f;
     }
     else
@@ -1543,11 +1541,11 @@ void update_2DIR_sensor_nonblock(Motor_HandleTypeDef *motor)
         case 1:
         {
             float K =  (total_time-time_init)/time_process;
-            set_svpwm(motor,0.0f,K*motor->MotorConfig.UMAX*0.5f, 0.0f);
+            set_svpwm(motor,0.0f,K*motor->MotorConfig.UMAX*0.05f, 0.0f);
         }break;
         case 2:
         {
-            set_svpwm(motor,motor->MotorConfig.UMAX*0.5f,3.0f, Limit_angle_el((float)(total_time-time_init-time_prep)*velocity_target));
+            set_svpwm(motor,motor->MotorConfig.UMAX*0.05f,3.0f, Limit_angle_el((float)(total_time-time_init-time_prep)*velocity_target));
             velocity_integral += motor->MotorData.Velocity_raw;
         }break;
         case 3:
@@ -1558,7 +1556,7 @@ void update_2DIR_sensor_nonblock(Motor_HandleTypeDef *motor)
             }
             else if(velocity_integral<0)
             {
-                motor->MotorConfig.DIR = 2;
+                motor->MotorConfig.DIR = -1;
             }
             else
             {
@@ -1853,16 +1851,14 @@ void update_angle_el_zero_sensor_nonblock(Motor_HandleTypeDef *motor)
             else
             {
                 state = 2;
-                set_svpwm(motor,motor->MotorConfig.UMAX*0.5f, 0.0f , 0.0f);
+                set_svpwm(motor,motor->MotorConfig.UMAX*0.05f, 0.0f , 0.0f);
             }
             
         }break;
         case 2:
         {
-            angle_now = ctrl_motor_openloop_angle_nonblock(motor,2*PI,0.0f,0.3,motor->MotorConfig.UMAX*0.5f, 0.0f);
+            angle_now = ctrl_motor_openloop_angle_nonblock(motor,2*PI,0.0f,0.3,motor->MotorConfig.UMAX*0.05f, 0.0f);
             uint32_t i =(uint32_t)my_round((angle_now/(2*PI))*(float)sample_total);
-            // printf("%f\n",angle_el_zero[i]);
-
             if(i>=sample_total|| !angle_now)
             {
                 ctrl_motor_openloop_angle_nonblock(motor,0.0f,0.0f,1000.0f,0.0f,0.0f);//注销掉这个函数的angle_now，防止用到下一次开环执行程序中
@@ -1873,7 +1869,7 @@ void update_angle_el_zero_sensor_nonblock(Motor_HandleTypeDef *motor)
         }break;
         case 3:
         {
-            angle_now = ctrl_motor_openloop_angle_nonblock(motor,0.0f,2*PI,-0.3,motor->MotorConfig.UMAX*0.5f, 0.0f);
+            angle_now = ctrl_motor_openloop_angle_nonblock(motor,0.0f,2*PI,-0.3,motor->MotorConfig.UMAX*0.05f, 0.0f);
             uint32_t i =(uint32_t)my_round((angle_now/(2*PI))*(float)sample_total);
             int32_t i_int =(int32_t)my_round((angle_now/(2*PI))*(float)sample_total);
             // printf("%f\n",angle_el_zero[i]);
@@ -1897,6 +1893,9 @@ void update_angle_el_zero_sensor_nonblock(Motor_HandleTypeDef *motor)
                 angle_el_zero_all += angle_el_zero[i];
             }
             motor->MotorConfig.angle_el_zero = angle_el_zero_all/(float)sample_total;
+            angle_el_zero_all = 0.0f;
+            angle_now =0.0f;
+            total_time = 0.0f;
             set_svpwm(motor,0.0f, 0.0f , 0.0f);
             free((void*)angle_el_zero);   
             state = 1;
