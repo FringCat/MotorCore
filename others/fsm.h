@@ -4,7 +4,6 @@
 #include "foc_alg.h"
 #include "can_handler.h"
 #include "fdcan.h"
-#include "arm_math.h"  // 保留ARM Math库引入
 #include "adc.h"
 #include "fdcan.h"
 #include "spi.h"

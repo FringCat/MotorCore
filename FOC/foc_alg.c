@@ -344,91 +344,79 @@ float my_Limit(float value , float high , float low)
     return (value)<(low)?(low):((value)>(high)?(high):(value));//如果目标参数超出最大/最小值的范围，就把这个值锁死在最大/最小值
 }
 
-float *Calculate_Park_N(float Uq , float Ud , float angle_el)
+void update_sincos(Motor_HandleTypeDef *motor)
 {
-    static float Upark_N[2];  // 保留原静态数组以兼容接口
-    float cos_theta, sin_theta;
-
-    cos_theta = my_cos(angle_el);
-    sin_theta = my_sin(angle_el);
-
-    Upark_N[0] = Ud * cos_theta - Uq * sin_theta;  // Ualpha
-    Upark_N[1] = Uq * cos_theta + Ud * sin_theta;  // Ubeta
-
-    return Upark_N;
+    float angle_el = motor->MotorAlg.angle_el;
+    motor->MotorAlg.sin_theta = my_sin(angle_el);
+    motor->MotorAlg.cos_theta = my_cos(angle_el);
 }
 
-float *update_Park_N(Motor_HandleTypeDef *motor)
+void Calculate_Park_N_theta(float Uq , float Ud , float angle_el, float *Ualpha, float *Ubeta)
 {
-    static float* Upark_N;
-    Upark_N = Calculate_Park_N(motor->MotorAlg.Uq , motor->MotorAlg.Ud , Limit_angle_el(motor->MotorAlg.angle_el));
-    motor->MotorAlg.Ualpha = Upark_N[0];
-    motor->MotorAlg.Ubeta  = Upark_N[1];
-    return Upark_N;
+    float cos_theta = my_cos(angle_el);
+    float sin_theta = my_sin(angle_el);
+
+    *Ualpha = Ud * cos_theta - Uq * sin_theta;
+    *Ubeta  = Uq * cos_theta + Ud * sin_theta;
 }
 
-float *Calculate_Clark_N(float Ualpha ,float Ubeta,float Upower)
-{	
-    static float Uclark_N[3];
-    
+void Calculate_Park_N_sincos(float Uq , float Ud , float sin_theta ,float cos_theta, float *Ualpha, float *Ubeta)
+{
+    *Ualpha = Ud * cos_theta - Uq * sin_theta;
+    *Ubeta  = Uq * cos_theta + Ud * sin_theta;
+}
+
+void update_Park_N(Motor_HandleTypeDef *motor)
+{
+    Calculate_Park_N_sincos(motor->MotorAlg.Uq , motor->MotorAlg.Ud , motor->MotorAlg.sin_theta,motor->MotorAlg.cos_theta,&motor->MotorAlg.Ualpha, &motor->MotorAlg.Ubeta);
+}
+
+void Calculate_Clark_N(float Ualpha ,float Ubeta,float Upower, float *Ua, float *Ub, float *Uc)
+{
     //Clark逆变换:
-    Uclark_N[0] = Ualpha + Upower/2;                 // ①Ua = Ualpha ;
-    Uclark_N[1] = (SQRT3*Ubeta-Ualpha)/2 + Upower/2; // ②Ub = (√3 * Ubeta - Ualpha)/2 ;
-    Uclark_N[2] = -(Ualpha + SQRT3*Ubeta)/2 + Upower/2;// ③Uc = ( -Ualpha - √3 * Ubeta )/2;
-    
-    return Uclark_N;
+    *Ua = Ualpha + Upower/2;                 // ①Ua = Ualpha ;
+    *Ub = (SQRT3*Ubeta-Ualpha)/2 + Upower/2; // ②Ub = (√3 * Ubeta - Ualpha)/2 ;
+    *Uc = -(Ualpha + SQRT3*Ubeta)/2 + Upower/2;// ③Uc = ( -Ualpha - √3 * Ubeta )/2;
 }
 
-float *update_Clark_N(Motor_HandleTypeDef *motor)
-{	
-    static float* Uclark_N;
-    Uclark_N = Calculate_Clark_N(motor->MotorAlg.Ualpha , motor->MotorAlg.Ubeta , motor->MotorConfig.UMAX);
-    motor->MotorAlg.UA = Uclark_N[0];
-    motor->MotorAlg.UB = Uclark_N[1];
-    motor->MotorAlg.UC = Uclark_N[2];
-    return Uclark_N;
-}
-
-float *Calculate_Clark(float IA ,float IB ,float IC)
-{	
-    static float Iclark[2];
-    // const float sqrt3 = sqrt(3.0); // 高精度√3
-    
-    // 幅值不变型Clark变换（对称三相电流）
-    Iclark[0] = (2*IA - IB - IC)*_1_3;  // Iα
-    Iclark[1] = (IB - IC)*_1_SQRT3;       // Iβ
-
-    return Iclark;
-}
-
-float *update_Clark(Motor_HandleTypeDef *motor)
-{	
-    static float* Iclark;
-    Iclark = Calculate_Clark(motor->MotorAlg.IA , motor->MotorAlg.IB , motor->MotorAlg.IC);
-    motor->MotorAlg.Ialpha = Iclark[0];
-    motor->MotorAlg.Ibeta  = Iclark[1];
-    return Iclark;
-}
-
-float *Calculate_Park(float Ialpha ,float Ibeta ,float angle_el_rad)
+void update_Clark_N(Motor_HandleTypeDef *motor)
 {
-    static float Ipark[2];
+    Calculate_Clark_N(motor->MotorAlg.Ualpha , motor->MotorAlg.Ubeta , motor->MotorConfig.UMAX,
+                      &motor->MotorAlg.UA, &motor->MotorAlg.UB, &motor->MotorAlg.UC);
+}
+
+void Calculate_Clark(float IA ,float IB ,float IC, float *Ialpha, float *Ibeta)
+{
+    // 幅值不变型Clark变换（对称三相电流）
+    *Ialpha = (2*IA - IB - IC)*_1_3;  // Iα
+    *Ibeta  = (IB - IC)*_1_SQRT3;       // Iβ
+}
+
+void update_Clark(Motor_HandleTypeDef *motor)
+{
+    Calculate_Clark(motor->MotorAlg.IA , motor->MotorAlg.IB , motor->MotorAlg.IC,
+                    &motor->MotorAlg.Ialpha, &motor->MotorAlg.Ibeta);
+}
+
+void Calculate_Park_theta(float Ialpha ,float Ibeta ,float angle_el_rad, float *Id, float *Iq)
+{
     float cos_theta = my_cos(angle_el_rad);
     float sin_theta = my_sin(angle_el_rad);
 
     // Park变换（输入电角度为弧度制）
-    Ipark[0] = Ialpha * cos_theta + Ibeta * sin_theta;  // Id
-    Ipark[1] = -Ialpha * sin_theta + Ibeta * cos_theta; // Iq
-    
-    return Ipark;
+    *Id = Ialpha * cos_theta + Ibeta * sin_theta;
+    *Iq = -Ialpha * sin_theta + Ibeta * cos_theta;
 }
-float *update_Park(Motor_HandleTypeDef *motor)
+
+void Calculate_Park_sincos(float Ialpha ,float Ibeta ,float sin_theta,float cos_theta, float *Id, float *Iq)
 {
-    static float* Ipark;
-    Ipark = Calculate_Park(motor->MotorAlg.Ialpha , motor->MotorAlg.Ibeta , Limit_angle_el(motor->MotorAlg.angle_el));
-    motor->MotorAlg.Id = Ipark[0];
-    motor->MotorAlg.Iq = Ipark[1];
-    return Ipark;
+    *Id = Ialpha * cos_theta + Ibeta * sin_theta;
+    *Iq = -Ialpha * sin_theta + Ibeta * cos_theta;
+}
+
+void update_Park(Motor_HandleTypeDef *motor)
+{
+    Calculate_Park_sincos(motor->MotorAlg.Ialpha , motor->MotorAlg.Ibeta , motor->MotorAlg.sin_theta,motor->MotorAlg.cos_theta,&motor->MotorAlg.Id, &motor->MotorAlg.Iq);
 }
 
 void update_pwm(Motor_HandleTypeDef *motor)
@@ -521,22 +509,23 @@ void set_pwm_nodir(Motor_HandleTypeDef *motor,float Ta , float Tb ,float Tc)
     }
 }
 
-int Calculate_Sector( float Ualpha , float Ubeta )//存在较多边界条件问题
+int Calculate_Sector( float Ualpha , float Ubeta )
 {
-    if (Ubeta == 0.0f) 
+    int A = (Ubeta > 0.0f) ? 1 : 0;
+    int B = ((SQRT3 * Ualpha - Ubeta) > 0.0f) ? 1 : 0;
+    int C = ((-SQRT3 * Ualpha - Ubeta) > 0.0f) ? 1 : 0;
+    int N = A + 2 * B + 4 * C;
+
+    switch (N)
     {
-        return (Ualpha >= 0.0f) ? 1 : 4;  // α轴：正→1，负→4
+        case 1: return 2;
+        case 2: return 6;
+        case 3: return 1;
+        case 4: return 4;
+        case 5: return 3;
+        case 6: return 5;
+        default: return 1; /* Ualpha = Ubeta = 0 */
     }
-    if (Ualpha == 0.0f) {
-        return (Ubeta >= 0.0f) ? 2 : 5;  // β轴：正→2，负→5
-    }
-	if((Ualpha>0.0f) && (Ubeta>0.0f) && (Ubeta/Ualpha < SQRT3)){return 1 ;}
-	else if((Ubeta>0.0f) && (Ubeta/my_abs(Ualpha)>SQRT3)){return 2 ;}
-	else if((Ualpha<0.0f) && (Ubeta>0.0f) && (-Ubeta/Ualpha < SQRT3)){return 3 ;}
-	else if((Ualpha<0.0f) && (Ubeta<0.0f) && (Ubeta/Ualpha < SQRT3)){return 4 ;}
-	else if((Ubeta<0.0f) && (-Ubeta/my_abs(Ualpha)>SQRT3)){return 5 ;}
-	else if((Ualpha>0.0f) && (Ubeta<0.0f) && (-Ubeta/Ualpha < SQRT3)){return 6 ;}
-	else {return 0;}
 }
 
 int update_Sector(Motor_HandleTypeDef *motor)
@@ -688,7 +677,7 @@ void update_svpwm(Motor_HandleTypeDef *motor)
     update_Park_N(motor);
     update_Sector(motor);
 
-    K=(SQRT3*1)/(motor->MotorConfig.UMAX/2);
+    K=SQRT3/motor->MotorConfig.UMAX;
 	Ux = motor->MotorAlg.Ubeta;
 	Uy = (SQRT3/2.0f)*motor->MotorAlg.Ualpha - 0.5f*motor->MotorAlg.Ubeta;
 	Uz = (SQRT3/2.0f)*motor->MotorAlg.Ualpha + 0.5f*motor->MotorAlg.Ubeta;
@@ -722,12 +711,12 @@ void update_svpwm(Motor_HandleTypeDef *motor)
 	default:/*打印报错信息*/
 		break;
 	}
-    	Tz = 0.5f*(1-Tx-Ty) ;
 	if(Tx + Ty > 1)
 	{
 		Tx = Tx/(Tx+Ty)*1;
 		Ty = Ty/(Tx+Ty)*1;
 	}
+	Tz = 0.5f*(1-Tx-Ty) ;
 
 	switch(motor->MotorAlg.Sector)
 	{
@@ -765,11 +754,11 @@ void update_svpwm(Motor_HandleTypeDef *motor)
 			break;
 	}
 
-	float a = my_map(Ta,-1,1,0,1);
-	float b = my_map(Tb,-1,1,0,1);
-	float c = my_map(Tc,-1,1,0,1);
+    motor->MotorAlg.UA = Ta*motor->MotorConfig.UMAX - motor->MotorConfig.UMAX/2;
+    motor->MotorAlg.UB = Tb*motor->MotorConfig.UMAX - motor->MotorConfig.UMAX/2;
+    motor->MotorAlg.UC = Tc*motor->MotorConfig.UMAX - motor->MotorConfig.UMAX/2;
 
-    set_pwm(motor,a,b,c);
+    set_pwm(motor,Ta,Tb,Tc);
 }
 
 void set_svpwm(Motor_HandleTypeDef *motor, float Uq , float Ud ,float angle_el)
@@ -777,14 +766,12 @@ void set_svpwm(Motor_HandleTypeDef *motor, float Uq , float Ud ,float angle_el)
     static float K = 0 , Ux = 0 , Uy = 0 , Uz = 0 , Tx = 0 ,Ty = 0,Tz = 0;
 	static float Ta = 0 , Tb = 0 ,Tc = 0 ;
     float Ualpha = 0 , Ubeta = 0 ;
-    
-    float *Upark = Calculate_Park_N(Uq , Ud , angle_el);
-    Ualpha = Upark[0];
-    Ubeta  = Upark[1];
-    
+
+    Calculate_Park_N_theta(Uq , Ud , angle_el, &Ualpha, &Ubeta);
+
     int Sector = Calculate_Sector(Ualpha , Ubeta);
     
-    K=(SQRT3*1)/(motor->MotorConfig.UMAX/2);
+    K=SQRT3/motor->MotorConfig.UMAX;
     Ux = Ubeta;
     Uy = (SQRT3/2.0f)*Ualpha - 0.5f*Ubeta;
     Uz = (SQRT3/2.0f)*Ualpha + 0.5f*Ubeta;
@@ -818,110 +805,12 @@ void set_svpwm(Motor_HandleTypeDef *motor, float Uq , float Ud ,float angle_el)
         default:
             break;
 	}
-    	Tz = 0.5f*(1-Tx-Ty) ;
 	if(Tx + Ty > 1)
 	{
 		Tx = Tx/(Tx+Ty)*1;
 		Ty = Ty/(Tx+Ty)*1;
 	}
-
-	switch(Sector)
-	{
-		case 1 : 
-			Tc = Tz ;
-			Tb = Tz + Ty ;
-			Ta = Tz + Ty + Tx ;
-			break;
-		case 2 : 
-			Tc = Tz ;
-			Ta = Tz + Ty ;
-			Tb = Tz + Ty + Tx ;			
-			break;
-		case 3 : 
-			Ta = Tz ;
-			Tc = Tz + Ty ;
-			Tb = Tz + Ty + Tx ;	
-			break;
-		case 4 : 
-			Ta = Tz ;
-			Tb = Tz + Ty ;
-			Tc = Tz + Ty + Tx ;	
-			break;
-		case 5 : 
-			Tb = Tz ;
-			Ta = Tz + Ty ;
-			Tc = Tz + Ty + Tx ;	
-			break;
-		case 6 : 
-			Tb = Tz ;
-			Tc = Tz + Ty ;
-			Ta = Tz + Ty + Tx ;
-			break;
-		default:
-			break;
-	}
-
-	float a = my_map(Ta,-1,1,0,1);
-	float b = my_map(Tb,-1,1,0,1);
-	float c = my_map(Tc,-1,1,0,1);
-    set_pwm_nodir(motor,a,b,c);
-}
-
-void set_svpwm_dir(Motor_HandleTypeDef *motor, float Uq , float Ud ,float angle_el)
-{
-    static float K = 0 , Ux = 0 , Uy = 0 , Uz = 0 , Tx = 0 ,Ty = 0,Tz = 0;
-	static float Ta = 0 , Tb = 0 ,Tc = 0 ;
-    float Ualpha = 0 , Ubeta = 0 ;
-    
-    float *Upark = Calculate_Park_N(Uq , Ud , angle_el);
-    Ualpha = Upark[0];
-    Ubeta  = Upark[1];
-
-    motor->MotorAlg.Ualpha = Upark[0];//打印
-    motor->MotorAlg.Ubeta = Upark[1];
-    
-    int Sector = Calculate_Sector(Ualpha , Ubeta);
-    
-    K=(SQRT3*1)/(motor->MotorConfig.UMAX/2);
-    Ux = Ubeta;
-    Uy = (SQRT3/2.0f)*Ualpha - 0.5f*Ubeta;
-    Uz = (SQRT3/2.0f)*Ualpha + 0.5f*Ubeta;
-
-    switch (Sector)
-	{
-        case 1:
-            Tx = K*Uy ;
-            Ty = K*Ux ;
-            break;
-        case 2:
-            Tx = -K*Uy ;
-            Ty = K*Uz ;
-            break;
-        case 3:
-            Tx = K*Ux ;
-            Ty = -K*Uz ;
-            break;
-        case 4:
-            Tx = -K*Ux ;
-            Ty = -K*Uy ;
-            break;
-        case 5:
-            Tx = -K*Uz ;
-            Ty = K*Uy ;
-            break;
-        case 6:
-            Tx = K*Uz ;
-            Ty = -K*Ux ;
-            break;
-        default:
-            break;
-	}
-    	Tz = 0.5f*(1-Tx-Ty) ;
-	if(Tx + Ty > 1)
-	{
-		Tx = Tx/(Tx+Ty)*1;
-		Ty = Ty/(Tx+Ty)*1;
-	}
+	Tz = 0.5f*(1-Tx-Ty) ;
 
 	switch(Sector)
 	{
@@ -963,10 +852,104 @@ void set_svpwm_dir(Motor_HandleTypeDef *motor, float Uq , float Ud ,float angle_
     motor->MotorAlg.UB = Tb*motor->MotorConfig.UMAX - motor->MotorConfig.UMAX/2;
     motor->MotorAlg.UC = Tc*motor->MotorConfig.UMAX - motor->MotorConfig.UMAX/2;
 
-	float a = my_map(Ta,-1,1,0,1);
-	float b = my_map(Tb,-1,1,0,1);
-	float c = my_map(Tc,-1,1,0,1);
-    set_pwm(motor,a,b,c);
+    set_pwm_nodir(motor,Ta,Tb,Tc);
+}
+
+void set_svpwm_dir(Motor_HandleTypeDef *motor, float Uq , float Ud ,float angle_el)
+{
+    static float K = 0 , Ux = 0 , Uy = 0 , Uz = 0 , Tx = 0 ,Ty = 0,Tz = 0;
+	static float Ta = 0 , Tb = 0 ,Tc = 0 ;
+    float Ualpha = 0 , Ubeta = 0 ;
+
+    Calculate_Park_N_theta(Uq , Ud , angle_el, &Ualpha, &Ubeta);
+
+    motor->MotorAlg.Ualpha = Ualpha;//打印
+    motor->MotorAlg.Ubeta = Ubeta;
+    
+    int Sector = Calculate_Sector(Ualpha , Ubeta);
+    
+    K=SQRT3/motor->MotorConfig.UMAX;
+    Ux = Ubeta;
+    Uy = (SQRT3/2.0f)*Ualpha - 0.5f*Ubeta;
+    Uz = (SQRT3/2.0f)*Ualpha + 0.5f*Ubeta;
+
+    switch (Sector)
+	{
+        case 1:
+            Tx = K*Uy ;
+            Ty = K*Ux ;
+            break;
+        case 2:
+            Tx = -K*Uy ;
+            Ty = K*Uz ;
+            break;
+        case 3:
+            Tx = K*Ux ;
+            Ty = -K*Uz ;
+            break;
+        case 4:
+            Tx = -K*Ux ;
+            Ty = -K*Uy ;
+            break;
+        case 5:
+            Tx = -K*Uz ;
+            Ty = K*Uy ;
+            break;
+        case 6:
+            Tx = K*Uz ;
+            Ty = -K*Ux ;
+            break;
+        default:
+            break;
+	}
+	if(Tx + Ty > 1)
+	{
+		Tx = Tx/(Tx+Ty)*1;
+		Ty = Ty/(Tx+Ty)*1;
+	}
+	Tz = 0.5f*(1-Tx-Ty) ;
+
+	switch(Sector)
+	{
+		case 1 : 
+			Tc = Tz ;
+			Tb = Tz + Ty ;
+			Ta = Tz + Ty + Tx ;
+			break;
+		case 2 : 
+			Tc = Tz ;
+			Ta = Tz + Ty ;
+			Tb = Tz + Ty + Tx ;			
+			break;
+		case 3 : 
+			Ta = Tz ;
+			Tc = Tz + Ty ;
+			Tb = Tz + Ty + Tx ;	
+			break;
+		case 4 : 
+			Ta = Tz ;
+			Tb = Tz + Ty ;
+			Tc = Tz + Ty + Tx ;	
+			break;
+		case 5 : 
+			Tb = Tz ;
+			Ta = Tz + Ty ;
+			Tc = Tz + Ty + Tx ;	
+			break;
+		case 6 : 
+			Tb = Tz ;
+			Tc = Tz + Ty ;
+			Ta = Tz + Ty + Tx ;
+			break;
+		default:
+			break;
+	}
+
+    motor->MotorAlg.UA = Ta*motor->MotorConfig.UMAX - motor->MotorConfig.UMAX/2;
+    motor->MotorAlg.UB = Tb*motor->MotorConfig.UMAX - motor->MotorConfig.UMAX/2;
+    motor->MotorAlg.UC = Tc*motor->MotorConfig.UMAX - motor->MotorConfig.UMAX/2;
+
+    set_pwm(motor,Ta,Tb,Tc);
 }
 
 void update_spwm(Motor_HandleTypeDef *motor)
@@ -983,20 +966,23 @@ void update_spwm(Motor_HandleTypeDef *motor)
 
 void set_spwm(Motor_HandleTypeDef *motor,float Uq, float Ud ,float angle_el)
 {
-    float *Upark = Calculate_Park_N(Uq , Ud , angle_el);
-    float *Uclark = Calculate_Clark_N(Upark[0] , Upark[1] , motor->MotorConfig.UMAX);
-    
-    Uclark[0]= Uclark[0] - motor->MotorConfig.UMAX/2;
-    Uclark[1]= Uclark[1] - motor->MotorConfig.UMAX/2;
-    Uclark[2]= Uclark[2] - motor->MotorConfig.UMAX/2;
+    float Ualpha, Ubeta;
+    float UA, UB, UC;
 
-    motor->MotorAlg.UA = Uclark[0];
-    motor->MotorAlg.UB = Uclark[1];
-    motor->MotorAlg.UC = Uclark[2];
-    
-    float TA = my_map(Uclark[0],-motor->MotorConfig.UMAX/2,motor->MotorConfig.UMAX/2,0.0f,1.0f);
-    float TB = my_map(Uclark[1],-motor->MotorConfig.UMAX/2,motor->MotorConfig.UMAX/2,0.0f,1.0f);
-    float TC = my_map(Uclark[2],-motor->MotorConfig.UMAX/2,motor->MotorConfig.UMAX/2,0.0f,1.0f);
+    Calculate_Park_N_theta(Uq , Ud , angle_el, &Ualpha, &Ubeta);
+    Calculate_Clark_N(Ualpha , Ubeta , motor->MotorConfig.UMAX, &UA, &UB, &UC);
+
+    UA = UA - motor->MotorConfig.UMAX/2;
+    UB = UB - motor->MotorConfig.UMAX/2;
+    UC = UC - motor->MotorConfig.UMAX/2;
+
+    motor->MotorAlg.UA = UA;
+    motor->MotorAlg.UB = UB;
+    motor->MotorAlg.UC = UC;
+
+    float TA = my_map(UA,-motor->MotorConfig.UMAX/2,motor->MotorConfig.UMAX/2,0.0f,1.0f);
+    float TB = my_map(UB,-motor->MotorConfig.UMAX/2,motor->MotorConfig.UMAX/2,0.0f,1.0f);
+    float TC = my_map(UC,-motor->MotorConfig.UMAX/2,motor->MotorConfig.UMAX/2,0.0f,1.0f);
 
     set_pwm(motor,TA, TB, TC);
     // set_pwm_nodir(motor,TA, TB, TC);
@@ -1013,9 +999,8 @@ float update_dt(Motor_HandleTypeDef *motor)
     return motor->time.dt;
 }
 
-int* Calculate_Order_int(float IA, float IB, float IC, int PHASE)
+void Calculate_Order_int(float IA, float IB, float IC, int PHASE, int *IA_out, int *IB_out, int *IC_out)
 {
-    static int data_[3];
     int a = (int)IA;
     int b = (int)IB;
     int c = (int)IC;
@@ -1023,47 +1008,45 @@ int* Calculate_Order_int(float IA, float IB, float IC, int PHASE)
     switch (PHASE)
     {
         case 1:
-            data_[0] = a;
-            data_[1] = b;
-            data_[2] = c;
+            *IA_out = a;
+            *IB_out = b;
+            *IC_out = c;
             break;
         case 2:
-            data_[0] = b;
-            data_[1] = a;
-            data_[2] = c;
+            *IA_out = b;
+            *IB_out = a;
+            *IC_out = c;
             break;
         case 3:
-            data_[0] = c;
-            data_[1] = b;
-            data_[2] = a;
+            *IA_out = c;
+            *IB_out = b;
+            *IC_out = a;
             break;
         case 4:
-            data_[0] = c;
-            data_[1] = a;
-            data_[2] = b;
+            *IA_out = c;
+            *IB_out = a;
+            *IC_out = b;
             break;
         case 5:
-            data_[0] = b;
-            data_[1] = c;
-            data_[2] = a;
+            *IA_out = b;
+            *IB_out = c;
+            *IC_out = a;
             break;
         case 6:
-            data_[0] = a;
-            data_[1] = c;
-            data_[2] = b;
+            *IA_out = a;
+            *IB_out = c;
+            *IC_out = b;
             break;
         default:
-            data_[0] = a;
-            data_[1] = b;
-            data_[2] = c;
+            *IA_out = a;
+            *IB_out = b;
+            *IC_out = c;
             break;
     }
-    return data_;
 }
 
-float* Calculate_Order_float(float IA, float IB, float IC, int PHASE)
+void Calculate_Order_float(float IA, float IB, float IC, int PHASE, float *IA_out, float *IB_out, float *IC_out)
 {
-    static float data_[3];
     float a = IA;
     float b = IB;
     float c = IC;
@@ -1071,42 +1054,41 @@ float* Calculate_Order_float(float IA, float IB, float IC, int PHASE)
     switch (PHASE)
     {
         case 1:
-            data_[0] = a;
-            data_[1] = b;
-            data_[2] = c;
+            *IA_out = a;
+            *IB_out = b;
+            *IC_out = c;
             break;
         case 2:
-            data_[0] = b;
-            data_[1] = a;
-            data_[2] = c;
+            *IA_out = b;
+            *IB_out = a;
+            *IC_out = c;
             break;
         case 3:
-            data_[0] = c;
-            data_[1] = b;
-            data_[2] = a;
+            *IA_out = c;
+            *IB_out = b;
+            *IC_out = a;
             break;
         case 4:
-            data_[0] = c;
-            data_[1] = a;
-            data_[2] = b;
+            *IA_out = c;
+            *IB_out = a;
+            *IC_out = b;
             break;
         case 5:
-            data_[0] = b;
-            data_[1] = c;
-            data_[2] = a;
+            *IA_out = b;
+            *IB_out = c;
+            *IC_out = a;
             break;
         case 6:
-            data_[0] = a;
-            data_[1] = c;
-            data_[2] = b;
+            *IA_out = a;
+            *IB_out = c;
+            *IC_out = b;
             break;
         default:
-            data_[0] = a;
-            data_[1] = b;
-            data_[2] = c;
+            *IA_out = a;
+            *IB_out = b;
+            *IC_out = c;
             break;
     }
-    return data_;
 }
 
 int update_IaIbIc(Motor_HandleTypeDef *motor,int Mode_Sampling,int PHASE)
@@ -1215,11 +1197,19 @@ int update_IaIbIc(Motor_HandleTypeDef *motor,int Mode_Sampling,int PHASE)
             return 0;
     }
 
-    float *ph = Calculate_Order_float(motor->MotorData.IA_NoOrder, motor->MotorData.IB_NoOrder, motor->MotorData.IC_NoOrder, PHASE);
-    motor->MotorAlg.IA = ph[0];
-    motor->MotorAlg.IB = ph[1];
-    motor->MotorAlg.IC = ph[2];
+    Calculate_Order_float(motor->MotorData.IA_NoOrder, motor->MotorData.IB_NoOrder, motor->MotorData.IC_NoOrder, PHASE,
+                          &motor->MotorAlg.IA, &motor->MotorAlg.IB, &motor->MotorAlg.IC);
     return 1 ;
+}
+
+void update_IalphaIbeta(Motor_HandleTypeDef *motor)
+{
+    Calculate_Clark(motor->MotorAlg.IA , motor->MotorAlg.IB , motor->MotorAlg.IC,&motor->MotorAlg.Ialpha, &motor->MotorAlg.Ibeta);
+}
+
+void update_IqId(Motor_HandleTypeDef *motor)
+{
+    Calculate_Park_sincos(motor->MotorAlg.Ialpha , motor->MotorAlg.Ibeta , motor->MotorAlg.sin_theta,motor->MotorAlg.cos_theta,&motor->MotorAlg.Id, &motor->MotorAlg.Iq);
 }
 
 float get_Ia(Motor_HandleTypeDef *motor)

@@ -82,6 +82,7 @@ typedef struct
  */
 typedef struct
 {
+    float sin_theta,cos_theta;
     // -------------------------- 电流相关（FOC Clark/Park变换前后数据） --------------------------
     float IA, IB, IC;       // 三相定子电流（ADC采集后校准的值，单位：A）
     float Ialpha, Ibeta;    // αβ坐标系电流（Clark变换结果，FOC的中间坐标系）
@@ -236,21 +237,23 @@ void reset_data_angle(Motor_HandleTypeDef *motor);
 // 电角度处理
 float Limit_angle(float angle, float Low, float High);
 float Limit_angle_el(float angle_el);                                               // 电角度限幅（约束在0~2π）
-float Limit_angle_flange(float angle_all,float GR);
 float Get_angle_el(Motor_HandleTypeDef *motor);                                     // 获取当前电角度
 float update_angle_el(Motor_HandleTypeDef *motor);                                  // 更新电角度（机械角→电角度）
 float Calculate_angle_el(float Pole_pairs,float angle,float angle_el_zero);         // 计算电角度（含极对数和零点）
 float update_angle(Motor_HandleTypeDef *motor);
 
 // FOC坐标变换
-float *Calculate_Park_N(float Uq , float Ud , float angle_el);                      // Park逆变换（dq→αβ电压）
-float *update_Park_N(Motor_HandleTypeDef *motor);                                   // 更新Park逆变换结果到算法层
-float *Calculate_Clark_N(float Ualpha ,float Ubeta,float Upower);                   // Clark逆变换（αβ→三相电压）
-float *update_Clark_N(Motor_HandleTypeDef *motor);                                  // 更新Clark逆变换结果到算法层
-float *Calculate_Clark(float IA ,float IB ,float IC);                               // Clark变换（三相电流→αβ电流）
-float *update_Clark(Motor_HandleTypeDef *motor);                                    // 更新Clark变换结果到算法层
-float *Calculate_Park(float Ialpha ,float Ibeta ,float angle_el);                   // Park变换（αβ电流→dq电流）
-float *update_Park(Motor_HandleTypeDef *motor);                                     // 更新Park变换结果到算法层
+void update_sincos(Motor_HandleTypeDef *motor);
+void Calculate_Park_N_theta(float Uq , float Ud , float angle_el, float *Ualpha, float *Ubeta); // Park逆变换（dq→αβ电压）
+void Calculate_Park_N_sincos(float Uq , float Ud , float sin_theta,float cos_theta, float *Ualpha, float *Ubeta);
+void update_Park_N(Motor_HandleTypeDef *motor);                                     // 更新Park逆变换结果到算法层
+void Calculate_Clark_N(float Ualpha ,float Ubeta,float Upower, float *Ua, float *Ub, float *Uc); // Clark逆变换（αβ→三相电压）
+void update_Clark_N(Motor_HandleTypeDef *motor);                                    // 更新Clark逆变换结果到算法层
+void Calculate_Clark(float IA ,float IB ,float IC, float *Ialpha, float *Ibeta);    // Clark变换（三相电流→αβ电流）
+void update_Clark(Motor_HandleTypeDef *motor);                                      // 更新Clark变换结果到算法层
+void Calculate_Park_theta(float Ialpha ,float Ibeta ,float angle_el, float *Id, float *Iq); // Park变换（αβ电流→dq电流）
+void Calculate_Park_sincos(float Ialpha ,float Ibeta ,float sin_theta,float cos_theta, float *Id, float *Iq); // Park变换（αβ电流→dq电流）
+void update_Park(Motor_HandleTypeDef *motor);                                       // 更新Park变换结果到算法层
 
 // PWM输出控制
 void update_pwm(Motor_HandleTypeDef *motor);                                        // 更新PWM（用算法层三相电压输出）
@@ -288,9 +291,11 @@ float update_dt(Motor_HandleTypeDef *motor); // 更新dt值
 float get_dt(Motor_HandleTypeDef *motor); // 获取当前dt值
 
 // 数据采样与处理
-int* Calculate_Order_int(float IA ,float IB ,float IC , int PHASE); // 相序重构函数(int)
-float* Calculate_Order_float(float IA ,float IB ,float IC , int PHASE); // 相序重构函数(float)
+void Calculate_Order_int(float IA ,float IB ,float IC , int PHASE, int *IA_out, int *IB_out, int *IC_out); // 相序重构函数(int)
+void Calculate_Order_float(float IA ,float IB ,float IC , int PHASE, float *IA_out, float *IB_out, float *IC_out); // 相序重构函数(float)
 int update_IaIbIc(Motor_HandleTypeDef *motor,int Mode_Sampling,int PHASE);
+void update_IalphaIbeta(Motor_HandleTypeDef *motor);
+void update_IqId(Motor_HandleTypeDef *motor);
 void update_Ioffset_block(Motor_HandleTypeDef *motor,int Mode_Sampling);  // 更新电流偏置-阻塞式（静止时多次采样平均）
 int update_Ioffset_nonblock(Motor_HandleTypeDef *motor,int Mode_Sampling);// 更新电流偏置-非阻塞式（静止时单次采样累加，需多次调用）
 float get_Ia(Motor_HandleTypeDef *motor);  // 获取IA电流

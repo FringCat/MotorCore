@@ -25,7 +25,6 @@
 #include "foc_alg.h"
 #include "can_handler.h"
 #include "fdcan.h"
-#include "arm_math.h"  
 #include "fsm.h"
 /* USER CODE END Includes */
 
@@ -232,8 +231,9 @@ void ADC1_2_IRQHandler(void)
   }
   update_dt(&motor);
   update_angle(&motor);
-  update_Clark(&motor);
-  update_Park(&motor);
+  update_sincos(&motor);
+  update_IalphaIbeta(&motor);
+  update_IqId(&motor);
   update_velocity_LPF(&motor);
 
   HAL_GPIO_TogglePin(TEST2_GPIO_Port, TEST2_Pin);
