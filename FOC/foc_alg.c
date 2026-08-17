@@ -671,8 +671,8 @@ float Calculate_PID_IS_AIS(float target, float feedback, float dt, PID_t* pid,fl
 
 void update_svpwm(Motor_HandleTypeDef *motor)
 {
-    static float K = 0 , Ux = 0 , Uy = 0 , Uz = 0 , Tx = 0 ,Ty = 0,Tz = 0;
-	static float Ta = 0 , Tb = 0 ,Tc = 0 ;
+    float K = 0 , Ux = 0 , Uy = 0 , Uz = 0 , Tx = 0 ,Ty = 0,Tz = 0;
+	float Ta = 0 , Tb = 0 ,Tc = 0 ;
 
     update_Park_N(motor);
     update_Sector(motor);
@@ -763,8 +763,8 @@ void update_svpwm(Motor_HandleTypeDef *motor)
 
 void set_svpwm(Motor_HandleTypeDef *motor, float Uq , float Ud ,float angle_el)
 {
-    static float K = 0 , Ux = 0 , Uy = 0 , Uz = 0 , Tx = 0 ,Ty = 0,Tz = 0;
-	static float Ta = 0 , Tb = 0 ,Tc = 0 ;
+    float K = 0 , Ux = 0 , Uy = 0 , Uz = 0 , Tx = 0 ,Ty = 0,Tz = 0;
+	float Ta = 0 , Tb = 0 ,Tc = 0 ;
     float Ualpha = 0 , Ubeta = 0 ;
 
     Calculate_Park_N_theta(Uq , Ud , angle_el, &Ualpha, &Ubeta);
@@ -857,8 +857,8 @@ void set_svpwm(Motor_HandleTypeDef *motor, float Uq , float Ud ,float angle_el)
 
 void set_svpwm_dir(Motor_HandleTypeDef *motor, float Uq , float Ud ,float angle_el)
 {
-    static float K = 0 , Ux = 0 , Uy = 0 , Uz = 0 , Tx = 0 ,Ty = 0,Tz = 0;
-	static float Ta = 0 , Tb = 0 ,Tc = 0 ;
+    float K = 0 , Ux = 0 , Uy = 0 , Uz = 0 , Tx = 0 ,Ty = 0,Tz = 0;
+	float Ta = 0 , Tb = 0 ,Tc = 0 ;
     float Ualpha = 0 , Ubeta = 0 ;
 
     Calculate_Park_N_theta(Uq , Ud , angle_el, &Ualpha, &Ubeta);
@@ -1227,11 +1227,37 @@ float get_Ic(Motor_HandleTypeDef *motor)
     return motor->MotorAlg.IC;
 }
 
+int update_Ioffset_nonblock_(Motor_HandleTypeDef *motor,uint32_t this_IA_raw,uint32_t this_IB_raw,uint32_t this_IC_raw)
+{
+    if(motor->MotorData.Calibrate_Ioffset_nonblock_count < motor->MotorData.Calibrate_Ioffset_nonblock_sample_total)
+    {
+        motor->MotorData.Calibrate_Ioffset_nonblock_IA_offset_raw_all += this_IA_raw;
+        motor->MotorData.Calibrate_Ioffset_nonblock_IB_offset_raw_all += this_IB_raw;
+        motor->MotorData.Calibrate_Ioffset_nonblock_IC_offset_raw_all += this_IC_raw;
+        motor->MotorData.Calibrate_Ioffset_nonblock_count++;
+        return 0 ;
+    }
+    else if(motor->MotorData.Calibrate_Ioffset_nonblock_count >= motor->MotorData.Calibrate_Ioffset_nonblock_sample_total)
+    {
+        motor->MotorData.IA_offset_raw = motor->MotorData.Calibrate_Ioffset_nonblock_IA_offset_raw_all/motor->MotorData.Calibrate_Ioffset_nonblock_count;
+        motor->MotorData.IB_offset_raw = motor->MotorData.Calibrate_Ioffset_nonblock_IB_offset_raw_all/motor->MotorData.Calibrate_Ioffset_nonblock_count;
+        motor->MotorData.IC_offset_raw = motor->MotorData.Calibrate_Ioffset_nonblock_IC_offset_raw_all/motor->MotorData.Calibrate_Ioffset_nonblock_count; //因为IC没有偏置，所以这里直接用IB的平均值
+        motor->MotorData.Calibrate_Ioffset_nonblock_IA_offset_raw_all = 0;
+        motor->MotorData.Calibrate_Ioffset_nonblock_IB_offset_raw_all = 0;
+        motor->MotorData.Calibrate_Ioffset_nonblock_IC_offset_raw_all = 0;
+        motor->MotorData.Calibrate_Ioffset_nonblock_count = 0;
+        return 1 ;
+    }
+    return 0 ;
+}
+
 int update_Ioffset_nonblock(Motor_HandleTypeDef *motor,int Mode_Sampling)
 {
-    static uint32_t count = 0 ;
-    static uint32_t IA_offset_raw_all = 0,IB_offset_raw_all = 0,IC_offset_raw_all = 0;
-    if(count < 1000)
+    uint32_t this_IA_raw = 0U;
+    uint32_t this_IB_raw = 0U;
+    uint32_t this_IC_raw = 0U;
+
+    if(motor->MotorData.Calibrate_Ioffset_nonblock_count < motor->MotorData.Calibrate_Ioffset_nonblock_sample_total)
     {
         switch(Mode_Sampling)
         {
@@ -1241,9 +1267,9 @@ int update_Ioffset_nonblock(Motor_HandleTypeDef *motor,int Mode_Sampling)
                 {
                     return 0;
                 }
-                IA_offset_raw_all += motor->MotorDrv.Update_Ia_raw();
-                IB_offset_raw_all += motor->MotorDrv.Update_Ib_raw();
-                IC_offset_raw_all += motor->MotorDrv.Update_Ic_raw();
+                this_IA_raw = motor->MotorDrv.Update_Ia_raw();
+                this_IB_raw = motor->MotorDrv.Update_Ib_raw();
+                this_IC_raw = motor->MotorDrv.Update_Ic_raw();
             }break;
             case 0x110: /* ABX */
             {
@@ -1251,9 +1277,9 @@ int update_Ioffset_nonblock(Motor_HandleTypeDef *motor,int Mode_Sampling)
                 {
                     return 0;
                 }
-                IA_offset_raw_all += motor->MotorDrv.Update_Ia_raw();
-                IB_offset_raw_all += motor->MotorDrv.Update_Ib_raw();
-                IC_offset_raw_all += 0U;
+                this_IA_raw = motor->MotorDrv.Update_Ia_raw();
+                this_IB_raw = motor->MotorDrv.Update_Ib_raw();
+                this_IC_raw = 0U;
             }break;
             case 0x101: /* AXC*/
             {
@@ -1261,9 +1287,9 @@ int update_Ioffset_nonblock(Motor_HandleTypeDef *motor,int Mode_Sampling)
                 {
                     return 0;
                 }
-                IA_offset_raw_all += motor->MotorDrv.Update_Ia_raw();
-                IB_offset_raw_all += 0U;
-                IC_offset_raw_all += motor->MotorDrv.Update_Ic_raw();
+                this_IA_raw = motor->MotorDrv.Update_Ia_raw();
+                this_IB_raw = 0U;
+                this_IC_raw = motor->MotorDrv.Update_Ic_raw();
 
             }break;
             case 0x011: /* XBC*/
@@ -1272,9 +1298,9 @@ int update_Ioffset_nonblock(Motor_HandleTypeDef *motor,int Mode_Sampling)
                 {
                     return 0;
                 }
-                IA_offset_raw_all += 0U;
-                IB_offset_raw_all += motor->MotorDrv.Update_Ib_raw();
-                IC_offset_raw_all += motor->MotorDrv.Update_Ic_raw();
+                this_IA_raw = 0U;
+                this_IB_raw = motor->MotorDrv.Update_Ib_raw();
+                this_IC_raw = motor->MotorDrv.Update_Ic_raw();
 
             }break;
             case 0x100: /* AXX */
@@ -1283,9 +1309,9 @@ int update_Ioffset_nonblock(Motor_HandleTypeDef *motor,int Mode_Sampling)
                 {
                     return 0;
                 }
-                IA_offset_raw_all += motor->MotorDrv.Update_Ia_raw();
-                IB_offset_raw_all += 0U;
-                IC_offset_raw_all += 0U;
+                this_IA_raw = motor->MotorDrv.Update_Ia_raw();
+                this_IB_raw = 0U;
+                this_IC_raw = 0U;
             }break;
             case 0x010: /* XBX*/
             {
@@ -1293,9 +1319,9 @@ int update_Ioffset_nonblock(Motor_HandleTypeDef *motor,int Mode_Sampling)
                 {
                     return 0;
                 }
-                IA_offset_raw_all += 0U;
-                IB_offset_raw_all += motor->MotorDrv.Update_Ib_raw();
-                IC_offset_raw_all += 0U;
+                this_IA_raw = 0U;
+                this_IB_raw = motor->MotorDrv.Update_Ib_raw();
+                this_IC_raw = 0U;
 
             }break;
             case 0x001: /* XXC */
@@ -1304,28 +1330,15 @@ int update_Ioffset_nonblock(Motor_HandleTypeDef *motor,int Mode_Sampling)
                 {
                     return 0;
                 }
-                IA_offset_raw_all += 0U;
-                IB_offset_raw_all += 0U;
-                IC_offset_raw_all += motor->MotorDrv.Update_Ic_raw();
+                this_IA_raw = 0U;
+                this_IB_raw = 0U;
+                this_IC_raw = motor->MotorDrv.Update_Ic_raw();
             }break;
             default:
                 return 0;            
         }
-        count++;
-        return 0 ;
     }
-    else if(count >= 1000)
-    {
-        motor->MotorData.IA_offset_raw = IA_offset_raw_all/count;
-        motor->MotorData.IB_offset_raw = IB_offset_raw_all/count;
-        motor->MotorData.IC_offset_raw = IC_offset_raw_all/count; //因为IC没有偏置，所以这里直接用IB的平均值
-        IA_offset_raw_all = 0;
-        IB_offset_raw_all = 0;
-        IC_offset_raw_all = 0;
-        count = 0;
-        return 1 ;
-    }
-    return 0 ;
+    return update_Ioffset_nonblock_(motor,this_IA_raw,this_IB_raw,this_IC_raw);
 }
 
 void update_Ioffset_block(Motor_HandleTypeDef *motor,int Mode_Sampling)
@@ -1350,7 +1363,7 @@ float get_Ic_offset(Motor_HandleTypeDef *motor)
 
 void update_pole_pairs_sensor_block(Motor_HandleTypeDef *motor)
 {
-    float velocity_integral = 0.0f;
+    motor->MotorData.Calibrate_pole_pairs_block_velocity_integral = 0.0f;
     set_svpwm(motor,motor->MotorConfig.UMAX*0.05f,0.0f, 0.0f);
     motor->MotorDrv.Delayms(2000);
     for(int i=0 ; i<1000 ; i++)
@@ -1365,49 +1378,46 @@ void update_pole_pairs_sensor_block(Motor_HandleTypeDef *motor)
         update_dt(motor);  //预热dt，防止因初次启动产生的极小dt干扰后面的速度计算
         update_angle(motor);
         update_velocity_raw(motor);
-        velocity_integral += motor->MotorData.Velocity_raw*motor->time.dt;
+        motor->MotorData.Calibrate_pole_pairs_block_velocity_integral += motor->MotorData.Velocity_raw*motor->time.dt;
 
-        set_svpwm(motor,motor->MotorConfig.UMAX*0.05f,0.0f,Limit_angle_el((float)i*0.01f));
+        set_svpwm(motor,motor->MotorConfig.UMAX*0.05f,0.0f,Limit_angle_el((float)i*motor->MotorData.Calibrate_pole_pairs_block_angle_step));
         motor->MotorDrv.Delayms(1);
     }
     motor->MotorDrv.Delayms(2000);
-    motor->MotorConfig.Pole_pairs = (uint32_t)my_round(my_abs((float)(1000*0.01f)/(velocity_integral)));
+    motor->MotorConfig.Pole_pairs = (uint32_t)my_round(my_abs((float)(1000*motor->MotorData.Calibrate_pole_pairs_block_angle_step)/(motor->MotorData.Calibrate_pole_pairs_block_velocity_integral)));
 
     set_svpwm(motor,0.0f, 0.0f , 0.0f); 
 }
 
 void update_pole_pairs_sensor_nonblock(Motor_HandleTypeDef *motor)
 {
-    float velocity_target = 3.0f; 
-    float time_init = 0.5f;
-    float time_prep = 1.0f;
-    float time_process = 5.0f;
-
-    static uint8_t state = 0 ;
-    static float total_time = 0 ;
-    static float velocity_integral = 0.0f;
-
-    total_time += update_dt(motor);
+    float this_dt = update_dt(motor);
     update_angle(motor);
     update_velocity_raw(motor);
-    if(total_time < time_init)
+    update_pole_pairs_sensor_nonblock_(motor,this_dt,motor->MotorData.Velocity_raw);
+}
+
+void update_pole_pairs_sensor_nonblock_(Motor_HandleTypeDef *motor,float this_dt,float this_velocity_raw)
+{
+    motor->MotorData.Calibrate_pole_pairs_nonblock_total_time += this_dt;
+    if(motor->MotorData.Calibrate_pole_pairs_nonblock_total_time < motor->MotorData.Calibrate_pole_pairs_nonblock_time_init)
     {
-        state = 0;
+        motor->MotorData.Calibrate_pole_pairs_nonblock_state = 0;
     }
-    else if(total_time >= time_init && total_time < (time_init+time_prep))
+    else if(motor->MotorData.Calibrate_pole_pairs_nonblock_total_time >= motor->MotorData.Calibrate_pole_pairs_nonblock_time_init && motor->MotorData.Calibrate_pole_pairs_nonblock_total_time < (motor->MotorData.Calibrate_pole_pairs_nonblock_time_init+motor->MotorData.Calibrate_pole_pairs_nonblock_time_prep))
     {
-        state = 1;
+        motor->MotorData.Calibrate_pole_pairs_nonblock_state = 1;
     }
-    else if(total_time >= (time_init+time_prep) && total_time < (time_init+time_prep+time_process))
+    else if(motor->MotorData.Calibrate_pole_pairs_nonblock_total_time >= (motor->MotorData.Calibrate_pole_pairs_nonblock_time_init+motor->MotorData.Calibrate_pole_pairs_nonblock_time_prep) && motor->MotorData.Calibrate_pole_pairs_nonblock_total_time < (motor->MotorData.Calibrate_pole_pairs_nonblock_time_init+motor->MotorData.Calibrate_pole_pairs_nonblock_time_prep+motor->MotorData.Calibrate_pole_pairs_nonblock_time_process))
     {
-        state = 2;
+        motor->MotorData.Calibrate_pole_pairs_nonblock_state = 2;
     }
-    else if(total_time >= (time_init+time_prep+time_process))
+    else if(motor->MotorData.Calibrate_pole_pairs_nonblock_total_time >= (motor->MotorData.Calibrate_pole_pairs_nonblock_time_init+motor->MotorData.Calibrate_pole_pairs_nonblock_time_prep+motor->MotorData.Calibrate_pole_pairs_nonblock_time_process))
     {
-        state = 3;
+        motor->MotorData.Calibrate_pole_pairs_nonblock_state = 3;
     }
     
-    switch (state)
+    switch (motor->MotorData.Calibrate_pole_pairs_nonblock_state)
     {
         case 0:
         {
@@ -1419,17 +1429,17 @@ void update_pole_pairs_sensor_nonblock(Motor_HandleTypeDef *motor)
         }break;
         case 2:
         {
-            velocity_integral += motor->MotorData.Velocity_raw*motor->time.dt;
-            set_svpwm(motor,motor->MotorConfig.UMAX*0.05f,0.0f, Limit_angle_el((float)velocity_target*(total_time-time_init-time_prep)));
+            motor->MotorData.Calibrate_pole_pairs_nonblock_velocity_integral += this_velocity_raw*this_dt;
+            set_svpwm(motor,motor->MotorConfig.UMAX*0.05f,0.0f, Limit_angle_el((float)motor->MotorData.Calibrate_pole_pairs_nonblock_velocity_target*(motor->MotorData.Calibrate_pole_pairs_nonblock_total_time-motor->MotorData.Calibrate_pole_pairs_nonblock_time_init-motor->MotorData.Calibrate_pole_pairs_nonblock_time_prep)));
             // motor->MotorDrv.Delayms(1);
         }break;
         case 3:
         {
-            motor->MotorConfig.Pole_pairs = (uint32_t)my_round(my_abs((float)velocity_target*(total_time-time_init-time_prep)/(velocity_integral)));
+            motor->MotorConfig.Pole_pairs = (uint32_t)my_round(my_abs((float)motor->MotorData.Calibrate_pole_pairs_nonblock_velocity_target*(motor->MotorData.Calibrate_pole_pairs_nonblock_total_time-motor->MotorData.Calibrate_pole_pairs_nonblock_time_init-motor->MotorData.Calibrate_pole_pairs_nonblock_time_prep)/(motor->MotorData.Calibrate_pole_pairs_nonblock_velocity_integral)));
             set_svpwm(motor,0.0f, 0.0f , 0.0f);
-            total_time = 0.0f;
-            velocity_integral = 0.0f;
-            state = 0;
+            motor->MotorData.Calibrate_pole_pairs_nonblock_total_time = 0.0f;
+            motor->MotorData.Calibrate_pole_pairs_nonblock_velocity_integral = 0.0f;
+            motor->MotorData.Calibrate_pole_pairs_nonblock_state = 0;
         }
         default:
         {
@@ -1441,9 +1451,6 @@ void update_pole_pairs_sensor_nonblock(Motor_HandleTypeDef *motor)
 
 void update_2DIR_sensor_block(Motor_HandleTypeDef *motor)
 {
-    float velocity_target = 0.03f; 
-    static float velocity_integral = 0.0f;
-
     for(int i=0 ; i<1000 ; i++)
     {
         update_dt(motor);  //预热dt，防止因初次启动产生的极小dt干扰后面的速度计算
@@ -1458,26 +1465,26 @@ void update_2DIR_sensor_block(Motor_HandleTypeDef *motor)
         update_dt(motor);
         update_angle(motor);
         update_velocity_raw(motor);
-        // if(myabs(motor->MotorData.Velocity_raw) > 2*velocity_target)
+        // if(myabs(motor->MotorData.Velocity_raw) > 2*motor->MotorData.Calibrate_2DIR_block_velocity_target)
         // {
         //     motor->MotorData.Velocity_raw = 0.0f ;
         // }
-        set_svpwm(motor,motor->MotorConfig.UMAX*0.05f,0.0f,Limit_angle_el((float)i*velocity_target));
-        velocity_integral += motor->MotorData.Velocity_raw;
-        // printf("%f,%f\n",motor->MotorData.Velocity_raw,velocity_integral);
+        set_svpwm(motor,motor->MotorConfig.UMAX*0.05f,0.0f,Limit_angle_el((float)i*motor->MotorData.Calibrate_2DIR_block_velocity_target));
+        motor->MotorData.Calibrate_2DIR_block_velocity_integral += motor->MotorData.Velocity_raw;
+        // printf("%f,%f\n",motor->MotorData.Velocity_raw,motor->MotorData.Calibrate_2DIR_block_velocity_integral);
         motor->MotorDrv.Delayms(1);
     }
     motor->MotorDrv.Delayms(500);
 
-    if(velocity_integral>0)
+    if(motor->MotorData.Calibrate_2DIR_block_velocity_integral>0)
     {
         motor->MotorConfig.DIR = 1;
-        velocity_integral = 0.0f;
+        motor->MotorData.Calibrate_2DIR_block_velocity_integral = 0.0f;
     }
-    else if(velocity_integral<0)
+    else if(motor->MotorData.Calibrate_2DIR_block_velocity_integral<0)
     {
         motor->MotorConfig.DIR = -1;
-        velocity_integral = 0.0f;
+        motor->MotorData.Calibrate_2DIR_block_velocity_integral = 0.0f;
     }
     else
     {
@@ -1488,37 +1495,34 @@ void update_2DIR_sensor_block(Motor_HandleTypeDef *motor)
 
 void update_2DIR_sensor_nonblock(Motor_HandleTypeDef *motor)
 {
-    float velocity_target = 10.0f; 
-    float time_init = 0.5f;
-    float time_prep = 1.0f;
-    float time_process = 2.0f;
-    // float time_finish = 0.5f;
-
-    static uint8_t state = 0 ;
-    static float total_time = 0.0f ;
-    static float velocity_integral = 0.0f;
-
-    total_time += update_dt(motor); //预热
+    float this_dt = update_dt(motor); //预热
     update_angle(motor);
     update_velocity_raw(motor);
-    if(total_time < time_init)
+    update_2DIR_sensor_nonblock_(motor,this_dt,motor->MotorData.Velocity_raw);
+}
+
+void update_2DIR_sensor_nonblock_(Motor_HandleTypeDef *motor,float this_dt,float this_velocity_raw)
+{
+    motor->MotorData.Calibrate_2DIR_nonblock_total_time += this_dt; //预热
+
+    if(motor->MotorData.Calibrate_2DIR_nonblock_total_time < motor->MotorData.Calibrate_2DIR_nonblock_time_init)
     {
-        state = 0;
+        motor->MotorData.Calibrate_2DIR_nonblock_state = 0;
     }
-    else if(total_time >= time_init && total_time < (time_init+time_prep))
+    else if(motor->MotorData.Calibrate_2DIR_nonblock_total_time >= motor->MotorData.Calibrate_2DIR_nonblock_time_init && motor->MotorData.Calibrate_2DIR_nonblock_total_time < (motor->MotorData.Calibrate_2DIR_nonblock_time_init+motor->MotorData.Calibrate_2DIR_nonblock_time_prep))
     {
-        state = 1;
+        motor->MotorData.Calibrate_2DIR_nonblock_state = 1;
     }
-    else if(total_time >= (time_init+time_prep) && total_time < (time_init+time_prep+time_process))
+    else if(motor->MotorData.Calibrate_2DIR_nonblock_total_time >= (motor->MotorData.Calibrate_2DIR_nonblock_time_init+motor->MotorData.Calibrate_2DIR_nonblock_time_prep) && motor->MotorData.Calibrate_2DIR_nonblock_total_time < (motor->MotorData.Calibrate_2DIR_nonblock_time_init+motor->MotorData.Calibrate_2DIR_nonblock_time_prep+motor->MotorData.Calibrate_2DIR_nonblock_time_process))
     {
-        state = 2;
+        motor->MotorData.Calibrate_2DIR_nonblock_state = 2;
     }
-    else if(total_time >= (time_init+time_prep+time_process))
+    else if(motor->MotorData.Calibrate_2DIR_nonblock_total_time >= (motor->MotorData.Calibrate_2DIR_nonblock_time_init+motor->MotorData.Calibrate_2DIR_nonblock_time_prep+motor->MotorData.Calibrate_2DIR_nonblock_time_process))
     {
-        state = 3;
+        motor->MotorData.Calibrate_2DIR_nonblock_state = 3;
     }
 
-    switch (state)
+    switch (motor->MotorData.Calibrate_2DIR_nonblock_state)
     {
         case 0:
         {
@@ -1526,21 +1530,21 @@ void update_2DIR_sensor_nonblock(Motor_HandleTypeDef *motor)
         }break;
         case 1:
         {
-            float K =  (total_time-time_init)/time_process;
+            float K =  (motor->MotorData.Calibrate_2DIR_nonblock_total_time-motor->MotorData.Calibrate_2DIR_nonblock_time_init)/motor->MotorData.Calibrate_2DIR_nonblock_time_process;
             set_svpwm(motor,0.0f,K*motor->MotorConfig.UMAX*0.05f, 0.0f);
         }break;
         case 2:
         {
-            set_svpwm(motor,motor->MotorConfig.UMAX*0.05f,3.0f, Limit_angle_el((float)(total_time-time_init-time_prep)*velocity_target));
-            velocity_integral += motor->MotorData.Velocity_raw;
+            set_svpwm(motor,motor->MotorConfig.UMAX*0.05f,3.0f, Limit_angle_el((float)(motor->MotorData.Calibrate_2DIR_nonblock_total_time-motor->MotorData.Calibrate_2DIR_nonblock_time_init-motor->MotorData.Calibrate_2DIR_nonblock_time_prep)*motor->MotorData.Calibrate_2DIR_nonblock_velocity_target));
+            motor->MotorData.Calibrate_2DIR_nonblock_velocity_integral += this_velocity_raw;
         }break;
         case 3:
         {
-            if(velocity_integral>0)
+            if(motor->MotorData.Calibrate_2DIR_nonblock_velocity_integral>0)
             {
                 motor->MotorConfig.DIR = 1;
             }
-            else if(velocity_integral<0)
+            else if(motor->MotorData.Calibrate_2DIR_nonblock_velocity_integral<0)
             {
                 motor->MotorConfig.DIR = -1;
             }
@@ -1549,30 +1553,22 @@ void update_2DIR_sensor_nonblock(Motor_HandleTypeDef *motor)
                 /*传感器异常报错*/
             }
             set_svpwm(motor,0.0f, 0.0f , 0.0f);
-            total_time = 0.0f;
-            velocity_integral = 0.0f;
+            motor->MotorData.Calibrate_2DIR_nonblock_total_time = 0.0f;
+            motor->MotorData.Calibrate_2DIR_nonblock_velocity_integral = 0.0f;
         }
         default:
         {
             /* 打印报错信息 */
         }break;
     }
-    // printf("%f,%d,%f,%f,%f\n",velocity_integral,motor->MotorConfig.DIR,motor->MotorData.Velocity_raw,motor->MotorAlg.angle,motor->time.dt);
+    // printf("%f,%d,%f,%f,%f\n",motor->MotorData.Calibrate_2DIR_nonblock_velocity_integral,motor->MotorConfig.DIR,motor->MotorData.Velocity_raw,motor->MotorAlg.angle,motor->time.dt);
 }
 
-int *Calculate_PHASE(float IA, float IB, float IC,float UA, float UB, float UC)//同时兼容直接向三相注入IqId时的工况，也就是在电机运行的情况下进行相序辨识
-{   
-    static int PHASE[3] = {0,0,0};
-    float U[3] = {0,0,0};
-    float I[3] = {0,0,0};
-    
-    U[0] = UA;
-    U[1] = UB;
-    U[2] = UC;
-
-    I[0] = IA;
-    I[1] = IB;
-    I[2] = IC;
+void Calculate_PHASE(float IA, float IB, float IC,float UA, float UB, float UC, int *phase_a, int *phase_b, int *phase_c)//同时兼容直接向三相注入IqId时的工况，也就是在电机运行的情况下进行相序辨识
+{
+    int PHASE[3] = {0,0,0};
+    float U[3] = {UA, UB, UC};
+    float I[3] = {IA, IB, IC};
 
     for(int i = 0 ; i<3 ; i++)
     {
@@ -1585,26 +1581,25 @@ int *Calculate_PHASE(float IA, float IB, float IC,float UA, float UB, float UC)/
         }
     }
 
-    return PHASE;
+    *phase_a = PHASE[0];
+    *phase_b = PHASE[1];
+    *phase_c = PHASE[2];
 }
 int update_PHASE_nonblock(Motor_HandleTypeDef *motor,float IA_NoOrder, float IB_NoOrder, float IC_NoOrder)
 {
-    static float Ts = 1.0f;
-    static float Duty = 0.05f;
+    float this_dt = motor->MotorDrv.Update_dt(&motor->MotorData.Calibrate_PHASE_nonblock_time_phase);
+    return update_PHASE_nonblock_(motor,IA_NoOrder,IB_NoOrder,IC_NoOrder,this_dt);
+}
 
-    static float time = 0.0f ;//中间变量
-    static int state = 1 ;
-    static int PHASE[3] = {0,0,0};
-    static float IA_Integral , IB_Integral , IC_Integral;
-    static Time_t time_phase;
-
-    time += motor->MotorDrv.Update_dt(&time_phase);
-    if(time>(float)state * Ts)
+int update_PHASE_nonblock_(Motor_HandleTypeDef *motor,float IA_NoOrder, float IB_NoOrder, float IC_NoOrder,float this_dt)
+{
+    motor->MotorData.Calibrate_PHASE_nonblock_time += this_dt;
+    if(motor->MotorData.Calibrate_PHASE_nonblock_time>(float)motor->MotorData.Calibrate_PHASE_nonblock_state * motor->MotorData.Calibrate_PHASE_nonblock_Ts)
     {
-        state ++ ;
+        motor->MotorData.Calibrate_PHASE_nonblock_state ++ ;
     }
 
-    switch(state)
+    switch(motor->MotorData.Calibrate_PHASE_nonblock_state)
     {
         case 1 :
         {
@@ -1613,72 +1608,75 @@ int update_PHASE_nonblock(Motor_HandleTypeDef *motor,float IA_NoOrder, float IB_
         }break;
         case 2 :
         {
-            IA_Integral = 0.0f;
-            IB_Integral = 0.0f;
-            IC_Integral = 0.0f;
-            set_pwm(motor,Duty,0.0f,0.0f);
+            motor->MotorData.Calibrate_PHASE_nonblock_IA_Integral = 0.0f;
+            motor->MotorData.Calibrate_PHASE_nonblock_IB_Integral = 0.0f;
+            motor->MotorData.Calibrate_PHASE_nonblock_IC_Integral = 0.0f;
+            set_pwm(motor,motor->MotorData.Calibrate_PHASE_nonblock_Duty,0.0f,0.0f);
         }break;
         case 3 :
         {
-            IA_Integral += IA_NoOrder * time_phase.dt;
-            IB_Integral += IB_NoOrder * time_phase.dt;
-            IC_Integral += IC_NoOrder * time_phase.dt;
-            int *PHASE_ = Calculate_PHASE(IA_Integral , IB_Integral , IC_Integral , motor->MotorConfig.UMAX/2*Duty , 0.0f , 0.0f);
-            PHASE[0] = PHASE_[0];
+            motor->MotorData.Calibrate_PHASE_nonblock_IA_Integral += IA_NoOrder * this_dt;
+            motor->MotorData.Calibrate_PHASE_nonblock_IB_Integral += IB_NoOrder * this_dt;
+            motor->MotorData.Calibrate_PHASE_nonblock_IC_Integral += IC_NoOrder * this_dt;
+            int phase_a, phase_b, phase_c;
+            Calculate_PHASE(motor->MotorData.Calibrate_PHASE_nonblock_IA_Integral , motor->MotorData.Calibrate_PHASE_nonblock_IB_Integral , motor->MotorData.Calibrate_PHASE_nonblock_IC_Integral , motor->MotorConfig.UMAX/2*motor->MotorData.Calibrate_PHASE_nonblock_Duty , 0.0f , 0.0f, &phase_a, &phase_b, &phase_c);
+            motor->MotorData.Calibrate_PHASE_nonblock_phase_a = phase_a;
         }break;
         case 4:
         {
-            IA_Integral = 0.0f;
-            IB_Integral = 0.0f;
-            IC_Integral = 0.0f;
-            set_pwm(motor,0.0f,Duty,0.0f);
+            motor->MotorData.Calibrate_PHASE_nonblock_IA_Integral = 0.0f;
+            motor->MotorData.Calibrate_PHASE_nonblock_IB_Integral = 0.0f;
+            motor->MotorData.Calibrate_PHASE_nonblock_IC_Integral = 0.0f;
+            set_pwm(motor,0.0f,motor->MotorData.Calibrate_PHASE_nonblock_Duty,0.0f);
         }break;
         case 5:
         {
-            IA_Integral += IA_NoOrder * time_phase.dt;
-            IB_Integral += IB_NoOrder * time_phase.dt;
-            IC_Integral += IC_NoOrder * time_phase.dt;
-            int *PHASE_ = Calculate_PHASE(IA_Integral , IB_Integral , IC_Integral , 0.0f , motor->MotorConfig.UMAX/2*Duty , 0.0f);
-            PHASE[1] = PHASE_[1];            
+            motor->MotorData.Calibrate_PHASE_nonblock_IA_Integral += IA_NoOrder * this_dt;
+            motor->MotorData.Calibrate_PHASE_nonblock_IB_Integral += IB_NoOrder * this_dt;
+            motor->MotorData.Calibrate_PHASE_nonblock_IC_Integral += IC_NoOrder * this_dt;
+            int phase_a, phase_b, phase_c;
+            Calculate_PHASE(motor->MotorData.Calibrate_PHASE_nonblock_IA_Integral , motor->MotorData.Calibrate_PHASE_nonblock_IB_Integral , motor->MotorData.Calibrate_PHASE_nonblock_IC_Integral , 0.0f , motor->MotorConfig.UMAX/2*motor->MotorData.Calibrate_PHASE_nonblock_Duty , 0.0f, &phase_a, &phase_b, &phase_c);
+            motor->MotorData.Calibrate_PHASE_nonblock_phase_b = phase_b;            
         }break;
         case 6:
         {
-            IA_Integral = 0.0f;
-            IB_Integral = 0.0f;
-            IC_Integral = 0.0f;
-            set_pwm(motor,0.0f,0.0f,Duty);
+            motor->MotorData.Calibrate_PHASE_nonblock_IA_Integral = 0.0f;
+            motor->MotorData.Calibrate_PHASE_nonblock_IB_Integral = 0.0f;
+            motor->MotorData.Calibrate_PHASE_nonblock_IC_Integral = 0.0f;
+            set_pwm(motor,0.0f,0.0f,motor->MotorData.Calibrate_PHASE_nonblock_Duty);
         }break;
         case 7:
         {
-            IA_Integral += IA_NoOrder * time_phase.dt;
-            IB_Integral += IB_NoOrder * time_phase.dt;
-            IC_Integral += IC_NoOrder * time_phase.dt;
-            int *PHASE_ = Calculate_PHASE(IA_Integral , IB_Integral , IC_Integral , 0.0f , 0.0f , motor->MotorConfig.UMAX/2*Duty);
-            PHASE[2] = PHASE_[2];   
+            motor->MotorData.Calibrate_PHASE_nonblock_IA_Integral += IA_NoOrder * this_dt;
+            motor->MotorData.Calibrate_PHASE_nonblock_IB_Integral += IB_NoOrder * this_dt;
+            motor->MotorData.Calibrate_PHASE_nonblock_IC_Integral += IC_NoOrder * this_dt;
+            int phase_a, phase_b, phase_c;
+            Calculate_PHASE(motor->MotorData.Calibrate_PHASE_nonblock_IA_Integral , motor->MotorData.Calibrate_PHASE_nonblock_IB_Integral , motor->MotorData.Calibrate_PHASE_nonblock_IC_Integral , 0.0f , 0.0f , motor->MotorConfig.UMAX/2*motor->MotorData.Calibrate_PHASE_nonblock_Duty, &phase_a, &phase_b, &phase_c);
+            motor->MotorData.Calibrate_PHASE_nonblock_phase_c = phase_c;   
         }break;
         case 8:
         {
-            if( PHASE[0] == 1 && PHASE[1] == 2 && PHASE[2] == 3 )
+            if( motor->MotorData.Calibrate_PHASE_nonblock_phase_a == 1 && motor->MotorData.Calibrate_PHASE_nonblock_phase_b == 2 && motor->MotorData.Calibrate_PHASE_nonblock_phase_c == 3 )
             {
                 motor->MotorConfig.PHASE = 1;
             }
-            else if ( PHASE[0] == 2 && PHASE[1] == 1 && PHASE[2] == 3 )
+            else if ( motor->MotorData.Calibrate_PHASE_nonblock_phase_a == 2 && motor->MotorData.Calibrate_PHASE_nonblock_phase_b == 1 && motor->MotorData.Calibrate_PHASE_nonblock_phase_c == 3 )
             {
                 motor->MotorConfig.PHASE = 2;
             }
-            else if ( PHASE[0] == 3 && PHASE[1] == 2 && PHASE[2] == 1 )
+            else if ( motor->MotorData.Calibrate_PHASE_nonblock_phase_a == 3 && motor->MotorData.Calibrate_PHASE_nonblock_phase_b == 2 && motor->MotorData.Calibrate_PHASE_nonblock_phase_c == 1 )
             {
                 motor->MotorConfig.PHASE = 3;
             }
-            else if ( PHASE[0] == 3 && PHASE[1] == 1 && PHASE[2] == 2 )
+            else if ( motor->MotorData.Calibrate_PHASE_nonblock_phase_a == 3 && motor->MotorData.Calibrate_PHASE_nonblock_phase_b == 1 && motor->MotorData.Calibrate_PHASE_nonblock_phase_c == 2 )
             {
                 motor->MotorConfig.PHASE = 4;
             }
-            else if ( PHASE[0] == 2 && PHASE[1] == 3 && PHASE[2] == 1 )
+            else if ( motor->MotorData.Calibrate_PHASE_nonblock_phase_a == 2 && motor->MotorData.Calibrate_PHASE_nonblock_phase_b == 3 && motor->MotorData.Calibrate_PHASE_nonblock_phase_c == 1 )
             {
                 motor->MotorConfig.PHASE = 5;
             }
-            else if ( PHASE[0] == 1 && PHASE[1] == 3 && PHASE[2] == 2 )
+            else if ( motor->MotorData.Calibrate_PHASE_nonblock_phase_a == 1 && motor->MotorData.Calibrate_PHASE_nonblock_phase_b == 3 && motor->MotorData.Calibrate_PHASE_nonblock_phase_c == 2 )
             {
                 motor->MotorConfig.PHASE = 6;
             }
@@ -1690,11 +1688,11 @@ int update_PHASE_nonblock(Motor_HandleTypeDef *motor,float IA_NoOrder, float IB_
         case 9:
         {
             set_pwm(motor,0.0f,0.0f,0.0f);
-            IA_Integral = 0.0f;
-            IB_Integral = 0.0f;
-            IC_Integral = 0.0f;
-            time = 0.0f;
-            state = 1 ;
+            motor->MotorData.Calibrate_PHASE_nonblock_IA_Integral = 0.0f;
+            motor->MotorData.Calibrate_PHASE_nonblock_IB_Integral = 0.0f;
+            motor->MotorData.Calibrate_PHASE_nonblock_IC_Integral = 0.0f;
+            motor->MotorData.Calibrate_PHASE_nonblock_time = 0.0f;
+            motor->MotorData.Calibrate_PHASE_nonblock_state = 1 ;
             return motor->MotorConfig.PHASE ;
         }break;
     }
@@ -1726,21 +1724,20 @@ void update_angle_el_zero_no_sensor_block(Motor_HandleTypeDef *motor)
 
 void update_angle_el_zero_sensor_block(Motor_HandleTypeDef *motor)
 {
-    uint32_t sample_per = 20 ; //每极对采样20个
-    uint32_t sample_total = motor->MotorConfig.Pole_pairs * sample_per; //总采样数
-    float *angle_el_zero = (float*)calloc(sample_total,sizeof(float));  //按照采样数定义动态数组
-    float angle_el_zero_all = 0;
+    motor->MotorData.Calibrate_angle_el_zero_sensor_block_sample_total = motor->MotorConfig.Pole_pairs * motor->MotorData.Calibrate_angle_el_zero_sensor_block_sample_per;
+    motor->MotorData.Calibrate_angle_el_zero_sensor_block_angle_el_zero = (float*)calloc(motor->MotorData.Calibrate_angle_el_zero_sensor_block_sample_total,sizeof(float));
+    motor->MotorData.Calibrate_angle_el_zero_sensor_block_angle_el_zero_all = 0;
 
-    float angle_all_temp = motor->MotorData.angle_all;//保存现场
-    float angle_last_temp = motor->MotorAlg.last_angle;
-    float angle_temp = motor->MotorAlg.angle;
+    motor->MotorData.Calibrate_angle_el_zero_sensor_block_angle_all_temp = motor->MotorData.angle_all;
+    motor->MotorData.Calibrate_angle_el_zero_sensor_block_angle_last_temp = motor->MotorAlg.last_angle;
+    motor->MotorData.Calibrate_angle_el_zero_sensor_block_angle_temp = motor->MotorAlg.angle;
 
     reset_data_angle(motor);
-    if(angle_el_zero == NULL)
+    if(motor->MotorData.Calibrate_angle_el_zero_sensor_block_angle_el_zero == NULL)
     {   
         //打印报错信息
         SEGGER_RTT_printf(0, "Heap_Size is not enough!\n");
-        free((void*)angle_el_zero);
+        free((void*)motor->MotorData.Calibrate_angle_el_zero_sensor_block_angle_el_zero);
         return;
     }
 
@@ -1748,147 +1745,147 @@ void update_angle_el_zero_sensor_block(Motor_HandleTypeDef *motor)
     motor->MotorDrv.Delayms(1000);
     // motor->MotorData.angle_all = update_angle(motor);
     // float angle_last = motor->MotorData.angle_all;
-    float angle_now = 0.0f;
+    motor->MotorData.Calibrate_angle_el_zero_sensor_block_angle_now = 0.0f;
     do
     {
         update_dt(motor);
         update_angle(motor);
-        angle_now = ctrl_motor_openloop_angle_nonblock(motor,2*PI,0.0f,0.6,0.0f,motor->MotorConfig.UMAX*0.05f);
+        motor->MotorData.Calibrate_angle_el_zero_sensor_block_angle_now = ctrl_motor_openloop_angle_nonblock(motor,2*PI,0.0f,0.6,0.0f,motor->MotorConfig.UMAX*0.05f);
         // angle_error = angle_now - motor->MotorData.angle_all;
-        uint32_t i =(uint32_t)my_round((angle_now/(2*PI))*(float)sample_total);
-        int32_t i_int = (int32_t)my_round((angle_now/(2*PI))*(float)sample_total);
-        if(i>=sample_total|| i_int<0)
+        uint32_t i =(uint32_t)my_round((motor->MotorData.Calibrate_angle_el_zero_sensor_block_angle_now/(2*PI))*(float)motor->MotorData.Calibrate_angle_el_zero_sensor_block_sample_total);
+        int32_t i_int = (int32_t)my_round((motor->MotorData.Calibrate_angle_el_zero_sensor_block_angle_now/(2*PI))*(float)motor->MotorData.Calibrate_angle_el_zero_sensor_block_sample_total);
+        if(i>=motor->MotorData.Calibrate_angle_el_zero_sensor_block_sample_total|| i_int<0)
         {
             ctrl_motor_openloop_angle_nonblock(motor,0.0f,0.0f,1000.0f,0.0f,0.0f);//注销掉这个函数的angle_now，防止用到下一次开环执行程序中
             break;
         }
-        angle_el_zero[i] = angle_now - motor->MotorData.angle_all;
+        motor->MotorData.Calibrate_angle_el_zero_sensor_block_angle_el_zero[i] = motor->MotorData.Calibrate_angle_el_zero_sensor_block_angle_now - motor->MotorData.angle_all;
 
         // printf("%d,%f,%f\n",i,angle_el_zero[i],angle_now);
 
-    } while (angle_now);
+    } while (motor->MotorData.Calibrate_angle_el_zero_sensor_block_angle_now);
     motor->MotorDrv.Delayms(500);
     do
     {
         update_dt(motor);
         update_angle(motor);
-        angle_now = ctrl_motor_openloop_angle_nonblock(motor,0.0f,2*PI,-0.6,0.0f,motor->MotorConfig.UMAX*0.05f);
+        motor->MotorData.Calibrate_angle_el_zero_sensor_block_angle_now = ctrl_motor_openloop_angle_nonblock(motor,0.0f,2*PI,-0.6,0.0f,motor->MotorConfig.UMAX*0.05f);
         // angle_error = angle_now - motor->MotorData.angle_all;
-        uint32_t i =(uint32_t)my_round((angle_now/(2*PI))*(float)sample_total);
-        int32_t i_int = (int32_t)my_round((angle_now/(2*PI))*(float)sample_total);
-        if(i>=sample_total || i_int<0)
+        uint32_t i =(uint32_t)my_round((motor->MotorData.Calibrate_angle_el_zero_sensor_block_angle_now/(2*PI))*(float)motor->MotorData.Calibrate_angle_el_zero_sensor_block_sample_total);
+        int32_t i_int = (int32_t)my_round((motor->MotorData.Calibrate_angle_el_zero_sensor_block_angle_now/(2*PI))*(float)motor->MotorData.Calibrate_angle_el_zero_sensor_block_sample_total);
+        if(i>=motor->MotorData.Calibrate_angle_el_zero_sensor_block_sample_total || i_int<0)
         {
             ctrl_motor_openloop_angle_nonblock(motor,0.0f,0.0f,1000.0f,0.0f,0.0f);//注销掉这个函数的angle_now，防止用到下一次开环执行程序中
             break;
         }
-        angle_el_zero[i] += angle_now - motor->MotorData.angle_all;
-        angle_el_zero[i] /= 2;
+        motor->MotorData.Calibrate_angle_el_zero_sensor_block_angle_el_zero[i] += motor->MotorData.Calibrate_angle_el_zero_sensor_block_angle_now - motor->MotorData.angle_all;
+        motor->MotorData.Calibrate_angle_el_zero_sensor_block_angle_el_zero[i] /= 2;
 
         // printf("%d,%f,%f\n",i,angle_el_zero[i],angle_now);
-    } while (angle_now);
+    } while (motor->MotorData.Calibrate_angle_el_zero_sensor_block_angle_now);
     // printf("%f\n",angle_now);
-    for(int i = 0; i<sample_total ;i++)
+    for(int i = 0; i<(int)motor->MotorData.Calibrate_angle_el_zero_sensor_block_sample_total ;i++)
     {
-        angle_el_zero_all += angle_el_zero[i];
+        motor->MotorData.Calibrate_angle_el_zero_sensor_block_angle_el_zero_all += motor->MotorData.Calibrate_angle_el_zero_sensor_block_angle_el_zero[i];
     }
     // motor->MotorConfig.angle_el_zero = angle_el_zero_all/(float)sample_total;
-    motor->MotorConfig.angle_el_zero = Calculate_angle_el(motor->MotorConfig.Pole_pairs,angle_el_zero_all/(float)sample_total, 0.0f);
+    motor->MotorConfig.angle_el_zero = Calculate_angle_el(motor->MotorConfig.Pole_pairs,motor->MotorData.Calibrate_angle_el_zero_sensor_block_angle_el_zero_all/(float)motor->MotorData.Calibrate_angle_el_zero_sensor_block_sample_total, 0.0f);
     
-    motor->MotorData.angle_all = angle_all_temp ;//返回现场
-    motor->MotorAlg.last_angle = angle_last_temp;
-    motor->MotorAlg.angle = angle_temp;
+    motor->MotorData.angle_all = motor->MotorData.Calibrate_angle_el_zero_sensor_block_angle_all_temp ;
+    motor->MotorAlg.last_angle = motor->MotorData.Calibrate_angle_el_zero_sensor_block_angle_last_temp;
+    motor->MotorAlg.angle = motor->MotorData.Calibrate_angle_el_zero_sensor_block_angle_temp;
 
     set_svpwm(motor,0.0f, 0.0f , 0.0f);
-    free((void*)angle_el_zero);
+    free((void*)motor->MotorData.Calibrate_angle_el_zero_sensor_block_angle_el_zero);
+    motor->MotorData.Calibrate_angle_el_zero_sensor_block_angle_el_zero = NULL;
 
 }
 
 void update_angle_el_zero_sensor_nonblock(Motor_HandleTypeDef *motor)
 {
-    uint32_t sample_per = 50 ; //每极对采样100个
-    uint32_t sample_total = motor->MotorConfig.Pole_pairs * sample_per; //总采样数
-    static float *angle_el_zero = NULL;  //按照采样数定义动态数组
-    static float  angle_el_zero_all = 0;
-    static float angle_all_temp;
-
-    static uint8_t state = 1 ;
-    static float total_time = 0.0f ;
-    static float angle_now = 0.0f;
-
-    total_time += update_dt(motor); //预热
+    float this_dt = update_dt(motor); //预热
     update_angle(motor);
-    angle_all_temp = motor->MotorData.angle_all ;
+    update_angle_el_zero_sensor_nonblock_(motor,this_dt,motor->MotorData.angle_all);
+}
+
+void update_angle_el_zero_sensor_nonblock_(Motor_HandleTypeDef *motor,float this_dt,float this_angle_all)
+{
+    motor->MotorData.Calibrate_angle_el_zero_sensor_nonblock_sample_total = motor->MotorConfig.Pole_pairs * motor->MotorData.Calibrate_angle_el_zero_sensor_nonblock_sample_per;
+
+    motor->MotorData.Calibrate_angle_el_zero_sensor_nonblock_total_time += this_dt;
+    motor->MotorData.Calibrate_angle_el_zero_sensor_nonblock_angle_all_temp = this_angle_all ;
     motor->MotorData.angle_all = 0;
 
-    switch(state)
+    switch(motor->MotorData.Calibrate_angle_el_zero_sensor_nonblock_state)
     {
         case 1:
         {
-            angle_el_zero = (float*)calloc(sample_total,sizeof(float));
-            if(angle_el_zero == NULL)
+            motor->MotorData.Calibrate_angle_el_zero_sensor_nonblock_angle_el_zero = (float*)calloc(motor->MotorData.Calibrate_angle_el_zero_sensor_nonblock_sample_total,sizeof(float));
+            if(motor->MotorData.Calibrate_angle_el_zero_sensor_nonblock_angle_el_zero == NULL)
             {   
                 //打印报错信息
                 // printf("Heap_Size is not enough!");
                 SEGGER_RTT_printf(0, "Heap_Size is not enough!\n");
-                total_time = 0.0f;
-                angle_now = 0.0f;
-                angle_el_zero_all = 0.0f;
-                motor->MotorData.angle_all = angle_all_temp;
-                angle_all_temp = 0.0f;
-                free((void*)angle_el_zero);
+                motor->MotorData.Calibrate_angle_el_zero_sensor_nonblock_total_time = 0.0f;
+                motor->MotorData.Calibrate_angle_el_zero_sensor_nonblock_angle_now = 0.0f;
+                motor->MotorData.Calibrate_angle_el_zero_sensor_nonblock_angle_el_zero_all = 0.0f;
+                motor->MotorData.angle_all = motor->MotorData.Calibrate_angle_el_zero_sensor_nonblock_angle_all_temp;
+                motor->MotorData.Calibrate_angle_el_zero_sensor_nonblock_angle_all_temp = 0.0f;
+                free((void*)motor->MotorData.Calibrate_angle_el_zero_sensor_nonblock_angle_el_zero);
                 return;
             }
             else
             {
-                state = 2;
+                motor->MotorData.Calibrate_angle_el_zero_sensor_nonblock_state = 2;
                 set_svpwm(motor,motor->MotorConfig.UMAX*0.05f, 0.0f , 0.0f);
             }
             
         }break;
         case 2:
         {
-            angle_now = ctrl_motor_openloop_angle_nonblock(motor,2*PI,0.0f,0.3,motor->MotorConfig.UMAX*0.05f, 0.0f);
-            uint32_t i =(uint32_t)my_round((angle_now/(2*PI))*(float)sample_total);
-            if(i>=sample_total|| !angle_now)
+            motor->MotorData.Calibrate_angle_el_zero_sensor_nonblock_angle_now = ctrl_motor_openloop_angle_nonblock(motor,2*PI,0.0f,0.3,motor->MotorConfig.UMAX*0.05f, 0.0f);
+            uint32_t i =(uint32_t)my_round((motor->MotorData.Calibrate_angle_el_zero_sensor_nonblock_angle_now/(2*PI))*(float)motor->MotorData.Calibrate_angle_el_zero_sensor_nonblock_sample_total);
+            if(i>=motor->MotorData.Calibrate_angle_el_zero_sensor_nonblock_sample_total|| !motor->MotorData.Calibrate_angle_el_zero_sensor_nonblock_angle_now)
             {
                 ctrl_motor_openloop_angle_nonblock(motor,0.0f,0.0f,1000.0f,0.0f,0.0f);//注销掉这个函数的angle_now，防止用到下一次开环执行程序中
-                state = 3;
+                motor->MotorData.Calibrate_angle_el_zero_sensor_nonblock_state = 3;
                 break;
             }
-            angle_el_zero[i] = angle_now - motor->MotorData.angle_all;
+            motor->MotorData.Calibrate_angle_el_zero_sensor_nonblock_angle_el_zero[i] = motor->MotorData.Calibrate_angle_el_zero_sensor_nonblock_angle_now - motor->MotorData.angle_all;
         }break;
         case 3:
         {
-            angle_now = ctrl_motor_openloop_angle_nonblock(motor,0.0f,2*PI,-0.3,motor->MotorConfig.UMAX*0.05f, 0.0f);
-            uint32_t i =(uint32_t)my_round((angle_now/(2*PI))*(float)sample_total);
-            int32_t i_int =(int32_t)my_round((angle_now/(2*PI))*(float)sample_total);
+            motor->MotorData.Calibrate_angle_el_zero_sensor_nonblock_angle_now = ctrl_motor_openloop_angle_nonblock(motor,0.0f,2*PI,-0.3,motor->MotorConfig.UMAX*0.05f, 0.0f);
+            uint32_t i =(uint32_t)my_round((motor->MotorData.Calibrate_angle_el_zero_sensor_nonblock_angle_now/(2*PI))*(float)motor->MotorData.Calibrate_angle_el_zero_sensor_nonblock_sample_total);
+            int32_t i_int =(int32_t)my_round((motor->MotorData.Calibrate_angle_el_zero_sensor_nonblock_angle_now/(2*PI))*(float)motor->MotorData.Calibrate_angle_el_zero_sensor_nonblock_sample_total);
             // printf("%f\n",angle_el_zero[i]);
-            if(i>=sample_total)
+            if(i>=motor->MotorData.Calibrate_angle_el_zero_sensor_nonblock_sample_total)
             {
                 --i;
             }
-            if(i_int<0 || !angle_now)
+            if(i_int<0 || !motor->MotorData.Calibrate_angle_el_zero_sensor_nonblock_angle_now)
             {
                 ctrl_motor_openloop_angle_nonblock(motor,0.0f,0.0f,1000.0f,0.0f,0.0f);//注销掉这个函数的angle_now，防止用到下一次开环执行程序中
-                state = 4;
+                motor->MotorData.Calibrate_angle_el_zero_sensor_nonblock_state = 4;
                 break;
             }
-            angle_el_zero[i] += angle_now - motor->MotorData.angle_all;
-            angle_el_zero[i] /= 2;
+            motor->MotorData.Calibrate_angle_el_zero_sensor_nonblock_angle_el_zero[i] += motor->MotorData.Calibrate_angle_el_zero_sensor_nonblock_angle_now - motor->MotorData.angle_all;
+            motor->MotorData.Calibrate_angle_el_zero_sensor_nonblock_angle_el_zero[i] /= 2;
         }break;
         case 4:
         {
-            for(int i = 0; i<sample_total ;i++)
+            for(int i = 0; i<(int)motor->MotorData.Calibrate_angle_el_zero_sensor_nonblock_sample_total ;i++)
             {
-                angle_el_zero_all += angle_el_zero[i];
+                motor->MotorData.Calibrate_angle_el_zero_sensor_nonblock_angle_el_zero_all += motor->MotorData.Calibrate_angle_el_zero_sensor_nonblock_angle_el_zero[i];
             }
-            motor->MotorConfig.angle_el_zero = angle_el_zero_all/(float)sample_total;
-            angle_el_zero_all = 0.0f;
-            angle_now =0.0f;
-            total_time = 0.0f;
+            motor->MotorConfig.angle_el_zero = motor->MotorData.Calibrate_angle_el_zero_sensor_nonblock_angle_el_zero_all/(float)motor->MotorData.Calibrate_angle_el_zero_sensor_nonblock_sample_total;
+            motor->MotorData.Calibrate_angle_el_zero_sensor_nonblock_angle_el_zero_all = 0.0f;
+            motor->MotorData.Calibrate_angle_el_zero_sensor_nonblock_angle_now =0.0f;
+            motor->MotorData.Calibrate_angle_el_zero_sensor_nonblock_total_time = 0.0f;
             set_svpwm(motor,0.0f, 0.0f , 0.0f);
-            free((void*)angle_el_zero);   
-            state = 1;
+            free((void*)motor->MotorData.Calibrate_angle_el_zero_sensor_nonblock_angle_el_zero);
+            motor->MotorData.Calibrate_angle_el_zero_sensor_nonblock_angle_el_zero = NULL;
+            motor->MotorData.Calibrate_angle_el_zero_sensor_nonblock_state = 1;
     
         }break;
         default:
@@ -1896,7 +1893,7 @@ void update_angle_el_zero_sensor_nonblock(Motor_HandleTypeDef *motor)
             //打印报错
         }break;
     }
-    motor->MotorData.angle_all = angle_all_temp ;
+    motor->MotorData.angle_all = motor->MotorData.Calibrate_angle_el_zero_sensor_nonblock_angle_all_temp ;
 }
 
 void ctrl_motor_openloop_velocity_el_nonblock(Motor_HandleTypeDef *motor,float velocity_el_target,float Uq,float Ud)

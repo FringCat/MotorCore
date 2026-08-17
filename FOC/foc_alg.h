@@ -152,6 +152,67 @@ typedef struct
         }I_raw;                    // 结构化单个读取
        uint32_t I_raw_dma[3];     // DMA批量采集的电流原始数组
     } CurrentData __attribute__((packed));  // 定义联合体变量（如CurrentData）
+
+    /* Calibrate_2DIR_block */
+    float Calibrate_2DIR_block_velocity_target;
+    float Calibrate_2DIR_block_velocity_integral;
+    /* Calibrate_2DIR_nonblock */
+    float Calibrate_2DIR_nonblock_velocity_target;
+    float Calibrate_2DIR_nonblock_time_init;
+    float Calibrate_2DIR_nonblock_time_prep;
+    float Calibrate_2DIR_nonblock_time_process;
+    uint8_t Calibrate_2DIR_nonblock_state;
+    float Calibrate_2DIR_nonblock_total_time;
+    float Calibrate_2DIR_nonblock_velocity_integral;
+    /* Calibrate_pole_pairs_block */
+    float Calibrate_pole_pairs_block_angle_step;
+    float Calibrate_pole_pairs_block_velocity_integral;
+    /* Calibrate_pole_pairs_nonblock */
+    float Calibrate_pole_pairs_nonblock_velocity_target;
+    float Calibrate_pole_pairs_nonblock_time_init;
+    float Calibrate_pole_pairs_nonblock_time_prep;
+    float Calibrate_pole_pairs_nonblock_time_process;
+    uint8_t Calibrate_pole_pairs_nonblock_state;
+    float Calibrate_pole_pairs_nonblock_total_time;
+    float Calibrate_pole_pairs_nonblock_velocity_integral;
+    /* Calibrate_PHASE_nonblock */
+    float Calibrate_PHASE_nonblock_Ts;
+    float Calibrate_PHASE_nonblock_Duty;
+    float Calibrate_PHASE_nonblock_time;
+    uint8_t Calibrate_PHASE_nonblock_state;
+    int Calibrate_PHASE_nonblock_phase_a;
+    int Calibrate_PHASE_nonblock_phase_b;
+    int Calibrate_PHASE_nonblock_phase_c;
+    float Calibrate_PHASE_nonblock_IA_Integral;
+    float Calibrate_PHASE_nonblock_IB_Integral;
+    float Calibrate_PHASE_nonblock_IC_Integral;
+    Time_t Calibrate_PHASE_nonblock_time_phase;
+    /* Calibrate_angle_el_zero_sensor_block */
+    uint16_t Calibrate_angle_el_zero_sensor_block_sample_per;
+    uint16_t Calibrate_angle_el_zero_sensor_block_sample_total;
+    float *Calibrate_angle_el_zero_sensor_block_angle_el_zero;
+    float Calibrate_angle_el_zero_sensor_block_angle_el_zero_all;
+    float Calibrate_angle_el_zero_sensor_block_angle_el_zero_temp;
+    float Calibrate_angle_el_zero_sensor_block_angle_all_temp;
+    float Calibrate_angle_el_zero_sensor_block_angle_last_temp;
+    float Calibrate_angle_el_zero_sensor_block_angle_temp;
+    float Calibrate_angle_el_zero_sensor_block_angle_now;
+    /* Calibrate_angle_el_zero_sensor_nonblock */
+    uint16_t Calibrate_angle_el_zero_sensor_nonblock_sample_per;
+    uint16_t Calibrate_angle_el_zero_sensor_nonblock_sample_total;
+    float *Calibrate_angle_el_zero_sensor_nonblock_angle_el_zero;
+    float Calibrate_angle_el_zero_sensor_nonblock_angle_el_zero_all;
+    float Calibrate_angle_el_zero_sensor_nonblock_angle_el_zero_temp;
+    uint8_t Calibrate_angle_el_zero_sensor_nonblock_state;
+    float Calibrate_angle_el_zero_sensor_nonblock_total_time;
+    float Calibrate_angle_el_zero_sensor_nonblock_angle_now;
+    float Calibrate_angle_el_zero_sensor_nonblock_angle_all_temp;
+    /* Calibrate_Ioffset_nonblock */
+    uint32_t Calibrate_Ioffset_nonblock_count;
+    uint32_t Calibrate_Ioffset_nonblock_sample_total;
+    uint32_t Calibrate_Ioffset_nonblock_IA_offset_raw_all;
+    uint32_t Calibrate_Ioffset_nonblock_IB_offset_raw_all;
+    uint32_t Calibrate_Ioffset_nonblock_IC_offset_raw_all;
 } Motor_DataTypeDef;
 
 
@@ -184,8 +245,6 @@ typedef struct
     void (*Delayms)(uint32_t ms);  // 毫秒级延时函数（用于校准、初始化等待）
     float (*Update_dt)(Time_t* time);  // 计算时间差dt函数（参数：Time_t结构体，返回：当前dt值，用于速度计算）
 } Motor_DrvTypeDef;
-
-
 
 /**
  * @brief 电机控制总句柄结构体
@@ -298,6 +357,7 @@ void update_IalphaIbeta(Motor_HandleTypeDef *motor);
 void update_IqId(Motor_HandleTypeDef *motor);
 void update_Ioffset_block(Motor_HandleTypeDef *motor,int Mode_Sampling);  // 更新电流偏置-阻塞式（静止时多次采样平均）
 int update_Ioffset_nonblock(Motor_HandleTypeDef *motor,int Mode_Sampling);// 更新电流偏置-非阻塞式（静止时单次采样累加，需多次调用）
+int update_Ioffset_nonblock_(Motor_HandleTypeDef *motor,uint32_t this_IA_raw,uint32_t this_IB_raw,uint32_t this_IC_raw);
 float get_Ia(Motor_HandleTypeDef *motor);  // 获取IA电流
 float get_Ib(Motor_HandleTypeDef *motor);  // 获取IB电流
 float get_Ic(Motor_HandleTypeDef *motor);  // 获取IC电流
@@ -308,16 +368,20 @@ float get_Ic_offset(Motor_HandleTypeDef *motor);  // 获取IC电流偏置
 //初始化相关
 void update_2DIR_sensor_block(Motor_HandleTypeDef *motor);              //  传感器方向辨识（基于磁编，阻塞式更新）
 void update_2DIR_sensor_nonblock(Motor_HandleTypeDef *motor);           //  传感器方向辨识（基于磁编，非阻塞式更新)
+void update_2DIR_sensor_nonblock_(Motor_HandleTypeDef *motor,float this_dt,float this_velocity_raw);
 
-int *Calculate_PHASE(float IA, float IB, float IC,float UA, float UB, float UC);
+void Calculate_PHASE(float IA, float IB, float IC,float UA, float UB, float UC, int *phase_a, int *phase_b, int *phase_c);
 int update_PHASE_nonblock(Motor_HandleTypeDef *motor,float IA_NoOrder, float IB_NoOrder, float IC_NoOrder); // 更新相序-非阻塞式
+int update_PHASE_nonblock_(Motor_HandleTypeDef *motor,float IA_NoOrder, float IB_NoOrder, float IC_NoOrder,float this_dt);
 int update_PHASE_block(Motor_HandleTypeDef *motor); // 更新相序-阻塞式
 
 void update_pole_pairs_sensor_block(Motor_HandleTypeDef *motor);        // 极对数辨识（有传感器，阻塞式更新）
 void update_pole_pairs_sensor_nonblock(Motor_HandleTypeDef *motor);     // 极对数辨识（有传感器，非阻塞式更新）
+void update_pole_pairs_sensor_nonblock_(Motor_HandleTypeDef *motor,float this_dt,float this_velocity_raw);
 
 void update_angle_el_zero_sensor_block(Motor_HandleTypeDef *motor);     //  电角度零点校准 （有传感器，阻塞式更新）
 void update_angle_el_zero_sensor_nonblock(Motor_HandleTypeDef *motor);  //  电角度零点校准 （有传感器，非阻塞式更新）
+void update_angle_el_zero_sensor_nonblock_(Motor_HandleTypeDef *motor,float this_dt,float this_angle_all);
 void update_angle_el_zero_no_sensor_block(Motor_HandleTypeDef *motor);  //  电角度零点校准 （无传感器，阻塞式更新）
 
 //控制相关
