@@ -216,27 +216,27 @@ void foc_init(Motor_HandleTypeDef *motor)
     motor->MotorData.IC_offset_raw = 0XFFFF;
     motor->MotorData.angle_all = 0.0f;
 
-    motor->MotorData.Calibrate_2DIR_block_velocity_target = 0.03f;
-    motor->MotorData.Calibrate_2DIR_nonblock_velocity_target = 10.0f;
-    motor->MotorData.Calibrate_2DIR_nonblock_time_init = 0.5f;
-    motor->MotorData.Calibrate_2DIR_nonblock_time_prep = 1.0f;
-    motor->MotorData.Calibrate_2DIR_nonblock_time_process = 2.0f;
+    motor->MotorData.Calibrate_2DIR_block__velocity_target = 0.03f;
+    motor->MotorData.Calibrate_2DIR_nonblock__velocity_target = 10.0f;
+    motor->MotorData.Calibrate_2DIR_nonblock__time_init = 0.5f;
+    motor->MotorData.Calibrate_2DIR_nonblock__time_prep = 1.0f;
+    motor->MotorData.Calibrate_2DIR_nonblock__time_process = 2.0f;
 
-    motor->MotorData.Calibrate_pole_pairs_block_angle_step = 0.01f;
-    motor->MotorData.Calibrate_pole_pairs_nonblock_velocity_target = 3.0f;
-    motor->MotorData.Calibrate_pole_pairs_nonblock_time_init = 0.5f;
-    motor->MotorData.Calibrate_pole_pairs_nonblock_time_prep = 1.0f;
-    motor->MotorData.Calibrate_pole_pairs_nonblock_time_process = 5.0f;
+    motor->MotorData.Calibrate_pole_pairs_block__angle_step = 0.01f;
+    motor->MotorData.Calibrate_pole_pairs_nonblock__velocity_target = 3.0f;
+    motor->MotorData.Calibrate_pole_pairs_nonblock__time_init = 0.5f;
+    motor->MotorData.Calibrate_pole_pairs_nonblock__time_prep = 1.0f;
+    motor->MotorData.Calibrate_pole_pairs_nonblock__time_process = 5.0f;
 
-    motor->MotorData.Calibrate_PHASE_nonblock_Ts = 1.0f;
-    motor->MotorData.Calibrate_PHASE_nonblock_Duty = 0.05f;
-    motor->MotorData.Calibrate_PHASE_nonblock_state = 1;
+    motor->MotorData.Calibrate_PHASE_nonblock__Ts = 1.0f;
+    motor->MotorData.Calibrate_PHASE_nonblock__Duty = 0.05f;
+    motor->MotorData.Calibrate_PHASE_nonblock__state = 1;
 
-    motor->MotorData.Calibrate_angle_el_zero_sensor_block_sample_per = 20;
-    motor->MotorData.Calibrate_angle_el_zero_sensor_nonblock_sample_per = 50;
-    motor->MotorData.Calibrate_angle_el_zero_sensor_nonblock_state = 1;
+    motor->MotorData.Calibrate_angle_el_zero_sensor_block__sample_per = 20;
+    motor->MotorData.Calibrate_angle_el_zero_sensor_nonblock__sample_per = 50;
+    motor->MotorData.Calibrate_angle_el_zero_sensor_nonblock__state = 1;
 
-    motor->MotorData.Calibrate_Ioffset_nonblock_sample_total = 1000;
+    motor->MotorData.Calibrate_Ioffset_nonblock__sample_total = 1000;
 }
 
 
