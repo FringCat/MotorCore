@@ -1746,43 +1746,48 @@ void update_angle_el_zero_sensor_block(Motor_HandleTypeDef *motor)
     // motor->MotorData.angle_all = update_angle(motor);
     // float angle_last = motor->MotorData.angle_all;
     motor->MotorData.Calibrate_angle_el_zero_sensor_block_angle_now = 0.0f;
+    int running;
     do
     {
         update_dt(motor);
         update_angle(motor);
-        motor->MotorData.Calibrate_angle_el_zero_sensor_block_angle_now = ctrl_motor_openloop_angle_nonblock(motor,2*PI,0.0f,0.6,0.0f,motor->MotorConfig.UMAX*0.05f);
+        running = ctrl_motor_openloop_angle_nonblock(motor,motor->time.dt,2*PI,0.0f,0.6,0.0f,motor->MotorConfig.UMAX*0.05f);
+        motor->MotorData.Calibrate_angle_el_zero_sensor_block_angle_now = 0.0f + motor->MotorData.Openloop_progress/(float)motor->MotorConfig.Pole_pairs;
         // angle_error = angle_now - motor->MotorData.angle_all;
         uint32_t i =(uint32_t)my_round((motor->MotorData.Calibrate_angle_el_zero_sensor_block_angle_now/(2*PI))*(float)motor->MotorData.Calibrate_angle_el_zero_sensor_block_sample_total);
         int32_t i_int = (int32_t)my_round((motor->MotorData.Calibrate_angle_el_zero_sensor_block_angle_now/(2*PI))*(float)motor->MotorData.Calibrate_angle_el_zero_sensor_block_sample_total);
         if(i>=motor->MotorData.Calibrate_angle_el_zero_sensor_block_sample_total|| i_int<0)
         {
-            ctrl_motor_openloop_angle_nonblock(motor,0.0f,0.0f,1000.0f,0.0f,0.0f);//注销掉这个函数的angle_now，防止用到下一次开环执行程序中
+            ctrl_motor_openloop_reset(motor);
             break;
         }
         motor->MotorData.Calibrate_angle_el_zero_sensor_block_angle_el_zero[i] = motor->MotorData.Calibrate_angle_el_zero_sensor_block_angle_now - motor->MotorData.angle_all;
 
         // printf("%d,%f,%f\n",i,angle_el_zero[i],angle_now);
 
-    } while (motor->MotorData.Calibrate_angle_el_zero_sensor_block_angle_now);
+    } while (running);
+    ctrl_motor_openloop_reset(motor);
     motor->MotorDrv.Delayms(500);
     do
     {
         update_dt(motor);
         update_angle(motor);
-        motor->MotorData.Calibrate_angle_el_zero_sensor_block_angle_now = ctrl_motor_openloop_angle_nonblock(motor,0.0f,2*PI,-0.6,0.0f,motor->MotorConfig.UMAX*0.05f);
+        running = ctrl_motor_openloop_angle_nonblock(motor,motor->time.dt,0.0f,2*PI,-0.6,0.0f,motor->MotorConfig.UMAX*0.05f);
+        motor->MotorData.Calibrate_angle_el_zero_sensor_block_angle_now = 2*PI + motor->MotorData.Openloop_progress/(float)motor->MotorConfig.Pole_pairs;
         // angle_error = angle_now - motor->MotorData.angle_all;
         uint32_t i =(uint32_t)my_round((motor->MotorData.Calibrate_angle_el_zero_sensor_block_angle_now/(2*PI))*(float)motor->MotorData.Calibrate_angle_el_zero_sensor_block_sample_total);
         int32_t i_int = (int32_t)my_round((motor->MotorData.Calibrate_angle_el_zero_sensor_block_angle_now/(2*PI))*(float)motor->MotorData.Calibrate_angle_el_zero_sensor_block_sample_total);
         if(i>=motor->MotorData.Calibrate_angle_el_zero_sensor_block_sample_total || i_int<0)
         {
-            ctrl_motor_openloop_angle_nonblock(motor,0.0f,0.0f,1000.0f,0.0f,0.0f);//注销掉这个函数的angle_now，防止用到下一次开环执行程序中
+            ctrl_motor_openloop_reset(motor);
             break;
         }
         motor->MotorData.Calibrate_angle_el_zero_sensor_block_angle_el_zero[i] += motor->MotorData.Calibrate_angle_el_zero_sensor_block_angle_now - motor->MotorData.angle_all;
         motor->MotorData.Calibrate_angle_el_zero_sensor_block_angle_el_zero[i] /= 2;
 
         // printf("%d,%f,%f\n",i,angle_el_zero[i],angle_now);
-    } while (motor->MotorData.Calibrate_angle_el_zero_sensor_block_angle_now);
+    } while (running);
+    ctrl_motor_openloop_reset(motor);
     // printf("%f\n",angle_now);
     for(int i = 0; i<(int)motor->MotorData.Calibrate_angle_el_zero_sensor_block_sample_total ;i++)
     {
@@ -1843,11 +1848,12 @@ void update_angle_el_zero_sensor_nonblock_(Motor_HandleTypeDef *motor,float this
         }break;
         case 2:
         {
-            motor->MotorData.Calibrate_angle_el_zero_sensor_nonblock_angle_now = ctrl_motor_openloop_angle_nonblock(motor,2*PI,0.0f,0.3,motor->MotorConfig.UMAX*0.05f, 0.0f);
+            int running = ctrl_motor_openloop_angle_nonblock(motor,this_dt,2*PI,0.0f,0.3,motor->MotorConfig.UMAX*0.05f, 0.0f);
+            motor->MotorData.Calibrate_angle_el_zero_sensor_nonblock_angle_now = 0.0f + motor->MotorData.Openloop_progress/(float)motor->MotorConfig.Pole_pairs;
             uint32_t i =(uint32_t)my_round((motor->MotorData.Calibrate_angle_el_zero_sensor_nonblock_angle_now/(2*PI))*(float)motor->MotorData.Calibrate_angle_el_zero_sensor_nonblock_sample_total);
-            if(i>=motor->MotorData.Calibrate_angle_el_zero_sensor_nonblock_sample_total|| !motor->MotorData.Calibrate_angle_el_zero_sensor_nonblock_angle_now)
+            if(i>=motor->MotorData.Calibrate_angle_el_zero_sensor_nonblock_sample_total|| !running)
             {
-                ctrl_motor_openloop_angle_nonblock(motor,0.0f,0.0f,1000.0f,0.0f,0.0f);//注销掉这个函数的angle_now，防止用到下一次开环执行程序中
+                ctrl_motor_openloop_reset(motor);
                 motor->MotorData.Calibrate_angle_el_zero_sensor_nonblock_state = 3;
                 break;
             }
@@ -1855,7 +1861,8 @@ void update_angle_el_zero_sensor_nonblock_(Motor_HandleTypeDef *motor,float this
         }break;
         case 3:
         {
-            motor->MotorData.Calibrate_angle_el_zero_sensor_nonblock_angle_now = ctrl_motor_openloop_angle_nonblock(motor,0.0f,2*PI,-0.3,motor->MotorConfig.UMAX*0.05f, 0.0f);
+            int running = ctrl_motor_openloop_angle_nonblock(motor,this_dt,0.0f,2*PI,-0.3,motor->MotorConfig.UMAX*0.05f, 0.0f);
+            motor->MotorData.Calibrate_angle_el_zero_sensor_nonblock_angle_now = 2*PI + motor->MotorData.Openloop_progress/(float)motor->MotorConfig.Pole_pairs;
             uint32_t i =(uint32_t)my_round((motor->MotorData.Calibrate_angle_el_zero_sensor_nonblock_angle_now/(2*PI))*(float)motor->MotorData.Calibrate_angle_el_zero_sensor_nonblock_sample_total);
             int32_t i_int =(int32_t)my_round((motor->MotorData.Calibrate_angle_el_zero_sensor_nonblock_angle_now/(2*PI))*(float)motor->MotorData.Calibrate_angle_el_zero_sensor_nonblock_sample_total);
             // printf("%f\n",angle_el_zero[i]);
@@ -1863,9 +1870,9 @@ void update_angle_el_zero_sensor_nonblock_(Motor_HandleTypeDef *motor,float this
             {
                 --i;
             }
-            if(i_int<0 || !motor->MotorData.Calibrate_angle_el_zero_sensor_nonblock_angle_now)
+            if(i_int<0 || !running)
             {
-                ctrl_motor_openloop_angle_nonblock(motor,0.0f,0.0f,1000.0f,0.0f,0.0f);//注销掉这个函数的angle_now，防止用到下一次开环执行程序中
+                ctrl_motor_openloop_reset(motor);
                 motor->MotorData.Calibrate_angle_el_zero_sensor_nonblock_state = 4;
                 break;
             }
@@ -1896,98 +1903,77 @@ void update_angle_el_zero_sensor_nonblock_(Motor_HandleTypeDef *motor,float this
     motor->MotorData.angle_all = motor->MotorData.Calibrate_angle_el_zero_sensor_nonblock_angle_all_temp ;
 }
 
-void ctrl_motor_openloop_velocity_el_nonblock(Motor_HandleTypeDef *motor,float velocity_el_target,float Uq,float Ud)
+void ctrl_motor_openloop_reset(Motor_HandleTypeDef *motor)
 {
-    static float velocity_integral = 0;
-    velocity_integral += velocity_el_target*motor->time.dt;
-    set_svpwm_dir(motor,Uq,Ud,Limit_angle_el(velocity_integral));
+    motor->MotorData.Openloop_angle_el = 0.0f;
+    motor->MotorData.Openloop_progress = 0.0f;
+    motor->MotorData.Openloop_state = 0;
 }
 
-void ctrl_motor_openloop_velocity_nonblock(Motor_HandleTypeDef *motor,float velocity_target,float Uq,float Ud)
+void ctrl_motor_openloop_velocity_el_nonblock(Motor_HandleTypeDef *motor,float this_dt,float velocity_el_target,float Uq,float Ud)
 {
-    static float velocity_integral = 0;
-    velocity_integral += velocity_target*motor->time.dt;
-    set_svpwm_dir(motor,Uq,Ud,Limit_angle_el(velocity_integral*(float)motor->MotorConfig.Pole_pairs));
-    // set_spwm(motor,Uq,Ud,Limit_angle_el(velocity_integral*(float)motor->MotorConfig.Pole_pairs));
+    motor->MotorData.Openloop_angle_el = Limit_angle_el(motor->MotorData.Openloop_angle_el + velocity_el_target*this_dt);
+    set_svpwm_dir(motor,Uq,Ud,motor->MotorData.Openloop_angle_el);
 }
 
-float ctrl_motor_openloop_angle_el_nonblock(Motor_HandleTypeDef *motor,float angle_el_target,float angle_el_start,float velocity_el_target ,float Uq,float Ud)
+void ctrl_motor_openloop_velocity_nonblock(Motor_HandleTypeDef *motor,float this_dt,float velocity_target,float Uq,float Ud)
 {
-    static float angle_el_now = 0;
-    static float velocity_integral = 0 ;
-    velocity_integral += angle_el_target*motor->time.dt;
-    angle_el_now = angle_el_start + velocity_integral;
-    if(my_abs(velocity_integral) < my_abs(angle_el_target - angle_el_start))
-    {
-        set_svpwm_dir(motor,Uq,Ud,Limit_angle_el(velocity_integral));
-        return angle_el_now ;
-    }
-    else
-    {
-        set_svpwm_dir(motor,0.0f,0.0f,0.0f);
-        velocity_integral = 0.0f;
-        angle_el_now = 0.0f;
-        return 0 ;
-    }
+    ctrl_motor_openloop_velocity_el_nonblock(motor,this_dt,velocity_target*(float)motor->MotorConfig.Pole_pairs,Uq,Ud);
 }
 
-void ctrl_motor_openloop_angle_el_block(Motor_HandleTypeDef *motor,float angle_el_target,float angle_el_start,float velocity_el_target ,float Uq,float Ud)
+int ctrl_motor_openloop_angle_el_nonblock(Motor_HandleTypeDef *motor,float this_dt,float angle_el_target,float angle_el_start,float velocity_el_target ,float Uq,float Ud)
 {
-    while(ctrl_motor_openloop_angle_el_nonblock(motor,angle_el_target,angle_el_start,velocity_el_target,Uq,Ud))
+    if(motor->MotorData.Openloop_state == 0)
     {
-        update_dt(motor);
+        motor->MotorData.Openloop_state = 1;
+        motor->MotorData.Openloop_progress = 0.0f;
+        motor->MotorData.Openloop_angle_el = Limit_angle_el(angle_el_start);
     }
-}
-
-float ctrl_motor_openloop_angle_nonblock(Motor_HandleTypeDef *motor,float angle_target,float angle_start,float velocity_target ,float Uq,float Ud)
-{
-    static float angle_now = 0;
-    static float velocity_integral = 0 ;
-    static float angle = 0 ;
-    velocity_integral += velocity_target*motor->time.dt;
-    angle_now = angle_start + velocity_integral;
-    angle = Limit_angle_el(velocity_integral*(float)motor->MotorConfig.Pole_pairs);
-    if( my_abs(velocity_integral) < my_abs(angle_target-angle_start))
+    if(motor->MotorData.Openloop_state == 2)
     {
-        set_svpwm_dir(motor,Uq,Ud,angle);
-        return angle_now ;
-    }
-    else
-    {
-        set_svpwm_dir(motor,0.0f,0.0f,0.0f);
-        angle_now = 0.0f;
-        velocity_integral = 0.0f;
+        set_svpwm_dir(motor,Uq,Ud,motor->MotorData.Openloop_angle_el);
         return 0;
     }
-}
-void Calculate_IdIq(float IA, float IB, float IC, float angle_el, float *IdIq_out)
-{
-    // --- 第一步: Clark 变换 (3相 -> 2相静止) ---
-    // Ialpha = IA
-    float Ialpha = IA;
-    
-    // Ibeta = (sqrt(3) * (IB - IC)) / 3
-    float Ibeta = (SQRT3 * (IB - IC)) / 3.0f;
 
-    // --- 第二步: Park 变换 (2相静止 -> 2相同步旋转) ---
-    float cos_theta = my_cos(angle_el);
-    float sin_theta = my_sin(angle_el);
-
-    // Id = Ialpha * cosθ + Ibeta * sinθ
-    IdIq_out[0] = Ialpha * cos_theta + Ibeta * sin_theta;
-    
-    // Iq = -Ialpha * sinθ + Ibeta * cosθ
-    IdIq_out[1] = -Ialpha * sin_theta + Ibeta * cos_theta;
-}
-
-void ctrl_motor_openloop_angle_block(Motor_HandleTypeDef *motor,float angle_target,float angle_start,float velocity_target ,float Uq,float Ud)
-{
-    while(ctrl_motor_openloop_angle_nonblock(motor,angle_target,angle_start,velocity_target,Uq,Ud))
+    motor->MotorData.Openloop_progress += velocity_el_target*this_dt;
+    if(my_abs(motor->MotorData.Openloop_progress) < my_abs(angle_el_target - angle_el_start))
     {
-        static float iqid[2] = {0.0f,0.0f} ;
+        motor->MotorData.Openloop_angle_el = Limit_angle_el(angle_el_start + motor->MotorData.Openloop_progress);
+        set_svpwm_dir(motor,Uq,Ud,motor->MotorData.Openloop_angle_el);
+        return 1;
+    }
+
+    motor->MotorData.Openloop_progress = angle_el_target - angle_el_start;
+    motor->MotorData.Openloop_angle_el = Limit_angle_el(angle_el_target);
+    motor->MotorData.Openloop_state = 2;
+    set_svpwm_dir(motor,Uq,Ud,motor->MotorData.Openloop_angle_el);
+    return 0;
+}
+
+int ctrl_motor_openloop_angle_el_block(Motor_HandleTypeDef *motor,float angle_el_target,float angle_el_start,float velocity_el_target ,float Uq,float Ud)
+{
+    int running;
+    while((running = ctrl_motor_openloop_angle_el_nonblock(motor,motor->time.dt,angle_el_target,angle_el_start,velocity_el_target,Uq,Ud)))
+    {
+        update_dt(motor);
+    }
+    return running;
+}
+
+int ctrl_motor_openloop_angle_nonblock(Motor_HandleTypeDef *motor,float this_dt,float angle_target,float angle_start,float velocity_target ,float Uq,float Ud)
+{
+    float pole_pairs = (float)motor->MotorConfig.Pole_pairs;
+    return ctrl_motor_openloop_angle_el_nonblock(motor,this_dt,angle_target*pole_pairs,angle_start*pole_pairs,velocity_target*pole_pairs,Uq,Ud);
+}
+
+int ctrl_motor_openloop_angle_block(Motor_HandleTypeDef *motor,float angle_target,float angle_start,float velocity_target ,float Uq,float Ud)
+{
+    int running;
+    while((running = ctrl_motor_openloop_angle_nonblock(motor,motor->time.dt,angle_target,angle_start,velocity_target,Uq,Ud)))
+    {
         update_dt(motor);
         update_angle(motor);
-        Calculate_IdIq(motor->MotorAlg.IA,motor->MotorAlg.IB,motor->MotorAlg.IC,motor->MotorAlg.angle_el,iqid);
     }
+    return running;
 }
 

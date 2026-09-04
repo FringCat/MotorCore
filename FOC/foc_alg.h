@@ -213,6 +213,10 @@ typedef struct
     uint32_t Calibrate_Ioffset_nonblock_IA_offset_raw_all;
     uint32_t Calibrate_Ioffset_nonblock_IB_offset_raw_all;
     uint32_t Calibrate_Ioffset_nonblock_IC_offset_raw_all;
+    /* Openloop：0 idle / 1 run / 2 done */
+    float Openloop_angle_el;
+    float Openloop_progress;
+    uint8_t Openloop_state;
 } Motor_DataTypeDef;
 
 
@@ -385,11 +389,12 @@ void update_angle_el_zero_sensor_nonblock_(Motor_HandleTypeDef *motor,float this
 void update_angle_el_zero_no_sensor_block(Motor_HandleTypeDef *motor);  //  电角度零点校准 （无传感器，阻塞式更新）
 
 //控制相关
-void ctrl_motor_openloop_velocity_el_nonblock(Motor_HandleTypeDef *motor,float velocity_el_target,float Uq,float Ud);
-void ctrl_motor_openloop_velocity_nonblock(Motor_HandleTypeDef *motor,float velocity_target,float Uq,float Ud);
-float ctrl_motor_openloop_angle_el_nonblock(Motor_HandleTypeDef *motor,float angle_el_target,float angle_el_start,float velocity_el_target ,float Uq,float Ud);
-void ctrl_motor_openloop_angle_el_block(Motor_HandleTypeDef *motor,float angle_el_target,float angle_el_start,float velocity_el_target ,float Uq,float Ud);
-float ctrl_motor_openloop_angle_nonblock(Motor_HandleTypeDef *motor,float angle_target,float angle_start,float velocity_target ,float Uq,float Ud);
-void ctrl_motor_openloop_angle_block(Motor_HandleTypeDef *motor,float angle_target,float angle_start,float velocity_target ,float Uq,float Ud);
+void ctrl_motor_openloop_reset(Motor_HandleTypeDef *motor);
+void ctrl_motor_openloop_velocity_el_nonblock(Motor_HandleTypeDef *motor,float this_dt,float velocity_el_target,float Uq,float Ud);
+void ctrl_motor_openloop_velocity_nonblock(Motor_HandleTypeDef *motor,float this_dt,float velocity_target,float Uq,float Ud);
+int ctrl_motor_openloop_angle_el_nonblock(Motor_HandleTypeDef *motor,float this_dt,float angle_el_target,float angle_el_start,float velocity_el_target ,float Uq,float Ud);
+int ctrl_motor_openloop_angle_el_block(Motor_HandleTypeDef *motor,float angle_el_target,float angle_el_start,float velocity_el_target ,float Uq,float Ud);
+int ctrl_motor_openloop_angle_nonblock(Motor_HandleTypeDef *motor,float this_dt,float angle_target,float angle_start,float velocity_target ,float Uq,float Ud);
+int ctrl_motor_openloop_angle_block(Motor_HandleTypeDef *motor,float angle_target,float angle_start,float velocity_target ,float Uq,float Ud);
 
 #endif
