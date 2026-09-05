@@ -71,6 +71,28 @@ int32_t my_fast_round(float x)
     return (int32_t)my_round(x);
 }
 
+float my_sqrt(float x)
+{
+    union
+    {
+        float f;
+        uint32_t i;
+    } u;
+    float y;
+
+    if (x <= 0.0f)
+    {
+        return 0.0f;
+    }
+    u.f = x;
+    u.i = (u.i >> 1) + 0x1fbb4000u;
+    y = u.f;
+    y = 0.5f * (y + x / y);
+    y = 0.5f * (y + x / y);
+    y = 0.5f * (y + x / y);
+    return y;
+}
+
 /** 向下取整（等价 floorf，不依赖 libm） */
 float my_floor(float x)
 {
@@ -609,6 +631,33 @@ float get_velocity_raw(Motor_HandleTypeDef *motor)
     return motor->motor_data.velocity_raw;
 }
 
+float calculate_velocity_el(float velocity, float pole_pairs)
+{
+    return velocity * pole_pairs;
+}
+
+float update_velocity_el(Motor_HandleTypeDef *motor)
+{
+    motor->motor_alg.velocity_el = calculate_velocity_el(motor->motor_alg.velocity, (float)motor->motor_config.pole_pairs);
+    return motor->motor_alg.velocity_el;
+}
+
+float update_velocity_el_raw(Motor_HandleTypeDef *motor)
+{
+    motor->motor_data.velocity_el_raw = calculate_velocity_el(motor->motor_data.velocity_raw, (float)motor->motor_config.pole_pairs);
+    return motor->motor_data.velocity_el_raw;
+}
+
+float get_velocity_el(Motor_HandleTypeDef *motor)
+{
+    return motor->motor_alg.velocity_el;
+}
+
+float get_velocity_el_raw(Motor_HandleTypeDef *motor)
+{
+    return motor->motor_data.velocity_el_raw;
+}
+
 float calculate_pid(float target, float feedback, float dt ,PID_t* pid)
 {
     pid->error = target - feedback;
@@ -678,6 +727,191 @@ float calculate_pid_is_ais(float target, float feedback, float dt, PID_t* pid,fl
 
     pid->last_error = pid->error;
     return pid->output;
+}
+
+void calculate_i_limit_circle(float id, float iq, float i_max, float *id_out, float *iq_out)
+{
+    float mag2;
+    float scale;
+
+    if (i_max <= 0.0f)
+    {
+        *id_out = 0.0f;
+        *iq_out = 0.0f;
+        return;
+    }
+    mag2 = id * id + iq * iq;
+    if (mag2 <= i_max * i_max)
+    {
+        *id_out = id;
+        *iq_out = iq;
+        return;
+    }
+    scale = i_max / my_sqrt(mag2);
+    *id_out = id * scale;
+    *iq_out = iq * scale;
+}
+
+void calculate_u_limit_circle_param(float velocity_el, float rs, float ls, float flux, float u_max, float *id_center, float *iq_center, float *radius)
+{
+    float we2 = velocity_el * velocity_el;
+    float a = rs * rs + we2 * ls * ls;
+    float udq_max = u_max * _1_SQRT3;
+    float r2;
+
+    if (a < 1e-12f)
+    {
+        *id_center = 0.0f;
+        *iq_center = 0.0f;
+        *radius = 1.0e6f;
+        return;
+    }
+    *id_center = -we2 * ls * flux / a;
+    *iq_center = -rs * velocity_el * flux / a;
+    r2 = (udq_max * udq_max - we2 * flux * flux) / a + (*id_center) * (*id_center) + (*iq_center) * (*iq_center);
+    *radius = (r2 > 0.0f) ? my_sqrt(r2) : 0.0f;
+}
+
+void calculate_u_limit_circle(float id, float iq, float velocity_el, float rs, float ls, float flux, float u_max, float *id_out, float *iq_out)
+{
+    float id_c;
+    float iq_c;
+    float r_u;
+    float dx;
+    float dy;
+    float d2;
+    float scale;
+
+    calculate_u_limit_circle_param(velocity_el, rs, ls, flux, u_max, &id_c, &iq_c, &r_u);
+    dx = id - id_c;
+    dy = iq - iq_c;
+    d2 = dx * dx + dy * dy;
+    if (d2 <= r_u * r_u)
+    {
+        *id_out = id;
+        *iq_out = iq;
+        return;
+    }
+    if (d2 <= 0.0f)
+    {
+        *id_out = id_c;
+        *iq_out = iq_c;
+        return;
+    }
+    scale = r_u / my_sqrt(d2);
+    *id_out = id_c + dx * scale;
+    *iq_out = iq_c + dy * scale;
+}
+
+void calculate_id_iq_limit_circle(float id, float iq, float i_max, float velocity_el, float rs, float ls, float flux, float u_max, float *id_out, float *iq_out)
+{
+    float id_c;
+    float iq_c;
+    float r_u;
+    float id_i;
+    float iq_i;
+    float id_u;
+    float iq_u;
+    float dx;
+    float dy;
+    float d;
+    float a;
+    float h2;
+    float h;
+    float ux;
+    float uy;
+    float id1;
+    float iq1;
+    float id2;
+    float iq2;
+    float d1;
+    float d2;
+
+    calculate_u_limit_circle_param(velocity_el, rs, ls, flux, u_max, &id_c, &iq_c, &r_u);
+
+    dx = id - id_c;
+    dy = iq - iq_c;
+    if ((id * id + iq * iq <= i_max * i_max) && (dx * dx + dy * dy <= r_u * r_u))
+    {
+        *id_out = id;
+        *iq_out = iq;
+        return;
+    }
+
+    calculate_i_limit_circle(id, iq, i_max, &id_i, &iq_i);
+    dx = id_i - id_c;
+    dy = iq_i - iq_c;
+    if (dx * dx + dy * dy <= r_u * r_u)
+    {
+        *id_out = id_i;
+        *iq_out = iq_i;
+        return;
+    }
+
+    calculate_u_limit_circle(id, iq, velocity_el, rs, ls, flux, u_max, &id_u, &iq_u);
+    if (id_u * id_u + iq_u * iq_u <= i_max * i_max)
+    {
+        *id_out = id_u;
+        *iq_out = iq_u;
+        return;
+    }
+
+    d = my_sqrt(id_c * id_c + iq_c * iq_c);
+    if (d < 1e-9f)
+    {
+        calculate_i_limit_circle(id, iq, i_max, id_out, iq_out);
+        return;
+    }
+    if (d > i_max + r_u)
+    {
+        *id_out = i_max * id_c / d;
+        *iq_out = i_max * iq_c / d;
+        return;
+    }
+
+    a = (i_max * i_max - r_u * r_u + d * d) / (2.0f * d);
+    h2 = i_max * i_max - a * a;
+    if (h2 <= 0.0f)
+    {
+        calculate_i_limit_circle(id, iq, i_max, id_out, iq_out);
+        return;
+    }
+    h = my_sqrt(h2);
+    ux = id_c / d;
+    uy = iq_c / d;
+    id1 = ux * a - uy * h;
+    iq1 = uy * a + ux * h;
+    id2 = ux * a + uy * h;
+    iq2 = uy * a - ux * h;
+    d1 = (id1 - id) * (id1 - id) + (iq1 - iq) * (iq1 - iq);
+    d2 = (id2 - id) * (id2 - id) + (iq2 - iq) * (iq2 - iq);
+    if (d1 <= d2)
+    {
+        *id_out = id1;
+        *iq_out = iq1;
+    }
+    else
+    {
+        *id_out = id2;
+        *iq_out = iq2;
+    }
+}
+
+float calculate_ud_uq_limit(float u_max)
+{
+    return u_max * 0.5f;
+}
+
+void calculate_ud_uq_limit_circle(float ud, float uq, float u_limit, float *ud_out, float *uq_out)
+{
+    calculate_i_limit_circle(ud, uq, u_limit, ud_out, uq_out);
+}
+
+void update_ud_uq_limit_circle(Motor_HandleTypeDef *motor)
+{
+    float u_limit = calculate_ud_uq_limit(motor->motor_config.u_max);
+    calculate_ud_uq_limit_circle(motor->motor_alg.ud, motor->motor_alg.uq, u_limit,
+                                 &motor->motor_alg.ud, &motor->motor_alg.uq);
 }
 
 void update_svpwm(Motor_HandleTypeDef *motor)

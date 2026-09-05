@@ -172,6 +172,7 @@ void foc_init(Motor_HandleTypeDef *motor)
     motor->motor_config.rs = 0.5f;      // 设置定子电阻
     motor->motor_config.angle_el_zero = 3.13263f; // 设置角度零点
     motor->motor_config.kt = 0.806325918;           //设置转矩系数
+    motor->motor_config.flux = motor->motor_config.kt / (1.5f * (float)motor->motor_config.pole_pairs); // 永磁磁链(Wb)
 
     // 初始化PID参数(要用哪个初始化哪个)
     motor->motor_alg.position_pid.kp = 20.3f;

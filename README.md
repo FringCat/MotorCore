@@ -8,9 +8,10 @@ FOC 库。内核只有 `FOC/`：算法与硬件用句柄、函数指针解耦。
 
 - Clark / Park 及逆变换，输出指针；Park 分 `_theta` / `_sincos`，电流环先 `update_sincos`
 - SVPWM、SPWM
-- `dt`、`angle_all` unwrap、速度一阶低通
+- `dt`、`angle_all` unwrap、速度一阶低通、电速度（机械转速 × 极对数）
 - 自实现 `my_sin` / `my_cos` 等，不链 `arm_math`
 - 位置式 PID（积分分离可选）；句柄内预置位置 / 速度 / id / iq / 混合环
+- 电流极限圆、电压极限圆（隐极 Ld=Lq，限 id/iq 指令）；Ud-Uq 极限圆（`u_max/2` 径向，电流环后、SVPWM 前）
 - 校准：电流零点、`dir`、`phase`、极对数、电角度零点。阻塞 / 非阻塞成对；`_` 接口由外部传入 `dt` 等
 - 开环状态在实例上。单元函数是电角度位置开环（返回 1 进行中 / 0 完成）；机械量只做极对数换算
 

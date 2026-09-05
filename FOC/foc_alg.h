@@ -65,9 +65,10 @@ typedef struct
     float vdc;         // 直流母线电压
     float i_max;             // 电流输出限幅（单位：A，保护电机/功率管，避免过流）
     float u_max;             // 电压输出限幅（单位：V，基于母线电压，避免PWM占空比超范围）
-    float ls;               // 电机定子电感（单位：H，FOC电流环PI参数设计的核心参数）
+    float ls;               // 电机定子电感（单位：H，FOC电流环PI参数设计的核心参数；极限圆按 Ld=Lq=ls）
     float rs;               // 电机定子电阻（单位：Ω，FOC电流环前馈补偿、铜损计算）
-    float kt;             // 转矩系数
+    float kt;             // 转矩系数（T = kt * iq 时，flux = kt / (1.5 * pole_pairs)）
+    float flux;           // 永磁磁链（单位：Wb，电压极限圆圆心）
     float angle_zero;       // 机械角度零点（编码器零位校准值，用于位置控制基准）
     float angle_el_zero;    // 电角度零点（FOC磁链定向基准，由机械零点×极对数计算）     
     int mode_sampling;     //电流采样模式：0x100: AXX, 0x010: XBX , 0x001: XXC, 0x110: ABX, 0x101: AXC, 0x011: XBC, 0x111: ABC
@@ -96,7 +97,8 @@ typedef struct
     float angle;            // 电机转子角度（编码器反馈后校准的值，单位：rad/deg）
     float last_angle;       // 上一时刻转子角度（用于计算速度：velocity = (angle - LastAngle)/dt）
     float angle_el;         // 电机电角度（angle × pole_pairs，FOC磁链定向的核心依据）
-    float velocity;         // 电机转速（由Δangle/Δdt计算，单位：rad/s/RPM）
+    float velocity;         // 电机机械转速（由Δangle/Δdt计算，单位：rad/s）
+    float velocity_el;      // 电机电转速（velocity × pole_pairs，单位：rad/s）
     // -------------------------- PID控制器实例（对应不同控制环） --------------------------
     PID_t position_pid;     // 位置环PID（输入：位置误差（目标pos - 反馈pos），输出：目标速度）
     PID_t velocity_pid;     // 速度环PID（输入：速度误差（目标vel - 反馈vel），输出：目标Iq/id）
@@ -128,6 +130,7 @@ typedef struct
     
     // -------------------------- 速度数据 -------------------------------
     float velocity_raw;     // 转速原始值（未滤波前的计算结果，用于后续平滑处理）
+    float velocity_el_raw;  // 电转速原始值（velocity_raw × pole_pairs）
     LPF_t velocity_lpf;     // 速度滤波器实例（用于平滑Velocity_raw，提升速度反馈质量）
     int32_t loopcount;      // 机械角度圈数（解卷绕：总角 = loopcount×2π + angle）
 
@@ -271,6 +274,7 @@ float my_fmodf(float x, float y);
 float my_floor(float x);                                                            /* 向下取整，等价 floorf */
 float my_pow(float base, float exp);                                                /* 幂运算，等价 powf 常用场景 */
 float my_sat(float e, float r);
+float my_sqrt(float x);                                                             // 平方根（牛顿迭代，不依赖 libm）
 int32_t my_fast_round(float x);
 
 // 数据重置与初始化
@@ -324,11 +328,25 @@ float get_velocity(Motor_HandleTypeDef *motor);                                 
 float get_velocity_raw(Motor_HandleTypeDef *motor);                                 // 获取当前原始转速
 float calculate_velocity_lpf(float angle, float last_angle, float dt, float last_velocity, float alpha);  // 计算转速（含滤波）
 float calculate_velocity_raw(float angle, float last_angle, float dt);              // 计算转速（不含滤波）
+float calculate_velocity_el(float velocity, float pole_pairs);                     // 机械转速→电转速
+float update_velocity_el(Motor_HandleTypeDef *motor);                               // 更新滤波后电转速
+float update_velocity_el_raw(Motor_HandleTypeDef *motor);                           // 更新原始电转速
+float get_velocity_el(Motor_HandleTypeDef *motor);                                  // 获取当前电转速
+float get_velocity_el_raw(Motor_HandleTypeDef *motor);                              // 获取当前原始电转速
 
 // PID控制
 float calculate_pid(float target, float feedback, float dt ,PID_t* pid);  // PID计算（位置式+，支持积分处理）
 float calculate_pid_is(float target, float feedback, float dt, PID_t* pid,float sep_err_upper, float sep_err_lower); //带有积分分离的PID计算
 float calculate_pid_is_ais(float target, float feedback, float dt, PID_t* pid,float n); //带有自适应积分分离的PID计算
+
+// 电流/电压极限圆（id-iq 平面；u_max 为母线电压，电压圆半径按 SVPWM 线性区 u_max/√3）
+void calculate_i_limit_circle(float id, float iq, float i_max, float *id_out, float *iq_out); // 电流极限圆：超半径则径向投影
+void calculate_u_limit_circle_param(float velocity_el, float rs, float ls, float flux, float u_max, float *id_center, float *iq_center, float *radius); // 电压极限圆圆心与半径
+void calculate_u_limit_circle(float id, float iq, float velocity_el, float rs, float ls, float flux, float u_max, float *id_out, float *iq_out); // 电压极限圆：超半径则向圆心投影
+void calculate_id_iq_limit_circle(float id, float iq, float i_max, float velocity_el, float rs, float ls, float flux, float u_max, float *id_out, float *iq_out); // 两圆可行域（相交则取交点）
+float calculate_ud_uq_limit(float u_max);                                           // Ud-Uq 极限圆半径（u_max/2）
+void calculate_ud_uq_limit_circle(float ud, float uq, float u_limit, float *ud_out, float *uq_out); // Ud-Uq 极限圆：超半径则径向投影
+void update_ud_uq_limit_circle(Motor_HandleTypeDef *motor);                          // 限幅 motor_alg.ud/uq，电流环后、SVPWM 前调用
 
 // 时间相关
 float update_dt(Motor_HandleTypeDef *motor); // 更新dt值
