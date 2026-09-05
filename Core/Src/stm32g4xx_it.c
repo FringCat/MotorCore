@@ -216,16 +216,16 @@ void ADC1_2_IRQHandler(void)
   /* USER CODE BEGIN ADC1_2_IRQn 1 */
 
   HAL_GPIO_TogglePin(TEST2_GPIO_Port, TEST2_Pin);
-  if(update_Ioffset_nonblock(&motor,motor.MotorConfig.Mode_Sampling))
+  if(update_i_offset_nonblock(&motor,motor.motor_config.mode_sampling))
   {
-    update_IaIbIc(&motor,motor.MotorConfig.Mode_Sampling,motor.MotorConfig.PHASE);
+    update_iaibic(&motor,motor.motor_config.mode_sampling,motor.motor_config.phase);
   }
   update_dt(&motor);
   update_angle(&motor);
   update_sincos(&motor);
-  update_IalphaIbeta(&motor); 
-  update_IqId(&motor);
-  update_velocity_LPF(&motor);
+  update_ialpha_ibeta(&motor); 
+  update_iqid(&motor);
+  update_velocity_lpf(&motor);
 
   HAL_GPIO_TogglePin(TEST2_GPIO_Port, TEST2_Pin);
   /* USER CODE END ADC1_2_IRQn 1 */
@@ -270,7 +270,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     if(timer_cnt <500)
     {
       HAL_GPIO_TogglePin(TEST1_GPIO_Port, TEST1_Pin);
-      if(isoffset_done)
+      if(motor.motor_data.ia_offset_raw)
       {
         //速度开环运行例程
         // {
@@ -279,22 +279,22 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 
         // 速度环例程
         // {
-        //   motor.MotorAlg.Uq = Calculate_PID(20.0f, motor.MotorAlg.Velocity, motor.time.dt , &motor.MotorAlg.velocity_pid);
+        //   motor.motor_alg.uq = calculate_pid(20.0f, motor.motor_alg.velocity, motor.time.dt , &motor.motor_alg.velocity_pid);
         //   update_svpwm(&motor);//输出SVPWM
         // }
 
         // 单电流环例程
         // {
-        //   motor.MotorAlg.Uq = Calculate_PID(1.0f, motor.MotorAlg.Iq , motor.time.dt , &motor.MotorAlg.iq_pid);
-        //   motor.MotorAlg.Ud = Calculate_PID(0.0f, motor.MotorAlg.Id , motor.time.dt , &motor.MotorAlg.id_pid);
+        //   motor.motor_alg.uq = calculate_pid(1.0f, motor.motor_alg.iq , motor.time.dt , &motor.motor_alg.iq_pid);
+        //   motor.motor_alg.ud = calculate_pid(0.0f, motor.motor_alg.id , motor.time.dt , &motor.motor_alg.id_pid);
         //   update_svpwm(&motor);//输出SVPWM
         // }
 
         // 速度电流环例程
         // {
-        //   float output = Calculate_PID(20.0f, motor.MotorAlg.Velocity, motor.time.dt , &motor.MotorAlg.velocity_pid);
-        //   motor.MotorAlg.Uq = Calculate_PID(output, motor.MotorAlg.Iq , motor.time.dt , &motor.MotorAlg.iq_pid);
-        //   motor.MotorAlg.Ud = Calculate_PID(0.0f, motor.MotorAlg.Id , motor.time.dt , &motor.MotorAlg.id_pid);
+        //   float output = calculate_pid(20.0f, motor.motor_alg.velocity, motor.time.dt , &motor.motor_alg.velocity_pid);
+        //   motor.motor_alg.uq = calculate_pid(output, motor.motor_alg.iq , motor.time.dt , &motor.motor_alg.iq_pid);
+        //   motor.motor_alg.ud = calculate_pid(0.0f, motor.motor_alg.id , motor.time.dt , &motor.motor_alg.id_pid);
         //   update_svpwm(&motor);//输出SVPWM
         // }
 
@@ -302,10 +302,10 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
         // {
         //   static float output_pos = 0.0f;
         //   static float output_vel = 0.0f;
-        //   output_pos = Calculate_PID(0.0f, get_angle_all(&motor), motor.time.dt , &motor.MotorAlg.position_pid);
-        //   output_vel = Calculate_PID(output_pos, motor.MotorAlg.Velocity, motor.time.dt , &motor.MotorAlg.velocity_pid);
-        //   motor.MotorAlg.Uq = Calculate_PID(output_vel, motor.MotorAlg.Iq , motor.time.dt , &motor.MotorAlg.iq_pid);
-        //   motor.MotorAlg.Ud = Calculate_PID(0.0f, motor.MotorAlg.Id , motor.time.dt , &motor.MotorAlg.id_pid);
+        //   output_pos = calculate_pid(0.0f, get_angle_all(&motor), motor.time.dt , &motor.motor_alg.position_pid);
+        //   output_vel = calculate_pid(output_pos, motor.motor_alg.velocity, motor.time.dt , &motor.motor_alg.velocity_pid);
+        //   motor.motor_alg.uq = calculate_pid(output_vel, motor.motor_alg.iq , motor.time.dt , &motor.motor_alg.iq_pid);
+        //   motor.motor_alg.ud = calculate_pid(0.0f, motor.motor_alg.id , motor.time.dt , &motor.motor_alg.id_pid);
         //   update_svpwm(&motor);//输出SVPWM
         // }
 
