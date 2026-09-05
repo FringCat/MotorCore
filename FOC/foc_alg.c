@@ -4,7 +4,6 @@
  */
 
 #include "foc_alg.h"
-#include "SEGGER_RTT.h"
 #include "foc_drv.h"
 float my_sgn(float x)
 {
@@ -423,7 +422,7 @@ void update_pwm(Motor_HandleTypeDef *motor)
 	float _Ub = my_Limit(motor->MotorAlg.UB/motor->MotorConfig.UMAX , 1 , 0 );
 	float _Uc = my_Limit(motor->MotorAlg.UC/motor->MotorConfig.UMAX , 1 , 0 );
 
-    if(motor->MotorDrv.Set_PWM_A!=NULL || motor->MotorDrv.Set_PWM_B!=NULL || motor->MotorDrv.Set_PWM_C!=NULL)
+    if(motor->MotorDrv.Set_PWM_A || motor->MotorDrv.Set_PWM_B || motor->MotorDrv.Set_PWM_C)
     {
         switch (motor->MotorConfig.DIR)
         {
@@ -459,7 +458,7 @@ void set_pwm(Motor_HandleTypeDef *motor,float Ta , float Tb ,float Tc)
 	float _Ub = my_Limit(Tb , 1 , 0 );
 	float _Uc = my_Limit(Tc , 1 , 0 );
 
-    if(motor->MotorDrv.Set_PWM_A!=NULL ||motor->MotorDrv.Set_PWM_B!=NULL || motor->MotorDrv.Set_PWM_C!=NULL)
+    if(motor->MotorDrv.Set_PWM_A ||motor->MotorDrv.Set_PWM_B || motor->MotorDrv.Set_PWM_C)
     {
         switch (motor->MotorConfig.DIR)
         {
@@ -495,7 +494,7 @@ void set_pwm_nodir(Motor_HandleTypeDef *motor,float Ta , float Tb ,float Tc)
     float _Ub = my_Limit(Tb , 1 , 0 );
     float _Uc = my_Limit(Tc , 1 , 0 );
 
-    if(motor->MotorDrv.Set_PWM_A!=NULL || motor->MotorDrv.Set_PWM_B!=NULL ||motor->MotorDrv.Set_PWM_C!=NULL)
+    if(motor->MotorDrv.Set_PWM_A || motor->MotorDrv.Set_PWM_B ||motor->MotorDrv.Set_PWM_C)
     {
         motor->MotorDrv.Set_PWM_A(_Ua);
         motor->MotorDrv.Set_PWM_B(_Ub);
@@ -547,14 +546,12 @@ float update_velocity_LPF(Motor_HandleTypeDef *motor)
     motor->MotorData.Velocity_raw = Calculate_velocity_raw(motor->MotorAlg.angle, motor->MotorAlg.last_angle, motor->time.dt);
     motor->MotorAlg.Velocity =  Calculate_LPF(motor->MotorData.Velocity_raw, motor->MotorData.Velocity_LPF.last_output, motor->MotorData.Velocity_LPF.alpha);
     motor->MotorData.Velocity_LPF.last_output = motor->MotorAlg.Velocity; // 更新滤波器的上次输出值
-    // motor->MotorAlg.last_angle = motor->MotorAlg.angle; // （已注释）更新上一时刻角度,,update_angle_el函数中已进行此操作
     return motor->MotorAlg.Velocity;
 }
 
 float update_velocity_raw(Motor_HandleTypeDef *motor)
 {
     motor->MotorData.Velocity_raw = Calculate_velocity_raw(motor->MotorAlg.angle, motor->MotorAlg.last_angle, motor->time.dt);
-    // motor->MotorAlg.last_angle = motor->MotorAlg.angle; // （已注释）更新上一时刻角度,,update_angle_el函数中已进行此操作
     return motor->MotorData.Velocity_raw;
 }
 
@@ -1094,7 +1091,7 @@ int update_IaIbIc(Motor_HandleTypeDef *motor,int Mode_Sampling,int PHASE)
     {
         case 0x111: /* ABC*/
         {
-            if (motor->MotorDrv.Update_Ia_raw == NULL || motor->MotorDrv.Update_Ib_raw == NULL || motor->MotorDrv.Update_Ic_raw == NULL)
+            if (!motor->MotorDrv.Update_Ia_raw || !motor->MotorDrv.Update_Ib_raw || !motor->MotorDrv.Update_Ic_raw)
             {
                 return 0;
             }
@@ -1108,7 +1105,7 @@ int update_IaIbIc(Motor_HandleTypeDef *motor,int Mode_Sampling,int PHASE)
         }break;
         case 0x110: /* ABX */
         {
-            if (motor->MotorDrv.Update_Ia_raw == NULL || motor->MotorDrv.Update_Ib_raw == NULL)
+            if (!motor->MotorDrv.Update_Ia_raw || !motor->MotorDrv.Update_Ib_raw)
             {
                 return 0;
             }
@@ -1122,7 +1119,7 @@ int update_IaIbIc(Motor_HandleTypeDef *motor,int Mode_Sampling,int PHASE)
         }break;
         case 0x101: /* AXC*/
         {
-            if (motor->MotorDrv.Update_Ia_raw == NULL || motor->MotorDrv.Update_Ic_raw == NULL || motor->MotorDrv.Cal_Ia == NULL || motor->MotorDrv.Cal_Ic == NULL)
+            if (!motor->MotorDrv.Update_Ia_raw || !motor->MotorDrv.Update_Ic_raw || !motor->MotorDrv.Cal_Ia || !motor->MotorDrv.Cal_Ic)
             {
                 return 0;
             }
@@ -1136,7 +1133,7 @@ int update_IaIbIc(Motor_HandleTypeDef *motor,int Mode_Sampling,int PHASE)
         }break;
         case 0x011: /* XBC*/
         {
-            if (motor->MotorDrv.Update_Ib_raw == NULL || motor->MotorDrv.Update_Ic_raw == NULL || motor->MotorDrv.Cal_Ib == NULL || motor->MotorDrv.Cal_Ic == NULL)
+            if (!motor->MotorDrv.Update_Ib_raw || !motor->MotorDrv.Update_Ic_raw || !motor->MotorDrv.Cal_Ib || !motor->MotorDrv.Cal_Ic)
             {
                 return 0;
             }
@@ -1150,7 +1147,7 @@ int update_IaIbIc(Motor_HandleTypeDef *motor,int Mode_Sampling,int PHASE)
         }break;
         case 0x100: /* AXX */
         {
-            if (motor->MotorDrv.Update_Ia_raw == NULL || motor->MotorDrv.Cal_Ia == NULL)
+            if (!motor->MotorDrv.Update_Ia_raw || !motor->MotorDrv.Cal_Ia)
             {
                 return 0;
             }
@@ -1164,7 +1161,7 @@ int update_IaIbIc(Motor_HandleTypeDef *motor,int Mode_Sampling,int PHASE)
         }break;
         case 0x010: /* XBX*/
         {
-            if (motor->MotorDrv.Update_Ib_raw == NULL || motor->MotorDrv.Cal_Ib == NULL)
+            if (!motor->MotorDrv.Update_Ib_raw || !motor->MotorDrv.Cal_Ib)
             {
                 return 0;
             }
@@ -1178,7 +1175,7 @@ int update_IaIbIc(Motor_HandleTypeDef *motor,int Mode_Sampling,int PHASE)
         }break;
         case 0x001: /* XXC */
         {
-            if (motor->MotorDrv.Update_Ic_raw == NULL || motor->MotorDrv.Cal_Ic == NULL)
+            if (!motor->MotorDrv.Update_Ic_raw || !motor->MotorDrv.Cal_Ic)
             {
                 return 0;
             }
@@ -1260,7 +1257,7 @@ int update_Ioffset_nonblock(Motor_HandleTypeDef *motor,int Mode_Sampling)
         {
             case 0x111: /* ABC*/
             {
-                if (motor->MotorDrv.Update_Ia_raw == NULL || motor->MotorDrv.Update_Ib_raw == NULL || motor->MotorDrv.Update_Ic_raw == NULL)
+                if (!motor->MotorDrv.Update_Ia_raw || !motor->MotorDrv.Update_Ib_raw || !motor->MotorDrv.Update_Ic_raw)
                 {
                     return 0;
                 }
@@ -1270,7 +1267,7 @@ int update_Ioffset_nonblock(Motor_HandleTypeDef *motor,int Mode_Sampling)
             }break;
             case 0x110: /* ABX */
             {
-                if (motor->MotorDrv.Update_Ia_raw == NULL || motor->MotorDrv.Update_Ib_raw == NULL)
+                if (!motor->MotorDrv.Update_Ia_raw || !motor->MotorDrv.Update_Ib_raw)
                 {
                     return 0;
                 }
@@ -1280,7 +1277,7 @@ int update_Ioffset_nonblock(Motor_HandleTypeDef *motor,int Mode_Sampling)
             }break;
             case 0x101: /* AXC*/
             {
-                if (motor->MotorDrv.Update_Ia_raw == NULL || motor->MotorDrv.Update_Ic_raw == NULL || motor->MotorDrv.Cal_Ia == NULL || motor->MotorDrv.Cal_Ic == NULL)
+                if (!motor->MotorDrv.Update_Ia_raw || !motor->MotorDrv.Update_Ic_raw || !motor->MotorDrv.Cal_Ia || !motor->MotorDrv.Cal_Ic)
                 {
                     return 0;
                 }
@@ -1291,7 +1288,7 @@ int update_Ioffset_nonblock(Motor_HandleTypeDef *motor,int Mode_Sampling)
             }break;
             case 0x011: /* XBC*/
             {
-                if (motor->MotorDrv.Update_Ib_raw == NULL || motor->MotorDrv.Update_Ic_raw == NULL || motor->MotorDrv.Cal_Ib == NULL || motor->MotorDrv.Cal_Ic == NULL)
+                if (!motor->MotorDrv.Update_Ib_raw || !motor->MotorDrv.Update_Ic_raw || !motor->MotorDrv.Cal_Ib || !motor->MotorDrv.Cal_Ic)
                 {
                     return 0;
                 }
@@ -1302,7 +1299,7 @@ int update_Ioffset_nonblock(Motor_HandleTypeDef *motor,int Mode_Sampling)
             }break;
             case 0x100: /* AXX */
             {
-                if (motor->MotorDrv.Update_Ia_raw == NULL || motor->MotorDrv.Cal_Ia == NULL)
+                if (!motor->MotorDrv.Update_Ia_raw || !motor->MotorDrv.Cal_Ia)
                 {
                     return 0;
                 }
@@ -1312,7 +1309,7 @@ int update_Ioffset_nonblock(Motor_HandleTypeDef *motor,int Mode_Sampling)
             }break;
             case 0x010: /* XBX*/
             {
-                if (motor->MotorDrv.Update_Ib_raw == NULL || motor->MotorDrv.Cal_Ib == NULL)
+                if (!motor->MotorDrv.Update_Ib_raw || !motor->MotorDrv.Cal_Ib)
                 {
                     return 0;
                 }
@@ -1323,7 +1320,7 @@ int update_Ioffset_nonblock(Motor_HandleTypeDef *motor,int Mode_Sampling)
             }break;
             case 0x001: /* XXC */
             {
-                if (motor->MotorDrv.Update_Ic_raw == NULL || motor->MotorDrv.Cal_Ic == NULL)
+                if (!motor->MotorDrv.Update_Ic_raw || !motor->MotorDrv.Cal_Ic)
                 {
                     return 0;
                 }
@@ -1714,42 +1711,29 @@ void update_angle_el_zero_no_sensor_block(Motor_HandleTypeDef *motor)
 
 void update_angle_el_zero_sensor_block(Motor_HandleTypeDef *motor)
 {
-    uint16_t sample_total = motor->MotorConfig.Pole_pairs * motor->MotorData.Calibrate_angle_el_zero_sensor_block__sample_per;
-    float *angle_el_zero = (float*)calloc(sample_total,sizeof(float));
-    float angle_el_zero_all = 0.0f;
+    float angle_el_zero_sum = 0.0f;
+    uint32_t angle_el_zero_n = 0;
     float angle_all_temp = motor->MotorData.angle_all;
     float angle_last_temp = motor->MotorAlg.last_angle;
     float angle_temp = motor->MotorAlg.angle;
 
     reset_data_angle(motor);
-    if(angle_el_zero == NULL)
-    {   
-        //打印报错信息
-        SEGGER_RTT_printf(0, "Heap_Size is not enough!\n");
-        free((void*)angle_el_zero);
-        return;
-    }
 
     set_svpwm(motor,0.0f, motor->MotorConfig.UMAX*0.05f , 0.0f);
     motor->MotorDrv.Delayms(1000);
-    float angle_now = 0.0f;
     int running;
     do
     {
         update_dt(motor);
         update_angle(motor);
         running = ctrl_motor_openloop_angle_nonblock(motor,motor->time.dt,2*PI,0.0f,0.6,0.0f,motor->MotorConfig.UMAX*0.05f);
-        angle_now = 0.0f + motor->MotorData.Openloop__progress/(float)motor->MotorConfig.Pole_pairs;
-
-        uint32_t i =(uint32_t)my_round((angle_now/(2*PI))*(float)sample_total);
-        int32_t i_int = (int32_t)my_round((angle_now/(2*PI))*(float)sample_total);
-        if(i>=sample_total|| i_int<0)
+        if(!running)
         {
-            ctrl_motor_openloop_reset(motor);
             break;
         }
-        angle_el_zero[i] = angle_now - motor->MotorData.angle_all;
-
+        float angle_now = motor->MotorData.Openloop__progress/(float)motor->MotorConfig.Pole_pairs;
+        angle_el_zero_sum += angle_now - motor->MotorData.angle_all;
+        angle_el_zero_n++;
     } while (running);
     ctrl_motor_openloop_reset(motor);
     motor->MotorDrv.Delayms(500);
@@ -1758,30 +1742,25 @@ void update_angle_el_zero_sensor_block(Motor_HandleTypeDef *motor)
         update_dt(motor);
         update_angle(motor);
         running = ctrl_motor_openloop_angle_nonblock(motor,motor->time.dt,0.0f,2*PI,-0.6,0.0f,motor->MotorConfig.UMAX*0.05f);
-        angle_now = 2*PI + motor->MotorData.Openloop__progress/(float)motor->MotorConfig.Pole_pairs;
-        uint32_t i =(uint32_t)my_round((angle_now/(2*PI))*(float)sample_total);
-        int32_t i_int = (int32_t)my_round((angle_now/(2*PI))*(float)sample_total);
-        if(i>=sample_total || i_int<0)
+        if(!running)
         {
-            ctrl_motor_openloop_reset(motor);
             break;
         }
-        angle_el_zero[i] += angle_now - motor->MotorData.angle_all;
-        angle_el_zero[i] /= 2;
+        float angle_now = 2*PI + motor->MotorData.Openloop__progress/(float)motor->MotorConfig.Pole_pairs;
+        angle_el_zero_sum += angle_now - motor->MotorData.angle_all;
+        angle_el_zero_n++;
     } while (running);
     ctrl_motor_openloop_reset(motor);
-    for(int i = 0; i<(int)sample_total ;i++)
+    if(angle_el_zero_n > 0)
     {
-        angle_el_zero_all += angle_el_zero[i];
+        motor->MotorConfig.angle_el_zero = Calculate_angle_el(motor->MotorConfig.Pole_pairs,angle_el_zero_sum/(float)angle_el_zero_n, 0.0f);
     }
-    motor->MotorConfig.angle_el_zero = Calculate_angle_el(motor->MotorConfig.Pole_pairs,angle_el_zero_all/(float)sample_total, 0.0f);
-    
+
     motor->MotorData.angle_all = angle_all_temp ;
     motor->MotorAlg.last_angle = angle_last_temp;
     motor->MotorAlg.angle = angle_temp;
 
     set_svpwm(motor,0.0f, 0.0f , 0.0f);
-    free((void*)angle_el_zero);
 }
 
 void update_angle_el_zero_sensor_nonblock(Motor_HandleTypeDef *motor)
@@ -1793,84 +1772,56 @@ void update_angle_el_zero_sensor_nonblock(Motor_HandleTypeDef *motor)
 
 void update_angle_el_zero_sensor_nonblock_(Motor_HandleTypeDef *motor,float this_dt,float this_angle_all)
 {
-    uint16_t sample_total = motor->MotorConfig.Pole_pairs * motor->MotorData.Calibrate_angle_el_zero_sensor_nonblock__sample_per;
-    float angle_all_temp = this_angle_all;
-    motor->MotorData.angle_all = 0;
-
     switch(motor->MotorData.Calibrate_angle_el_zero_sensor_nonblock__state)
     {
         case 1:
         {
-            motor->MotorData.Calibrate_angle_el_zero_sensor_nonblock__angle_el_zero = (float*)calloc(sample_total,sizeof(float));
-            if(motor->MotorData.Calibrate_angle_el_zero_sensor_nonblock__angle_el_zero == NULL)
-            {   
-                //打印报错信息
-                // printf("Heap_Size is not enough!");
-                SEGGER_RTT_printf(0, "Heap_Size is not enough!\n");
-                motor->MotorData.angle_all = angle_all_temp;
-                free((void*)motor->MotorData.Calibrate_angle_el_zero_sensor_nonblock__angle_el_zero);
-                return;
-            }
-            else
-            {
-                motor->MotorData.Calibrate_angle_el_zero_sensor_nonblock__state = 2;
-                set_svpwm(motor,motor->MotorConfig.UMAX*0.05f, 0.0f , 0.0f);
-            }
-            
+            reset_data_angle(motor);
+            motor->MotorData.Calibrate_angle_el_zero_sensor_nonblock__sum = 0.0f;
+            motor->MotorData.Calibrate_angle_el_zero_sensor_nonblock__count = 0;
+            motor->MotorData.Calibrate_angle_el_zero_sensor_nonblock__state = 2;
+            set_svpwm(motor,motor->MotorConfig.UMAX*0.05f, 0.0f , 0.0f);
         }break;
         case 2:
         {
             int running = ctrl_motor_openloop_angle_nonblock(motor,this_dt,2*PI,0.0f,0.3,motor->MotorConfig.UMAX*0.05f, 0.0f);
-            float angle_now = 0.0f + motor->MotorData.Openloop__progress/(float)motor->MotorConfig.Pole_pairs;
-            uint32_t i =(uint32_t)my_round((angle_now/(2*PI))*(float)sample_total);
-            if(i>=sample_total|| !running)
+            if(!running)
             {
                 ctrl_motor_openloop_reset(motor);
                 motor->MotorData.Calibrate_angle_el_zero_sensor_nonblock__state = 3;
                 break;
             }
-            motor->MotorData.Calibrate_angle_el_zero_sensor_nonblock__angle_el_zero[i] = angle_now - motor->MotorData.angle_all;
+            float angle_now = motor->MotorData.Openloop__progress/(float)motor->MotorConfig.Pole_pairs;
+            motor->MotorData.Calibrate_angle_el_zero_sensor_nonblock__sum += angle_now - this_angle_all;
+            motor->MotorData.Calibrate_angle_el_zero_sensor_nonblock__count++;
         }break;
         case 3:
         {
             int running = ctrl_motor_openloop_angle_nonblock(motor,this_dt,0.0f,2*PI,-0.3,motor->MotorConfig.UMAX*0.05f, 0.0f);
-            float angle_now = 2*PI + motor->MotorData.Openloop__progress/(float)motor->MotorConfig.Pole_pairs;
-            uint32_t i =(uint32_t)my_round((angle_now/(2*PI))*(float)sample_total);
-            int32_t i_int =(int32_t)my_round((angle_now/(2*PI))*(float)sample_total);
-            // printf("%f\n",angle_el_zero[i]);
-            if(i>=sample_total)
-            {
-                --i;
-            }
-            if(i_int<0 || !running)
+            if(!running)
             {
                 ctrl_motor_openloop_reset(motor);
                 motor->MotorData.Calibrate_angle_el_zero_sensor_nonblock__state = 4;
                 break;
             }
-            motor->MotorData.Calibrate_angle_el_zero_sensor_nonblock__angle_el_zero[i] += angle_now - motor->MotorData.angle_all;
-            motor->MotorData.Calibrate_angle_el_zero_sensor_nonblock__angle_el_zero[i] /= 2;
+            float angle_now = 2*PI + motor->MotorData.Openloop__progress/(float)motor->MotorConfig.Pole_pairs;
+            motor->MotorData.Calibrate_angle_el_zero_sensor_nonblock__sum += angle_now - this_angle_all;
+            motor->MotorData.Calibrate_angle_el_zero_sensor_nonblock__count++;
         }break;
         case 4:
         {
-            float angle_el_zero_all = 0.0f;
-            for(int i = 0; i<(int)sample_total ;i++)
+            if(motor->MotorData.Calibrate_angle_el_zero_sensor_nonblock__count > 0)
             {
-                angle_el_zero_all += motor->MotorData.Calibrate_angle_el_zero_sensor_nonblock__angle_el_zero[i];
+                motor->MotorConfig.angle_el_zero = motor->MotorData.Calibrate_angle_el_zero_sensor_nonblock__sum/(float)motor->MotorData.Calibrate_angle_el_zero_sensor_nonblock__count;
             }
-            motor->MotorConfig.angle_el_zero = angle_el_zero_all/(float)sample_total;
             set_svpwm(motor,0.0f, 0.0f , 0.0f);
-            free((void*)motor->MotorData.Calibrate_angle_el_zero_sensor_nonblock__angle_el_zero);
-            motor->MotorData.Calibrate_angle_el_zero_sensor_nonblock__angle_el_zero = NULL;
             motor->MotorData.Calibrate_angle_el_zero_sensor_nonblock__state = 1;
-    
         }break;
         default:
         {
             //打印报错
         }break;
     }
-    motor->MotorData.angle_all = angle_all_temp;
 }
 
 void ctrl_motor_openloop_reset(Motor_HandleTypeDef *motor)

@@ -231,8 +231,8 @@ void foc_init(Motor_HandleTypeDef *motor)
     motor->MotorData.Calibrate_PHASE_nonblock__Duty = 0.05f;
     motor->MotorData.Calibrate_PHASE_nonblock__state = 1;
 
-    motor->MotorData.Calibrate_angle_el_zero_sensor_block__sample_per = 20;
-    motor->MotorData.Calibrate_angle_el_zero_sensor_nonblock__sample_per = 50;
+    motor->MotorData.Calibrate_angle_el_zero_sensor_nonblock__sum = 0.0f;
+    motor->MotorData.Calibrate_angle_el_zero_sensor_nonblock__count = 0;
     motor->MotorData.Calibrate_angle_el_zero_sensor_nonblock__state = 1;
 
     motor->MotorData.Calibrate_Ioffset_nonblock__sample_total = 1000;

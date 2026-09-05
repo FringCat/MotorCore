@@ -45,7 +45,7 @@ while (ctrl_motor_openloop_angle_el_nonblock(&motor, this_dt, target, start, vel
 
 驱动回调：`Set_PWM_A/B/C`（占空比 0~1）、`Update_I*_raw` + `Cal_I*`、`Update_Angle_raw` + `Cal_Angle`（0~2π）、`Delayms`、`Update_dt`（秒，随时基时钟重算 `DT_SCALE_FACTOR`）。
 
-不用 RTT / CAN / `mt6835` 则不链，角度回调换成自己的。零点非阻塞校准会 `calloc`，Heap 要够。
+不用 RTT / CAN / `mt6835` 则不链，角度回调换成自己的。
 
 验证：开环确认转向相序 → 电流偏置 → 电流环 → 速度环。
 

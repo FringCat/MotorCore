@@ -181,11 +181,9 @@ typedef struct
     float Calibrate_PHASE_nonblock__IA_Integral;
     float Calibrate_PHASE_nonblock__IB_Integral;
     float Calibrate_PHASE_nonblock__IC_Integral;
-    /* Calibrate_angle_el_zero_sensor_block */
-    uint16_t Calibrate_angle_el_zero_sensor_block__sample_per;
     /* Calibrate_angle_el_zero_sensor_nonblock */
-    uint16_t Calibrate_angle_el_zero_sensor_nonblock__sample_per;
-    float *Calibrate_angle_el_zero_sensor_nonblock__angle_el_zero;
+    float Calibrate_angle_el_zero_sensor_nonblock__sum;
+    uint32_t Calibrate_angle_el_zero_sensor_nonblock__count;
     uint8_t Calibrate_angle_el_zero_sensor_nonblock__state;
     /* Calibrate_Ioffset_nonblock */
     uint32_t Calibrate_Ioffset_nonblock__count;
