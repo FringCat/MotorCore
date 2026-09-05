@@ -160,7 +160,6 @@ void foc_init(Motor_HandleTypeDef *motor)
     motor->MotorConfig.Rs = 0.5f;      // 设置定子电阻
     motor->MotorConfig.angle_el_zero = 3.13263f; // 设置角度零点
     motor->MotorConfig.Kt = 0.806325918;           //设置转矩系数
-    motor->MotorConfig.loopcount_rotor = 0XFFFF;
 
     // 初始化PID参数(要用哪个初始化哪个)
     motor->MotorAlg.position_pid.KP = 20.3f;

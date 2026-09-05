@@ -89,7 +89,7 @@ typedef enum mt6835_read_angle_method_enum_t {
     MT6835_READ_ANGLE_METHOD_BURST = 1,
 } mt6835_read_angle_method_enum_t;
 
-#pragma anon_unions  // 添加这一行
+#pragma anon_unions  // 使用Keil则启用该宏
 /**
  *  mt6835 data frame
  */
@@ -97,7 +97,7 @@ typedef struct mt6835_data_frame_t
 {
     union 
     {
-        uint32_t pack;
+        uint32_t pack; 
         struct 
         {
             uint8_t reserved: 4;

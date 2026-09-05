@@ -95,12 +95,10 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     others/mt6835.c
     others/mt6835_stm32_spi_port.c
     others/MT6816.c
-    others/can_handler.c
     others/drv_DRV835X.c
     others/flash.c
     others/SEGGER_RTT.c
     others/SEGGER_RTT_printf.c
-    test/test.c
 )
 
 # target_include_directories：头文件搜索路径（等价 gcc -I）
@@ -109,7 +107,6 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     FOC
     others
     Drivers/CMSIS/DSP/Include
-    test
 )
 
 # target_compile_definitions：预处理器宏（等价 gcc -D）

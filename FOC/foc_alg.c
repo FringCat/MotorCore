@@ -315,8 +315,6 @@ float update_angle(Motor_HandleTypeDef *motor)//待更新:angle_all的更新是�
 
     motor->MotorData.AngleData.Angle_raw = motor->MotorDrv.Update_Angle_raw();
     motor->MotorAlg.angle = motor->MotorDrv.Cal_Angle(motor->MotorData.AngleData.Angle_raw);
-    // motor->MotorAlg.angle_flange = Calculate_angle_flange(motor->MotorData.angle_all,motor->MotorConfig.GR,motor->MotorConfig.angle_zero);
-
     motor->MotorAlg.angle_el = Calculate_angle_el(motor->MotorConfig.Pole_pairs,motor->MotorAlg.angle, motor->MotorConfig.angle_el_zero);
 
     return motor->MotorAlg.angle;
@@ -567,7 +565,7 @@ float Calculate_velocity_raw(float angle, float last_angle, float dt)
         return 0; // 避免除以零
     }
 
-    float velocity_raw;
+    float velocity_raw = 0.0f;
     // 计算原始速度
     if(my_abs(angle - last_angle) > (0.8f*2*PI))
     {
@@ -985,7 +983,6 @@ void set_spwm(Motor_HandleTypeDef *motor,float Uq, float Ud ,float angle_el)
     float TC = my_map(UC,-motor->MotorConfig.UMAX/2,motor->MotorConfig.UMAX/2,0.0f,1.0f);
 
     set_pwm(motor,TA, TB, TC);
-    // set_pwm_nodir(motor,TA, TB, TC);
 }
 
 float get_dt(Motor_HandleTypeDef *motor)
@@ -1241,7 +1238,7 @@ int update_Ioffset_nonblock_(Motor_HandleTypeDef *motor,uint32_t this_IA_raw,uin
     {
         motor->MotorData.IA_offset_raw = motor->MotorData.Calibrate_Ioffset_nonblock__IA_offset_raw_all/motor->MotorData.Calibrate_Ioffset_nonblock__count;
         motor->MotorData.IB_offset_raw = motor->MotorData.Calibrate_Ioffset_nonblock__IB_offset_raw_all/motor->MotorData.Calibrate_Ioffset_nonblock__count;
-        motor->MotorData.IC_offset_raw = motor->MotorData.Calibrate_Ioffset_nonblock__IC_offset_raw_all/motor->MotorData.Calibrate_Ioffset_nonblock__count; //因为IC没有偏置，所以这里直接用IB的平均值
+        motor->MotorData.IC_offset_raw = motor->MotorData.Calibrate_Ioffset_nonblock__IC_offset_raw_all/motor->MotorData.Calibrate_Ioffset_nonblock__count;
         motor->MotorData.Calibrate_Ioffset_nonblock__IA_offset_raw_all = 0;
         motor->MotorData.Calibrate_Ioffset_nonblock__IB_offset_raw_all = 0;
         motor->MotorData.Calibrate_Ioffset_nonblock__IC_offset_raw_all = 0;
@@ -1431,7 +1428,6 @@ void update_pole_pairs_sensor_nonblock_(Motor_HandleTypeDef *motor,float this_dt
         {
             motor->MotorData.Calibrate_pole_pairs_nonblock__velocity_integral += this_velocity_raw*this_dt;
             set_svpwm(motor,motor->MotorConfig.UMAX*0.05f,0.0f, Limit_angle_el((float)motor->MotorData.Calibrate_pole_pairs_nonblock__velocity_target*(motor->MotorData.Calibrate_pole_pairs_nonblock__total_time-motor->MotorData.Calibrate_pole_pairs_nonblock__time_init-motor->MotorData.Calibrate_pole_pairs_nonblock__time_prep)));
-            // motor->MotorDrv.Delayms(1);
         }break;
         case 3:
         {
@@ -1466,13 +1462,9 @@ void update_2DIR_sensor_block(Motor_HandleTypeDef *motor)
         update_dt(motor);
         update_angle(motor);
         update_velocity_raw(motor);
-        // if(myabs(motor->MotorData.Velocity_raw) > 2*motor->MotorData.Calibrate_2DIR_block__velocity_target)
-        // {
-        //     motor->MotorData.Velocity_raw = 0.0f ;
-        // }
         set_svpwm(motor,motor->MotorConfig.UMAX*0.05f,0.0f,Limit_angle_el((float)i*motor->MotorData.Calibrate_2DIR_block__velocity_target));
         velocity_integral += motor->MotorData.Velocity_raw;
-        // printf("%f,%f\n",motor->MotorData.Velocity_raw,velocity_integral);
+
         motor->MotorDrv.Delayms(1);
     }
     motor->MotorDrv.Delayms(500);
@@ -1560,7 +1552,6 @@ void update_2DIR_sensor_nonblock_(Motor_HandleTypeDef *motor,float this_dt,float
             /* 打印报错信息 */
         }break;
     }
-    // printf("%f,%d,%f,%f,%f\n",motor->MotorData.Calibrate_2DIR_nonblock__velocity_integral,motor->MotorConfig.DIR,motor->MotorData.Velocity_raw,motor->MotorAlg.angle,motor->time.dt);
 }
 
 void Calculate_PHASE(float IA, float IB, float IC,float UA, float UB, float UC, int *phase_a, int *phase_b, int *phase_c)//同时兼容直接向三相注入IqId时的工况，也就是在电机运行的情况下进行相序辨识
@@ -1741,8 +1732,6 @@ void update_angle_el_zero_sensor_block(Motor_HandleTypeDef *motor)
 
     set_svpwm(motor,0.0f, motor->MotorConfig.UMAX*0.05f , 0.0f);
     motor->MotorDrv.Delayms(1000);
-    // motor->MotorData.angle_all = update_angle(motor);
-    // float angle_last = motor->MotorData.angle_all;
     float angle_now = 0.0f;
     int running;
     do
@@ -1751,7 +1740,7 @@ void update_angle_el_zero_sensor_block(Motor_HandleTypeDef *motor)
         update_angle(motor);
         running = ctrl_motor_openloop_angle_nonblock(motor,motor->time.dt,2*PI,0.0f,0.6,0.0f,motor->MotorConfig.UMAX*0.05f);
         angle_now = 0.0f + motor->MotorData.Openloop__progress/(float)motor->MotorConfig.Pole_pairs;
-        // angle_error = angle_now - motor->MotorData.angle_all;
+
         uint32_t i =(uint32_t)my_round((angle_now/(2*PI))*(float)sample_total);
         int32_t i_int = (int32_t)my_round((angle_now/(2*PI))*(float)sample_total);
         if(i>=sample_total|| i_int<0)
@@ -1760,8 +1749,6 @@ void update_angle_el_zero_sensor_block(Motor_HandleTypeDef *motor)
             break;
         }
         angle_el_zero[i] = angle_now - motor->MotorData.angle_all;
-
-        // printf("%d,%f,%f\n",i,angle_el_zero[i],angle_now);
 
     } while (running);
     ctrl_motor_openloop_reset(motor);
@@ -1772,7 +1759,6 @@ void update_angle_el_zero_sensor_block(Motor_HandleTypeDef *motor)
         update_angle(motor);
         running = ctrl_motor_openloop_angle_nonblock(motor,motor->time.dt,0.0f,2*PI,-0.6,0.0f,motor->MotorConfig.UMAX*0.05f);
         angle_now = 2*PI + motor->MotorData.Openloop__progress/(float)motor->MotorConfig.Pole_pairs;
-        // angle_error = angle_now - motor->MotorData.angle_all;
         uint32_t i =(uint32_t)my_round((angle_now/(2*PI))*(float)sample_total);
         int32_t i_int = (int32_t)my_round((angle_now/(2*PI))*(float)sample_total);
         if(i>=sample_total || i_int<0)
@@ -1782,16 +1768,12 @@ void update_angle_el_zero_sensor_block(Motor_HandleTypeDef *motor)
         }
         angle_el_zero[i] += angle_now - motor->MotorData.angle_all;
         angle_el_zero[i] /= 2;
-
-        // printf("%d,%f,%f\n",i,angle_el_zero[i],angle_now);
     } while (running);
     ctrl_motor_openloop_reset(motor);
-    // printf("%f\n",angle_now);
     for(int i = 0; i<(int)sample_total ;i++)
     {
         angle_el_zero_all += angle_el_zero[i];
     }
-    // motor->MotorConfig.angle_el_zero = angle_el_zero_all/(float)sample_total;
     motor->MotorConfig.angle_el_zero = Calculate_angle_el(motor->MotorConfig.Pole_pairs,angle_el_zero_all/(float)sample_total, 0.0f);
     
     motor->MotorData.angle_all = angle_all_temp ;

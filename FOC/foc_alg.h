@@ -70,7 +70,6 @@ typedef struct
     float Kt;             // 转矩系数
     float angle_zero;       // 机械角度零点（编码器零位校准值，用于位置控制基准）
     float angle_el_zero;    // 电角度零点（FOC磁链定向基准，由机械零点×极对数计算）     
-    int loopcount_rotor ;
     int Mode_Sampling;     //电流采样模式：0x100: AXX, 0x010: XBX , 0x001: XXC, 0x110: ABX, 0x101: AXC, 0x011: XBC, 0x111: ABC
 } Motor_ConfigTypeDef;
 
@@ -97,9 +96,7 @@ typedef struct
     float angle;            // 电机转子角度（编码器反馈后校准的值，单位：rad/deg）
     float last_angle;       // 上一时刻转子角度（用于计算速度：Velocity = (angle - LastAngle)/dt）
     float angle_el;         // 电机电角度（angle × Pole_pairs，FOC磁链定向的核心依据）
-    float angle_flange;     // 电机输出轴角度(法兰)
     float Velocity;         // 电机转速（由Δangle/Δdt计算，单位：rad/s/RPM）
-    float Velocity_flange;
     // -------------------------- PID控制器实例（对应不同控制环） --------------------------
     PID_t position_pid;     // 位置环PID（输入：位置误差（目标pos - 反馈pos），输出：目标速度）
     PID_t velocity_pid;     // 速度环PID（输入：速度误差（目标vel - 反馈vel），输出：目标Iq/Id）
@@ -108,7 +105,7 @@ typedef struct
     PID_t mixed_pid;        // 混合控制PID（输入：混合误差（如位置+力矩误差），输出：目标电流，适配机器人关节混合控制）
 
     int Sector;          // SVPWM扇区（1~6，对应不同的空间矢量位置，用于计算PWM占空比）
-} Motor_AlgTypeDef;
+} Motor_AlgTypeDef; 
 
 
 

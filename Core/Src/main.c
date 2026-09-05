@@ -32,8 +32,6 @@
 #include "MT6816.h"
 #include "SEGGER_RTT.h"
 #include "flash.h"
-#include "can_handler.h"
-#include "fsm.h"
 #include "drv_DRV835X.h"
 // #include "test.h"
 /* USER CODE END Includes */
@@ -56,12 +54,10 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-fsm_HandleTypeDef fsm_motor;
 Motor_HandleTypeDef motor;
 mt6835_t *mt6835 = NULL;
 mt6816_HandleTypeDef mt6816;
 Motor_ConfigTypeDef motorconfig;
-CAN_Handler_t can_handler;
 
 int isoffset_done = 0;
 
@@ -117,8 +113,7 @@ int main(void)
   /* USER CODE BEGIN 2 */
   SEGGER_RTT_Init();                                //JLINK RTT 初始化
   SEGGER_RTT_SetTerminal(0);
-  
-  // fsm_init(&fsm_motor);                             //状态机初始化 
+
   foc_init(&motor);                                 //foc初始化
   mt6816_init(&mt6816);                             //副磁编初始化
   mt6835 = mt6835_stm32_spi_port_init();            //主磁编初始化
@@ -147,57 +142,12 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-
-    // update_2DIR_sensor_block(&motor); 
-    // update_2DIR_sensor_nonblock(&motor); 
-    // update_pole_pairs_sensor_nonblock(&motor);
-
-    // 双编码实时读取法兰角度例程
-    // {
-    // mt6816_update_angle(&mt6816);
-    // update_loopcount_rotor_block(&motor,mt6816.angle);
-    // motor.MotorData.angle_all = (motor.MotorConfig.loopcount_rotor * 2 * PI + Limit_angle_el(motor.MotorAlg.angle-motor.MotorConfig.angle_zero_gear_A) );
-    // motor.MotorAlg.angle_flange = Limit_angle_flange(motor.MotorData.angle_all,motor.MotorConfig.GR);
-    // }
-
     // 各类校准例程
     // {
     // update_2DIR_sensor_block(&motor);
     // update_angle_el_zero_sensor_block(&motor);
     // update_angle_el_zero_no_sensor_block(&motor);
     // update_NLLUT_and_angle_el_zero_sensor_block(&motor);
-    // }
-
-    // 关节电机产品例程
-    // switch(fsm_motor.state)
-    // {
-    //   case CALIBRATION:
-    //   {
-    //     __HAL_FDCAN_DISABLE_IT(&hfdcan1, FDCAN_IT_RX_FIFO0_NEW_MESSAGE); 
-    //     __HAL_TIM_DISABLE_IT(&htim1, TIM_IT_UPDATE);      
-    //     __HAL_ADC_DISABLE_IT(&hadc1, ADC_IT_JEOC);
-
-    //     SEGGER_RTT_printf(0,"Start calibration!\n");
-    //     // update_2DIR_sensor_block(&motor);
-    //     // update_angle_el_zero_sensor_block(&motor);
-    //     // HAL_Delay(1000); 
-    //     update_NLLUT_and_angle_el_zero_sensor_block(&motor);
-    //     HAL_Delay(1000);    
-    //     SEGGER_RTT_printf(0,"end calibration!\n");
-
-    //     __HAL_ADC_ENABLE_IT(&hadc1, ADC_IT_JEOC);         
-    //     __HAL_TIM_ENABLE_IT(&htim1, TIM_IT_UPDATE);      
-    //     __HAL_FDCAN_ENABLE_IT(&hfdcan1, FDCAN_IT_RX_FIFO0_NEW_MESSAGE); 
-    //     fsm_motor.state = SLEEP;
-    //   };break;
-    //   case SET_ZERO:
-    //   {
-        
-    //   };break;
-    //   default:
-    //   {
-
-    //   };break;
     // }
 
   }
