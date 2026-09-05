@@ -1258,6 +1258,11 @@ int update_Ioffset_nonblock(Motor_HandleTypeDef *motor,int Mode_Sampling)
     uint32_t this_IB_raw = 0U;
     uint32_t this_IC_raw = 0U;
 
+    if(motor->MotorData.IA_offset_raw!= 0 && motor->MotorData.IB_offset_raw!= 0 && motor->MotorData.IC_offset_raw!= 0)
+    {
+        return 1 ;
+    }
+
     if(motor->MotorData.Calibrate_Ioffset_nonblock__count < motor->MotorData.Calibrate_Ioffset_nonblock__sample_total)
     {
         switch(Mode_Sampling)

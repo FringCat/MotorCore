@@ -62,7 +62,6 @@ extern FDCAN_HandleTypeDef hfdcan1;
 extern TIM_HandleTypeDef htim1;
 /* USER CODE BEGIN EV */
 extern Motor_HandleTypeDef motor;
-extern int isoffset_done;
 
 /* USER CODE END EV */
 
@@ -217,11 +216,7 @@ void ADC1_2_IRQHandler(void)
   /* USER CODE BEGIN ADC1_2_IRQn 1 */
 
   HAL_GPIO_TogglePin(TEST2_GPIO_Port, TEST2_Pin);
-  if(isoffset_done==0)
-  {
-    isoffset_done = update_Ioffset_nonblock(&motor,motor.MotorConfig.Mode_Sampling);
-  }
-  else
+  if(update_Ioffset_nonblock(&motor,motor.MotorConfig.Mode_Sampling))
   {
     update_IaIbIc(&motor,motor.MotorConfig.Mode_Sampling,motor.MotorConfig.PHASE);
   }

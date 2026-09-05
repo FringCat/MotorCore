@@ -59,8 +59,6 @@ mt6835_t *mt6835 = NULL;
 mt6816_HandleTypeDef mt6816;
 Motor_ConfigTypeDef motorconfig;
 
-int isoffset_done = 0;
-
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
