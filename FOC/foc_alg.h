@@ -226,6 +226,7 @@ typedef struct
     // -------------------------- 通用硬件接口 --------------------------
     void (*delay_ms)(uint32_t ms);  // 毫秒级延时函数（用于校准、初始化等待）
     float (*update_dt)(Time_t* time);  // 计算时间差dt函数（参数：Time_t结构体，返回：当前dt值，用于速度计算）
+    void (*log)(const char *msg);   // 日志输出（RTT/Flash/串口由板级实现；未绑定则为空操作）
 } Motor_DrvTypeDef;
 
 /**
@@ -348,6 +349,9 @@ float get_ic(Motor_HandleTypeDef *motor);  // 获取IC电流
 float get_ia_offset(Motor_HandleTypeDef *motor);  // 获取IA电流偏置
 float get_ib_offset(Motor_HandleTypeDef *motor);  // 获取IB电流偏置
 float get_ic_offset(Motor_HandleTypeDef *motor);  // 获取IC电流偏置
+
+// 日志（经 motor_drv.log 输出；未绑定则空操作）
+void log_motor(Motor_HandleTypeDef *motor, const char *msg);
 
 //初始化相关
 void update_2dir_sensor_block(Motor_HandleTypeDef *motor);              //  传感器方向辨识（基于磁编，阻塞式更新）

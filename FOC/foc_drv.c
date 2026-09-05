@@ -12,6 +12,7 @@
 #include "foc_alg.h"
 #include "foc_drv.h"
 #include "mt6835.h"
+#include "SEGGER_RTT.h"
 #include "adc.h"
 extern ADC_HandleTypeDef hadc1;
 extern mt6835_t *mt6835;
@@ -73,6 +74,16 @@ float stm32_cal_angle(uint32_t raw)
 void stm32_delay_ms(uint32_t ms)
 {
     HAL_Delay(ms);
+}
+
+void stm32_log(const char *msg)
+{
+    if (!msg)
+    {
+        return;
+    }
+    SEGGER_RTT_WriteString(0, msg);
+    SEGGER_RTT_WriteString(0, "\n");
 }
 
 // float stm32_update_dt(Time_t* time)
@@ -138,6 +149,7 @@ void foc_init(Motor_HandleTypeDef *motor)
 
     motor->motor_drv.delay_ms = stm32_delay_ms;     // 延时函数指针
     motor->motor_drv.update_dt = stm32_update_dt;       // 获取时间差函数指针
+    motor->motor_drv.log = stm32_log;               // 日志输出（默认 RTT；可换成 Flash/串口实现）
 
     motor->motor_drv.update_angle_raw = stm32_update_angle_raw;    // 获取角度函数指针
     motor->motor_drv.cal_angle = stm32_cal_angle;   // 角度转换函数指针

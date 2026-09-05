@@ -5,6 +5,15 @@
 
 #include "foc_alg.h"
 #include "foc_drv.h"
+
+void log_motor(Motor_HandleTypeDef *motor, const char *msg)
+{
+    if (motor->motor_drv.log && msg)
+    {
+        motor->motor_drv.log(msg);
+    }
+}
+
 float my_sgn(float x)
 {
 	if(x>0)
@@ -455,7 +464,7 @@ void update_pwm(Motor_HandleTypeDef *motor)
     }
     else
     {
-        /*打印报错信息*/
+        log_motor(motor, "pwm callbacks not bound");
     }
 }
 
@@ -491,7 +500,7 @@ void set_pwm(Motor_HandleTypeDef *motor,float ta , float tb ,float tc)
     }
     else
     {
-        /*打印报错信息*/
+        log_motor(motor, "pwm callbacks not bound");
     }
 }
 
@@ -509,7 +518,7 @@ void set_pwm_nodir(Motor_HandleTypeDef *motor,float ta , float tb ,float tc)
     }
     else
     {
-        /*打印报错信息*/
+        log_motor(motor, "pwm callbacks not bound");
     }
 }
 
@@ -710,7 +719,8 @@ void update_svpwm(Motor_HandleTypeDef *motor)
 		Tx = K*Uz ;
 		Ty = -K*Ux ;
 		break;
-	default:/*打印报错信息*/
+	default:
+		log_motor(motor, "svpwm sector invalid");
 		break;
 	}
 	if(Tx + Ty > 1)
@@ -1445,10 +1455,10 @@ void update_pole_pairs_sensor_nonblock_(Motor_HandleTypeDef *motor,float this_dt
             motor->motor_data.calibrate_pole_pairs_nonblock__total_time = 0.0f;
             motor->motor_data.calibrate_pole_pairs_nonblock__velocity_integral = 0.0f;
             motor->motor_data.calibrate_pole_pairs_nonblock__state = 0;
-        }
+        }break;
         default:
         {
-            /* 打印报错信息 */
+            log_motor(motor, "pole_pairs cal state invalid");
         }break;
     }
     
@@ -1488,7 +1498,7 @@ void update_2dir_sensor_block(Motor_HandleTypeDef *motor)
     }
     else
     {
-        /*传感器异常报错*/
+        log_motor(motor, "2dir sensor no motion");
     }
     set_svpwm(motor,0.0f,0.0f,0);
 }
@@ -1550,15 +1560,15 @@ void update_2dir_sensor_nonblock_(Motor_HandleTypeDef *motor,float this_dt,float
             }
             else
             {
-                /*传感器异常报错*/
+                log_motor(motor, "2dir sensor no motion");
             }
             set_svpwm(motor,0.0f, 0.0f , 0.0f);
             motor->motor_data.calibrate_2dir_nonblock__total_time = 0.0f;
             motor->motor_data.calibrate_2dir_nonblock__velocity_integral = 0.0f;
-        }
+        }break;
         default:
         {
-            /* 打印报错信息 */
+            log_motor(motor, "2dir cal state invalid");
         }break;
     }
 }
@@ -1704,7 +1714,7 @@ int update_phase_block(Motor_HandleTypeDef *motor)
     while(!update_phase_nonblock(motor,motor->motor_data.ia_no_order, motor->motor_data.ib_no_order, motor->motor_data.ic_no_order));
     if(motor->motor_config.phase == -1)
     {
-        //打印报错信息
+        log_motor(motor, "phase identify failed");
     }
     return motor->motor_config.phase ;
 }
@@ -1831,7 +1841,7 @@ void update_angle_el_zero_sensor_nonblock_(Motor_HandleTypeDef *motor,float this
         }break;
         default:
         {
-            //打印报错
+            log_motor(motor, "angle_el_zero cal state invalid");
         }break;
     }
 }

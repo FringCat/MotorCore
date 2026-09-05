@@ -121,7 +121,6 @@ int main(void)
 
   // update_flash(ADDR_FLASH_SECTOR_0,(uint64_t*)&motor.motor_config,sizeof(motor.motor_config)/4);
   // flash_read(ADDR_FLASH_SECTOR_0,(uint32_t*)&motor_config,sizeof(motor.motor_config)/4);
-  SEGGER_RTT_printf(0,"LWJ666 has inited!\n");
 
   // __HAL_ADC_ENABLE_IT(&hadc1, ADC_IT_JEOC);         //adc采样中断(PWM通道4触发)
   // __HAL_TIM_ENABLE_IT(&htim1, TIM_IT_UPDATE);       //定时中断(20Khz 兼为PWM定时器) 
