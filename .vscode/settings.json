@@ -1,0 +1,5 @@
+{
+    "stm32.selectedChip": "STM32G474CETX",
+    "stm32.debugInterface": "jlink",
+    "stm32.buildType": "Release"
+}

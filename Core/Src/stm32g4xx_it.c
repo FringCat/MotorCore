@@ -23,15 +23,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "foc_alg.h"
-#include "can_handler.h"
 #include "fdcan.h"
-#include "arm_math.h"  
-#include "fsm.h"
-
-#define INV_SQRT3_F   (1.0f / 1.7320508075688772f)  // ≈0.5773502691896257f
-#define INV_3_F       (1.0f / 3.0f)                 // 1/3，Clark变换用
-#define PI_F          3.141592653589793f
-#define TWO_PI_F      (2.0f * PI_F)
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -70,9 +62,6 @@ extern FDCAN_HandleTypeDef hfdcan1;
 extern TIM_HandleTypeDef htim1;
 /* USER CODE BEGIN EV */
 extern Motor_HandleTypeDef motor;
-extern CAN_Handler_t can_handler;
-extern fsm_HandleTypeDef fsm_motor;
-extern int isoffset_done;
 
 /* USER CODE END EV */
 
@@ -227,25 +216,17 @@ void ADC1_2_IRQHandler(void)
   /* USER CODE BEGIN ADC1_2_IRQn 1 */
 
   HAL_GPIO_TogglePin(TEST2_GPIO_Port, TEST2_Pin);
-  if(isoffset_done==0)
+  if(update_i_offset_nonblock(&motor,motor.motor_config.mode_sampling))
   {
-    isoffset_done = update_Ioffset_nonblock(&motor);
+    update_iaibic(&motor,motor.motor_config.mode_sampling,motor.motor_config.phase);
   }
-  else
-  {
-    motor.MotorData.CurrentData.I_raw.IA_raw = motor.MotorDrv.Update_Ia_raw();
-    motor.MotorData.CurrentData.I_raw.IB_raw = motor.MotorDrv.Update_Ib_raw();
-
-    motor.MotorAlg.IC = motor.MotorDrv.Cal_Ia(motor.MotorData.CurrentData.I_raw.IA_raw , motor.MotorData.IA_offset_raw);
-    motor.MotorAlg.IB = motor.MotorDrv.Cal_Ib(motor.MotorData.CurrentData.I_raw.IB_raw , motor.MotorData.IB_offset_raw);
-    motor.MotorAlg.IA = -(motor.MotorAlg.IC+motor.MotorAlg.IB);
-  }
-  
   update_dt(&motor);
   update_angle(&motor);
-  update_Clark(&motor);
-  update_Park(&motor);
-  update_velocity_LPF(&motor);
+  update_sincos(&motor);
+  update_ialpha_ibeta(&motor); 
+  update_iqid(&motor);
+  update_velocity_lpf(&motor);
+
   HAL_GPIO_TogglePin(TEST2_GPIO_Port, TEST2_Pin);
   /* USER CODE END ADC1_2_IRQn 1 */
 }
@@ -280,113 +261,40 @@ void TIM1_UP_TIM16_IRQHandler(void)
 
 /* USER CODE BEGIN 1 */
 
-/**
-  * @brief  FDCAN RX FIFO0回调函数（收到新数据时自动触发）
-  * @param  hfdcan: FDCAN句柄
-  * @retval None
-  */
-// float time_out = 0.0f;
-void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs)
-{ 
-  HAL_FDCAN_GetRxMessage(&hfdcan1, FDCAN_RX_FIFO0, &can_handler.can_rxheader, can_handler.cmd_buf);
-  switch (can_handler.can_rxheader.Identifier)
-  {
-    case CAN_ID:
-    {
-      can_update_cmd(&can_handler, can_handler.cmd_buf);
-      can_update_data(&can_handler, motor.MotorAlg.angle_flange, motor.MotorAlg.Velocity_flange, motor.MotorAlg.Iq*(1/motor.MotorConfig.Kt), 0.0f, 0.0f);
-      fsm_motor.state = RUN;
-      fsm_motor.timeout = 0.1f;//100MS内没有新命令下来，超时，取消控制
-      // time_out = 0.1f;
-    }; break;
-    case Require_Status_ID:
-    {
-      // can_update_data(&can_handler, motor.MotorAlg.angle_flange, motor.MotorAlg.Velocity_flange, motor.MotorAlg.Iq*(1/motor.MotorConfig.Kt), 0.0f, 0.0f);
-    };break;
-    case DISABLE_ID:
-    {
-      fsm_motor.state = STOP;
-      can_reset_cmd(&can_handler);
-    };break;
-    case CALIBRATION_ID:
-    {
-      fsm_motor.state = CALIBRATION;
-    };break;
-    case En_MIT_MODE_ID:
-    {
-
-    };break;
-    case ZERO_POSITION_ID:
-    {
-
-    };break;
-    default:
-    {
-      
-    };break;
-  }
-  can_printf_cmd(&can_handler);
-}
-
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
   uint16_t timer_cnt = TIM1->CNT; 
-  static float Kp = 0.0f;
-  static float Kd = 0.3f;
-  static float target_Velocity = 30.0f;
-  static float target_Position =  0.0f;
-  static float forward_torque_flange =  0.0f;
-  static float forward_torque =  0.0f;
-  static float output = 0;
 
   if (htim->Instance == TIM1)
   {
     if(timer_cnt <500)
     {
       HAL_GPIO_TogglePin(TEST1_GPIO_Port, TEST1_Pin);
-      if(isoffset_done)
+      if(motor.motor_data.ia_offset_raw)
       {
         //速度开环运行例程
         // {
         //   ctrl_motor_openloop_velocity_nonblock(&motor,0.5f,0.5f,0.0f);
         // }
 
-        // 无减速箱的MIT例程
-        // {  
-        //   output = (forward_torque + Kp * (target_Position - motor.MotorAlg.angle)  + Kd * (target_Velocity - motor.MotorAlg.Velocity)); //无减速箱
-        //   motor.MotorAlg.Uq = Calculate_PID(output, motor.MotorAlg.Iq , motor.time.dt , &motor.MotorAlg.iq_pid);
-        //   motor.MotorAlg.Ud = Calculate_PID(0.0f, motor.MotorAlg.Id , motor.time.dt , &motor.MotorAlg.id_pid);
-        //   update_svpwm(&motor);//输出SVPWM
-        // }
-
-        // 带减速箱的MIT例程
-        // {  
-        //   motor.MotorAlg.angle_flange = Limit_angle_flange(motor.MotorData.angle_all,motor.MotorConfig.GR);
-        //   motor.MotorAlg.Velocity_flange = motor.MotorAlg.Velocity/motor.MotorConfig.GR; //更新法兰速度
-        //   output = (1/motor.MotorConfig.Kt)*(forward_torque_flange + Kp * (target_Position - motor.MotorAlg.angle_flange)  + Kd * (target_Velocity - motor.MotorAlg.Velocity_flange));//带减速箱
-        //   motor.MotorAlg.Uq = Calculate_PID(output, motor.MotorAlg.Iq , motor.time.dt , &motor.MotorAlg.iq_pid);
-        //   motor.MotorAlg.Ud = Calculate_PID(0.0f, motor.MotorAlg.Id , motor.time.dt , &motor.MotorAlg.id_pid);
-        //   update_svpwm(&motor);//输出SVPWM
-        // }
-
         // 速度环例程
         // {
-        //   motor.MotorAlg.Uq = Calculate_PID(20.0f, motor.MotorAlg.Velocity, motor.time.dt , &motor.MotorAlg.velocity_pid);
+        //   motor.motor_alg.uq = calculate_pid(20.0f, motor.motor_alg.velocity, motor.time.dt , &motor.motor_alg.velocity_pid);
         //   update_svpwm(&motor);//输出SVPWM
         // }
 
         // 单电流环例程
         // {
-        //   motor.MotorAlg.Uq = Calculate_PID(2.0f, motor.MotorAlg.Iq , motor.time.dt , &motor.MotorAlg.iq_pid);
-        //   motor.MotorAlg.Ud = Calculate_PID(0.0f, motor.MotorAlg.Id , motor.time.dt , &motor.MotorAlg.id_pid);
+        //   motor.motor_alg.uq = calculate_pid(1.0f, motor.motor_alg.iq , motor.time.dt , &motor.motor_alg.iq_pid);
+        //   motor.motor_alg.ud = calculate_pid(0.0f, motor.motor_alg.id , motor.time.dt , &motor.motor_alg.id_pid);
         //   update_svpwm(&motor);//输出SVPWM
         // }
 
         // 速度电流环例程
         // {
-        //   float output = Calculate_PID(20.0f, motor.MotorAlg.Velocity, motor.time.dt , &motor.MotorAlg.velocity_pid);
-        //   motor.MotorAlg.Uq = Calculate_PID(output, motor.MotorAlg.Iq , motor.time.dt , &motor.MotorAlg.iq_pid);
-        //   motor.MotorAlg.Ud = Calculate_PID(0.0f, motor.MotorAlg.Id , motor.time.dt , &motor.MotorAlg.id_pid);
+        //   float output = calculate_pid(20.0f, motor.motor_alg.velocity, motor.time.dt , &motor.motor_alg.velocity_pid);
+        //   motor.motor_alg.uq = calculate_pid(output, motor.motor_alg.iq , motor.time.dt , &motor.motor_alg.iq_pid);
+        //   motor.motor_alg.ud = calculate_pid(0.0f, motor.motor_alg.id , motor.time.dt , &motor.motor_alg.id_pid);
         //   update_svpwm(&motor);//输出SVPWM
         // }
 
@@ -394,18 +302,13 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
         // {
         //   static float output_pos = 0.0f;
         //   static float output_vel = 0.0f;
-        //   output_pos = Calculate_PID(0.0f, motor.MotorData.angle_all, motor.time.dt , &motor.MotorAlg.position_pid);
-        //   output_vel = Calculate_PID(output_pos, motor.MotorAlg.Velocity, motor.time.dt , &motor.MotorAlg.velocity_pid);
-        //   motor.MotorAlg.Uq = Calculate_PID(output_vel, motor.MotorAlg.Iq , motor.time.dt , &motor.MotorAlg.iq_pid);
-        //   motor.MotorAlg.Ud = Calculate_PID(0.0f, motor.MotorAlg.Id , motor.time.dt , &motor.MotorAlg.id_pid);
+        //   output_pos = calculate_pid(0.0f, get_angle_all(&motor), motor.time.dt , &motor.motor_alg.position_pid);
+        //   output_vel = calculate_pid(output_pos, motor.motor_alg.velocity, motor.time.dt , &motor.motor_alg.velocity_pid);
+        //   motor.motor_alg.uq = calculate_pid(output_vel, motor.motor_alg.iq , motor.time.dt , &motor.motor_alg.iq_pid);
+        //   motor.motor_alg.ud = calculate_pid(0.0f, motor.motor_alg.id , motor.time.dt , &motor.motor_alg.id_pid);
         //   update_svpwm(&motor);//输出SVPWM
         // }
 
-        //状态机例程
-        // {
-        //   fsm_run();
-        // }
-        
       }
       HAL_GPIO_TogglePin(TEST1_GPIO_Port, TEST1_Pin);
     }

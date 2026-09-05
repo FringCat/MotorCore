@@ -21,8 +21,7 @@
 #include "fdcan.h"
 
 /* USER CODE BEGIN 0 */
-#include "can_handler.h"
-extern CAN_Handler_t can_handler;
+
 /* USER CODE END 0 */
 
 FDCAN_HandleTypeDef hfdcan1;
@@ -61,20 +60,7 @@ void MX_FDCAN1_Init(void)
     Error_Handler();
   }
   /* USER CODE BEGIN FDCAN1_Init 2 */
-  // FDCAN_FilterTypeDef sStdFilterConfig = {0};
-  // sStdFilterConfig.IdType = FDCAN_STANDARD_ID;        // 标准ID类型
-  // sStdFilterConfig.FilterIndex = 0;                   // 标准过滤器索引0（唯一合法索引）
-  // sStdFilterConfig.FilterType = FDCAN_FILTER_MASK;    // 掩码过滤模式
-  // sStdFilterConfig.FilterConfig = FDCAN_FILTER_TO_RXFIFO0; // 存入RX FIFO0
-  // sStdFilterConfig.FilterID1 = 0x000;                 // 基准ID：0x221
-  // sStdFilterConfig.FilterID2 = 0x000;                 // 掩码：0x7FF（所有位忽略，接收所有标准ID）
 
-  // if (HAL_FDCAN_ConfigFilter(&hfdcan1, &sStdFilterConfig) != HAL_OK)
-  // {
-  //   Error_Handler();
-  // }
-
-  Can_Handler_Init(&can_handler);                 //CAN数据容器初始化
   HAL_FDCAN_ActivateNotification(&hfdcan1, FDCAN_IT_RX_FIFO0_NEW_MESSAGE, 0);
   HAL_FDCAN_Start(&hfdcan1);
 
@@ -154,3 +140,4 @@ void HAL_FDCAN_MspDeInit(FDCAN_HandleTypeDef* fdcanHandle)
 /* USER CODE BEGIN 1 */
 
 /* USER CODE END 1 */
+
