@@ -228,7 +228,7 @@ void ADC1_2_IRQHandler(void)
   update_dt(&motor);
   update_angle(&motor);
   update_sincos(&motor);
-  update_IalphaIbeta(&motor);
+  update_IalphaIbeta(&motor); 
   update_IqId(&motor);
   update_velocity_LPF(&motor);
 
@@ -307,7 +307,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
         // {
         //   static float output_pos = 0.0f;
         //   static float output_vel = 0.0f;
-        //   output_pos = Calculate_PID(0.0f, motor.MotorData.angle_all, motor.time.dt , &motor.MotorAlg.position_pid);
+        //   output_pos = Calculate_PID(0.0f, get_angle_all(&motor), motor.time.dt , &motor.MotorAlg.position_pid);
         //   output_vel = Calculate_PID(output_pos, motor.MotorAlg.Velocity, motor.time.dt , &motor.MotorAlg.velocity_pid);
         //   motor.MotorAlg.Uq = Calculate_PID(output_vel, motor.MotorAlg.Iq , motor.time.dt , &motor.MotorAlg.iq_pid);
         //   motor.MotorAlg.Ud = Calculate_PID(0.0f, motor.MotorAlg.Id , motor.time.dt , &motor.MotorAlg.id_pid);

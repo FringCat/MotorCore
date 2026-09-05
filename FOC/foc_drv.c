@@ -213,7 +213,7 @@ void foc_init(Motor_HandleTypeDef *motor)
     motor->MotorData.IA_offset_raw = 0XFFFF;
     motor->MotorData.IB_offset_raw = 0XFFFF;
     motor->MotorData.IC_offset_raw = 0XFFFF;
-    motor->MotorData.angle_all = 0.0f;
+    motor->MotorData.loopcount = 0;
 
     motor->MotorData.Calibrate_2DIR_block__velocity_target = 0.03f;
     motor->MotorData.Calibrate_2DIR_nonblock__velocity_target = 10.0f;

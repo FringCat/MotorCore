@@ -129,7 +129,7 @@ typedef struct
     // -------------------------- 速度数据 -------------------------------
     float Velocity_raw;     // 转速原始值（未滤波前的计算结果，用于后续平滑处理）
     LPF_t Velocity_LPF;     // 速度滤波器实例（用于平滑Velocity_raw，提升速度反馈质量）
-    float angle_all;
+    int32_t loopcount;      // 机械角度圈数（解卷绕：总角 = loopcount×2π + angle）
 
     // -------------------------- 编码器角度原始数据（union适配两种读取方式） --------------------------
     union 
@@ -281,7 +281,9 @@ float Limit_angle_el(float angle_el);                                           
 float Get_angle_el(Motor_HandleTypeDef *motor);                                     // 获取当前电角度
 float update_angle_el(Motor_HandleTypeDef *motor);                                  // 更新电角度（机械角→电角度）
 float Calculate_angle_el(float Pole_pairs,float angle,float angle_el_zero);         // 计算电角度（含极对数和零点）
+float Calculate_angle_all(int32_t loopcount, float angle);                          // 由圈数与本圈角度合成解卷绕机械角
 float update_angle(Motor_HandleTypeDef *motor);
+float get_angle_all(Motor_HandleTypeDef *motor);
 
 // FOC坐标变换
 void update_sincos(Motor_HandleTypeDef *motor);

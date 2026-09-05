@@ -245,7 +245,7 @@ float my_cos(float x)
 
 void reset_data_angle(Motor_HandleTypeDef *motor)
 {
-    motor->MotorData.angle_all = 0.0f;
+    motor->MotorData.loopcount = 0;
     motor->MotorAlg.last_angle = 0.0f;
     motor->MotorAlg.angle = 0.0f;
 }
@@ -297,26 +297,33 @@ float Limit_angle_el(float angle_el)
     return angle_el;
 }
 
-float update_angle(Motor_HandleTypeDef *motor)//待更新:angle_all的更新是上一个周期的angle_all 不是这次的angle_all
+float update_angle(Motor_HandleTypeDef *motor)
 {
-    float error_angle = motor->MotorAlg.angle-motor->MotorAlg.last_angle;
-    if(my_abs(error_angle) > (0.8f*2*PI))
-    {
-        if((error_angle)<0){motor->MotorData.angle_all += (2*PI - motor->MotorAlg.last_angle + motor->MotorAlg.angle) ;}//正转
-        else if((error_angle)>=0){motor->MotorData.angle_all += -(2*PI - motor->MotorAlg.angle + motor->MotorAlg.last_angle) ;}//反转
-    }
-    else 
-    {
-        motor->MotorData.angle_all += error_angle ;
-    }
-
-    motor->MotorAlg.last_angle = motor->MotorAlg.angle;
+    float last = motor->MotorAlg.angle;
 
     motor->MotorData.AngleData.Angle_raw = motor->MotorDrv.Update_Angle_raw();
     motor->MotorAlg.angle = motor->MotorDrv.Cal_Angle(motor->MotorData.AngleData.Angle_raw);
     motor->MotorAlg.angle_el = Calculate_angle_el(motor->MotorConfig.Pole_pairs,motor->MotorAlg.angle, motor->MotorConfig.angle_el_zero);
 
+    float error_angle = motor->MotorAlg.angle - last;
+    if(my_abs(error_angle) > (0.8f*2*PI))
+    {
+        if(error_angle < 0){motor->MotorData.loopcount++;}//正转过零
+        else {motor->MotorData.loopcount--;}//反转过零
+    }
+
+    motor->MotorAlg.last_angle = last;
     return motor->MotorAlg.angle;
+}
+
+float Calculate_angle_all(int32_t loopcount, float angle)
+{
+    return (float)loopcount * (2.0f * PI) + angle;
+}
+
+float get_angle_all(Motor_HandleTypeDef *motor)
+{
+    return Calculate_angle_all(motor->MotorData.loopcount, motor->MotorAlg.angle);
 }
 
 float Get_angle_el(Motor_HandleTypeDef *motor) 
@@ -1713,7 +1720,7 @@ void update_angle_el_zero_sensor_block(Motor_HandleTypeDef *motor)
 {
     float angle_el_zero_sum = 0.0f;
     uint32_t angle_el_zero_n = 0;
-    float angle_all_temp = motor->MotorData.angle_all;
+    int32_t loopcount_temp = motor->MotorData.loopcount;
     float angle_last_temp = motor->MotorAlg.last_angle;
     float angle_temp = motor->MotorAlg.angle;
 
@@ -1732,7 +1739,7 @@ void update_angle_el_zero_sensor_block(Motor_HandleTypeDef *motor)
             break;
         }
         float angle_now = motor->MotorData.Openloop__progress/(float)motor->MotorConfig.Pole_pairs;
-        angle_el_zero_sum += angle_now - motor->MotorData.angle_all;
+        angle_el_zero_sum += angle_now - get_angle_all(motor);
         angle_el_zero_n++;
     } while (running);
     ctrl_motor_openloop_reset(motor);
@@ -1747,7 +1754,7 @@ void update_angle_el_zero_sensor_block(Motor_HandleTypeDef *motor)
             break;
         }
         float angle_now = 2*PI + motor->MotorData.Openloop__progress/(float)motor->MotorConfig.Pole_pairs;
-        angle_el_zero_sum += angle_now - motor->MotorData.angle_all;
+        angle_el_zero_sum += angle_now - get_angle_all(motor);
         angle_el_zero_n++;
     } while (running);
     ctrl_motor_openloop_reset(motor);
@@ -1756,7 +1763,7 @@ void update_angle_el_zero_sensor_block(Motor_HandleTypeDef *motor)
         motor->MotorConfig.angle_el_zero = Calculate_angle_el(motor->MotorConfig.Pole_pairs,angle_el_zero_sum/(float)angle_el_zero_n, 0.0f);
     }
 
-    motor->MotorData.angle_all = angle_all_temp ;
+    motor->MotorData.loopcount = loopcount_temp;
     motor->MotorAlg.last_angle = angle_last_temp;
     motor->MotorAlg.angle = angle_temp;
 
@@ -1767,7 +1774,7 @@ void update_angle_el_zero_sensor_nonblock(Motor_HandleTypeDef *motor)
 {
     float this_dt = update_dt(motor); //预热
     update_angle(motor);
-    update_angle_el_zero_sensor_nonblock_(motor,this_dt,motor->MotorData.angle_all);
+    update_angle_el_zero_sensor_nonblock_(motor,this_dt,get_angle_all(motor));
 }
 
 void update_angle_el_zero_sensor_nonblock_(Motor_HandleTypeDef *motor,float this_dt,float this_angle_all)
